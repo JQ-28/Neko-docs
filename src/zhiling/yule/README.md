@@ -146,6 +146,22 @@ background: rgba(248, 248, 255, 0.3)
 ```
 
 ```component VPCard
+title: Roll 随机选择
+desc: 不知道怎么选择? 让bot帮你决定吧！
+logo: /assets/icon/superpowers.svg
+link: roll
+background: rgba(248, 248, 255, 0.3)
+```
+
+```component VPCard
+title: 今天吃什么
+desc: 决定今天吃喝什么
+logo: /assets/icon/hotel.svg
+link: whateat
+background: rgba(248, 248, 255, 0.3)
+```
+
+```component VPCard
 title: 趣味占卜
 desc: 使用ShindanMaker网站的趣味占卜
 logo: /assets/icon/wand-sparkles.svg
@@ -234,39 +250,25 @@ background: rgba(248, 248, 255, 0.3)
 ```
 
 ```component VPCard
-title: 视奸jq
-desc: 👁👁
-logo: /assets/icon/eye.svg
-link: jq
+title: 群语录库
+desc: 上传聊天截图为语录，随机投放语录，关键词搜索语录
+logo: /assets/icon/image.svg
+link: quote
 background: rgba(248, 248, 255, 0.3)
 ```
-
----
-
-## ⌗ 综合插件包
-
-功能丰富的综合插件
 
 ```component VPCard
 title: Poke-Plugin
 desc: 一个功能丰富的戳一戳统计插件
-logo: /assets/icon/gamepad.svg
+logo: /assets/icon/gitee.svg
 link: Poke-Plugin
 background: rgba(248, 248, 255, 0.3)
 ```
 
 ```component VPCard
-title: Earth-K-Plugin
-desc: 主要提供了原史及部分功能
-logo: /assets/icon/gamepad.svg
-link: Earth-K-Plugin
-background: rgba(248, 248, 255, 0.3)
-```
-
-```component VPCard
-title: L-Plugin
-desc: 是一个 Yunzai的功能插件
-logo: /assets/icon/gamepad.svg
-link: L-Plugin
+title: 视奸jq
+desc: 👁👁
+logo: /assets/icon/eye.svg
+link: jq
 background: rgba(248, 248, 255, 0.3)
 ```

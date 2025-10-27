@@ -11,6 +11,12 @@
   margin: 20px auto;
 }
 
+// 深色模式 - 聊天界面
+html.dark .qq-chat-interface {
+  border-color: #e8d5f8;
+  box-shadow: 0 8px 24px rgba(232, 213, 248, 0.4);
+}
+
 .qq-header {
   align-items: center;
   background: linear-gradient(135deg, #f9bdeb 0%, #c5d8f8 100%);
@@ -20,6 +26,11 @@
   justify-content: center;
   padding: 15px;
   position: relative;
+}
+
+// 深色模式 - 头部（颜色更深一些）
+html.dark .qq-header {
+  background: linear-gradient(135deg, #d4a5f5 0%, #9ab8e8 100%);
 }
 
 .qq-back {
@@ -104,6 +115,13 @@
   color: #000;
 }
 
+// 深色模式 - 消息气泡
+html.dark .qq-message.left .qq-text,
+html.dark .qq-message.right .qq-text {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+}
+
 .qq-message.mid {
   justify-content: center;
 }
@@ -114,6 +132,11 @@
   color: #666;
   font-size: 13px;
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+html.dark .qq-message.mid .qq-text {
+  color: #999;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .qq-message.right {
@@ -164,6 +187,10 @@
   border-color: transparent #fff transparent transparent;
 }
 
+html.dark .qq-message.left .qq-text::before {
+  border-color: transparent rgba(255, 255, 255, 0.1) transparent transparent;
+}
+
 // 右侧消息添加小尾巴
 .qq-message.right .qq-text::before {
   content: '';
@@ -177,12 +204,20 @@
   border-color: transparent transparent transparent #fff;
 }
 
+html.dark .qq-message.right .qq-text::before {
+  border-color: transparent transparent transparent rgba(255, 255, 255, 0.1);
+}
+
 .qq-input-bar {
   background-color: #fbe4f8;
   display: flex;
   padding: 5px;
   z-index: 2;
   position: relative;
+}
+
+html.dark .qq-input-bar {
+  background-color: rgba(247, 228, 251, 0.1);
 }
 
 .qq-input-bar input {
@@ -192,6 +227,12 @@
   height: 25px;
   margin-right: 5px;
   padding: 10px;
+}
+
+html.dark .qq-input-bar input {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: #9ab8e8;
+  color: #e0e0e0;
 }
 
 .qq-send-button {
@@ -236,6 +277,11 @@
     width: 22px;
     height: 22px;
   }
+}
+
+html.dark .qq-footer {
+  background-color: rgba(247, 228, 251, 0.1);
+  border-top-color: rgba(249, 189, 235, 0.3);
 }
 
 .qq-reply-message {

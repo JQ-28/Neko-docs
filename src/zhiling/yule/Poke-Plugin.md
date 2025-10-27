@@ -11,6 +11,18 @@ copyright: false
 footer: 戳戳你的
 ---
 
+```component VPCard
+title: poke-plugin
+desc: 一个功能丰富的戳一戳统计插件
+logo: /assets/icon/gitee.svg
+link: https://gitee.com/tttfff/poke-plugin
+background: rgba(248, 248, 255, 0.3)
+```
+
+:::warning 注意
+**暂未适配官方机器人**
+:::
+
 ## 🎮 指令用法
 
 ### 榜单查询指令

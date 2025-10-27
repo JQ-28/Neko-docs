@@ -10,6 +10,14 @@ copyright: false
 footer: 总有一句话能打动你的心
 ---
 
+```component VPCard
+title: nonebot-plugin-hitokoto-plus
+desc:  （可能是）更好的一言插件！
+logo: /assets/icon/github.svg
+link: https://github.com/Jerry-Z07/nonebot-plugin-hitokoto-plus
+background: rgba(248, 248, 255, 0.3)
+```
+
 ## 使用方法
 
 ### 基础命令

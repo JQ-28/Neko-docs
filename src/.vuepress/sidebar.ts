@@ -141,6 +141,7 @@ export default sidebar({
                 "imga",
                 "imgts",
                 "imgS",
+                "miragetank",
               ]
             },
             // 媒体解析
@@ -212,41 +213,34 @@ export default sidebar({
                 "oooo",
               ]
             },
-            // 互动娱乐（合并）
-            {
-              text: "互动娱乐",
-              icon: "/assets/icon/face-laugh-squint.svg",
-              collapsible: true,
-              children: [
-                "qiandao",
-                "todaywife",
-                "todaycatgirl",
-                "jrrp",
-                "zhanbu",
-                "abook",
-                "otto",
-                "homo",
-                "Atri",
-                "emoji",
-                "wordle",
-                "megumin",
-                "mypower",
-                "bottle",
-                "ciyun",
-                "jq",
-              ]
-            },
-            // 插件包
-            {
-              text: "综合插件包",
-              icon: "/assets/icon/box.svg",
-              collapsible: true,
-              children: [
-                "Poke-Plugin",
-                "Earth-K-Plugin",
-                "L-Plugin",
-              ]
-            },
+           // 互动娱乐（合并）
+           {
+             text: "互动娱乐",
+             icon: "/assets/icon/face-laugh-squint.svg",
+             collapsible: true,
+             children: [
+               "qiandao",
+               "todaywife",
+               "todaycatgirl",
+               "jrrp",
+               "roll",
+               "whateat",
+               "zhanbu",
+               "abook",
+               "otto",
+               "homo",
+               "Atri",
+               "emoji",
+               "wordle",
+               "megumin",
+               "mypower",
+               "bottle",
+               "ciyun",
+               "quote",
+               "Poke-Plugin",
+               "jq",
+             ]
+           },
           ],
         },
         // AI 功能暂时隐藏，待添加内容后再显示

@@ -11,6 +11,14 @@ copyright: false
 footer: 来一碗心灵鸡汤吧。
 ---
 
+```component VPCard
+title: nonebot_plugin_soup
+desc:  来一碗心灵鸡汤吧。
+logo: /assets/icon/github.svg
+link: https://github.com/Monarchdos/nonebot_plugin_soup
+background: rgba(248, 248, 255, 0.3)
+```
+
 ## **命令**
 1. **`鸡汤` 获取一碗心灵鸡汤**
 

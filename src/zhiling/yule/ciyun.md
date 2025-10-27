@@ -10,6 +10,17 @@ copyright: false
 footer: 词云
 ---
 
+```component VPCard
+title: nonebot-plugin-wordcloud
+desc:   NoneBot 词云插件
+logo: /assets/icon/github.svg
+link: https://github.com/he0119/nonebot-plugin-wordcloud
+```
+
+:::warning 注意
+**暂未适配官方机器人**
+:::
+
 ## **命令**
 - **查看帮助**
 发送 /词云 可获取插件使用方法。

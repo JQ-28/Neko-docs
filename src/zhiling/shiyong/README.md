@@ -109,6 +109,14 @@ link: imgS
 background: rgba(248, 248, 255, 0.3)
 ```
 
+```component VPCard
+title: 幻影坦克
+desc: 合成/分离幻影坦克图
+logo: /assets/icon/image.svg
+link: miragetank
+background: rgba(248, 248, 255, 0.3)
+```
+
 ---
 
 ## ⌗ 媒体解析

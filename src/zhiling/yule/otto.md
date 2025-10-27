@@ -18,6 +18,10 @@ footer: 卧槽！冰！
   background: rgba(248, 248, 255, 0.3)
   ```
 
+:::warning 注意
+**暂未适配官方机器人**
+:::
+
 ## ♿ 电棍活字印刷 ♿
 
 <QQChat title="卧槽！冰！">
