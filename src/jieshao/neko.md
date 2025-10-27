@@ -75,42 +75,47 @@ Bot 刚创建的时候是《原神》中的角色“珊瑚宫心海”，因为�
 
 ## ᪥ **联系Neko** ᪥
 
-```component VPCard
-title: Neko_dayo~
-desc: 咪
-logo: http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640
-link: https://qm.qq.com/q/pSRLW8QFLq
-background: rgba(247, 217, 253, 0.3)
-```
+<VPCard
+  class="hover-bounce"
+  title="Neko_dayo~"
+  desc="咪"
+  logo="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640"
+  link="https://qm.qq.com/q/pSRLW8QFLq"
+  background="rgba(247, 217, 253, 0.3)"
+/>
 
-```component VPCard
-title: Neko一号机
-desc: 二楼！
-logo: http://q2.qlogo.cn/headimg_dl?dst_uin=3309739044&spec=640
-link: mqqapi://card/show_pslcard?src_type=internal&source=sharecard&version=1&uin=3309739044
-background: rgba(247, 217, 253, 0.3)
-```
+<VPCard
+  class="hover-bounce"
+  title="Neko一号机"
+  desc="二楼！"
+  logo="http://q2.qlogo.cn/headimg_dl?dst_uin=3309739044&spec=640"
+  link="mqqapi://card/show_pslcard?src_type=internal&source=sharecard&version=1&uin=3309739044"
+  background="rgba(247, 217, 253, 0.3)"
+/>
 
-```component VPCard
-title: Neko二号机
-desc: 赛博猫会梦到电子鼠嘛?
-logo: http://q2.qlogo.cn/headimg_dl?dst_uin=2760015052&spec=640
-link: mqqapi://card/show_pslcard?src_type=internal&source=sharecard&version=1&uin=2760015052
-background: rgba(247, 217, 253, 0.3)
-```
+<VPCard
+  class="hover-bounce"
+  title="Neko二号机"
+  desc="赛博猫会梦到电子鼠嘛?"
+  logo="http://q2.qlogo.cn/headimg_dl?dst_uin=2760015052&spec=640"
+  link="mqqapi://card/show_pslcard?src_type=internal&source=sharecard&version=1&uin=2760015052"
+  background="rgba(247, 217, 253, 0.3)"
+/>
 
-```component VPCard
-title: Neko三号机
-desc: 人！泥嚎！
-logo: http://q2.qlogo.cn/headimg_dl?dst_uin=3278327679&spec=640
-link: mqqapi://card/show_pslcard?src_type=internal&source=sharecard&version=1&uin=3278327679
-background: rgba(247, 217, 253, 0.3)
-```
+<VPCard
+  class="hover-bounce"
+  title="Neko三号机"
+  desc="人！泥嚎！"
+  logo="http://q2.qlogo.cn/headimg_dl?dst_uin=3278327679&spec=640"
+  link="mqqapi://card/show_pslcard?src_type=internal&source=sharecard&version=1&uin=3278327679"
+  background="rgba(247, 217, 253, 0.3)"
+/>
 
-```component VPCard
-title: Neko官方机器人
-desc: BABABOI~
-logo: https://q1.qlogo.cn/g?b=qq&nk=2854207094&s=640
-link: mqqapi://card/show_pslcard?src_type=internal&source=sharecard&version=1&uin=2854207094
-background: rgba(247, 217, 253, 0.3)
-```
+<VPCard
+  class="hover-bounce"
+  title="Neko官方机器人"
+  desc="BABABOI~"
+  logo="https://q1.qlogo.cn/g?b=qq&nk=2854207094&s=640"
+  link="mqqapi://card/show_pslcard?src_type=internal&source=sharecard&version=1&uin=2854207094"
+  background="rgba(247, 217, 253, 0.3)"
+/>

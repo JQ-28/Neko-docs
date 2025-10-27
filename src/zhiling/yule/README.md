@@ -81,13 +81,13 @@ footer: Neko docs - 娱乐系列
   ```
 
 
- ```component VPCard
-  title: 草图
-  desc: 草
-  logo: /assets/icon/image.svg
-  link: cao
-  background: rgba(248, 248, 255, 0.3)
-  ```
+```component VPCard
+title: 综合搜图
+desc: 多源图片聚合插件
+logo: /assets/icon/image.svg
+link: image_collection
+background: rgba(248, 248, 255, 0.3)
+```
 
   ```component VPCard
   title: ottohzys

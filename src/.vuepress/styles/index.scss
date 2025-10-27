@@ -281,10 +281,24 @@
 
 /* .vuepress/styles/index.scss */
 .hover-rotate {
-  transition: transform 0.6s; /* 过渡效果 */
+  transition: transform 0.6s;
+  cursor: pointer;
 
+  // PC端：鼠标悬停疯狂旋转
   &:hover {
-    animation: rotate 0.1s linear infinite; /* 无限旋转 */
+    animation: rotate 0.1s linear infinite;
+  }
+
+  // 移动端：点击触发疯狂旋转
+  &:active {
+    animation: rotate 0.1s linear infinite;
+  }
+
+  // 移动端触摸支持 - 转5圈后停止
+  @media (hover: none) and (pointer: coarse) {
+    &:active {
+      animation: rotate 0.1s linear 50;  // 转5秒（50圈）
+    }
   }
 }
 
@@ -294,6 +308,38 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+// 上下跳动效果
+.hover-bounce {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+
+  // PC端：鼠标悬停跳动
+  &:hover {
+    animation: bounce 0.6s ease infinite;
+  }
+
+  // 移动端：点击触发跳动
+  &:active {
+    animation: bounce 0.6s ease infinite;
+  }
+
+  // 移动端触摸支持 - 跳5秒后停止
+  @media (hover: none) and (pointer: coarse) {
+    &:active {
+      animation: bounce 0.6s ease 8;  // 跳8次
+    }
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
   }
 }
 
