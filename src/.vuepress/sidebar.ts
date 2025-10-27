@@ -39,11 +39,15 @@ export default sidebar({
             "mingchao",
             "juequ0",
             "ark",
+            "limbus",
             "ba",
             "sr",
             "wws",
+            "wot",
+            "CSGO",
             "bf",
-            "DeltaForce"
+            "DeltaForce",
+            "l4d2"
           ],
         },
         {
@@ -79,6 +83,7 @@ export default sidebar({
             "pgr",
             "BangDream",
             "osu",
+            "vs",
             "chu",
             "maimai",
             "bs",
@@ -102,6 +107,8 @@ export default sidebar({
             "imga",
             "imgts",
             "imgS",
+            "wsk",
+            "parser",
           ],
         },
         {
@@ -151,8 +158,7 @@ export default sidebar({
           link: "AI/",
           collapsible: true,
           children: [
-            "neko",
-            "summarygroup"
+
           ],
         },
       ],

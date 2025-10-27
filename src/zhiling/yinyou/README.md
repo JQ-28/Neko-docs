@@ -20,7 +20,7 @@ footer: 多练.webp
   desc: 616.sb
   logo: https://drive.nekodayo.top/raw/nekodocs/image/arc.jpg
   link: arc/
-  background: rgba(181,111,144, 0.3)
+  background: rgba(252, 235, 243, 0.3)
   ```
 
 
@@ -29,7 +29,7 @@ footer: 多练.webp
   desc: 要开始了哟~
   logo: https://drive.nekodayo.top/raw/nekodocs/image/maimai.webp
   link: maimai
-  background: rgba(73,184,199, 0.3)
+  background: rgba(230, 247, 249, 0.3)
   ```
 
   ```component VPCard
@@ -37,7 +37,15 @@ footer: 多练.webp
   desc: welcome to osu!
   logo: https://drive.nekodayo.top/raw/nekodocs/image/osu.png
   link: osu
-  background: rgba(255,97,187, 0.3)
+  background: rgba(253, 238, 247, 0.3)
+  ```  
+
+  ```component VPCard
+  title: vivid/stasis
+  desc: grode
+  logo: https://drive.nekodayo.top/raw/nekodocs/image/vs.webp
+  link: vs
+  background: rgba(253, 238, 247, 0.3)
   ```  
 
   
@@ -46,7 +54,7 @@ footer: 多练.webp
   desc: Tip:给我干哪来了啊，这还是臀内吗
   logo: https://drive.nekodayo.top/raw/nekodocs/image/pgr.webp
   link: pgr
-  background: rgba(124,116,196, 0.3)
+  background: rgba(235, 233, 249, 0.3)
   ```
 
   ```component VPCard
@@ -54,7 +62,7 @@ footer: 多练.webp
   desc: 键盘比
   logo: https://drive.nekodayo.top/raw/nekodocs/image/chu.png
   link: chu
-  background: rgba(238,197,72, 0.3)
+  background: rgba(255, 252, 243, 0.3)
   ```
 
   ```component VPCard
@@ -62,7 +70,7 @@ footer: 多练.webp
   desc: 一起歌唱吧！
   logo: https://drive.nekodayo.top/raw/nekodocs/image/pjsk.jpg
   link: pjsk/
-  background: rgba(57, 197, 187, 0.3)
+  background: rgba(243, 255, 254, 0.3)
   ```
 
   ```component VPCard

@@ -22,8 +22,8 @@ footer: 原来，你也...
   ```component VPCard
   title: Miao-Plugin
   desc: 提供包括角色面板、角色查询等角色相关功能。
-  logo: /assets/icon/gitee.svg
-  link: https://gitee.com/yoimiya-kokomi/miao-plugin
+  logo: /assets/icon/github.svg
+  link: https://github.com/yoimiya-kokomi/miao-plugin
   background: rgba(248, 248, 255, 0.3)
   ```
 ### **功能说明**
@@ -46,8 +46,8 @@ footer: 原来，你也...
   ```component VPCard
   title: xiaoyao-cvs-plugin
   desc: 原神图鉴插件。
-  logo: /assets/icon/gitee.svg
-  link: https://gitee.com/Ctrlcvs/xiaoyao-cvs-plugin
+  logo: /assets/icon/github.svg
+  link: https://github.com/Ctrlcvs/xiaoyao-cvs-plugin
   background: rgba(248, 248, 255, 0.3)
   ```
 ### **命令说明**
@@ -68,21 +68,75 @@ footer: 原来，你也...
 
 ### **图鉴指令**
 
-| 指令示例           | 指令说明                              | 所属图鉴     |
-| :----------------: | ------------------------------------- | :----------: |
-| #芙宁娜材料       | 查询角色突破材料信息                 |    原神     |
-| #黄金剧团         | 查询圣遗物信息                        |    原神     |
-| #苍古自由之誓     | 查询武器信息                          |    原神     |
-| #七圣珊瑚宫心海   | 查询七圣卡牌（**已停更**）           |    原神     |
-| #甜甜花酿鸡       | 查询食物信息（更新频率较慢）         |    原神     |
-| #无相之草         | 查询敌对单位信息（更新频率较慢）     |    原神     |
-| #鸣草             | 查询区域特产信息（更新频率较慢）     |    原神     |
+获取图鉴图片后，可以根据相应的指令获取图鉴。
+
+| 指令示例        | 指令说明                         | 所属图鉴 |
+| --------------- | -------------------------------- | -------- |
+| #芙宁娜材料     | 查询角色突破材料信息             | 原神     |
+| #黄金剧团       | 查询圣遗物信息                   | 原神     |
+| #苍古自由之誓   | 查询武器信息                     | 原神     |
+| #七圣珊瑚宫心海 | 查询七圣卡牌（**已停更**）       | 原神     |
+| #甜甜花酿鸡     | 查询食物信息（更新频率较慢）     | 原神     |
+| #无相之草       | 查询敌对单位信息（更新频率较慢） | 原神     |
+| #鸣草           | 查询区域特产信息（更新频率较慢） | 原神     |
+
+
+
+此外，如果对某些物品的名字记忆模糊，可以根据对应索引查询：
+1. `#武器索引`口令唤出武器索引，逐级查询想要找的武器
+2. `#原魔`口令唤出原魔索引，逐级查询想要找的原魔
+3. `#圣遗物`口令唤出圣遗物一级索引，直接查询想要找的圣遗物
+4. `七圣召唤`口令唤出七圣召唤卡牌索引，逐级查询想要找的七圣召唤卡牌
 
 ---
 
 ### **本人推荐丝滑使用小连招如下：**  
 发送 `#扫码登录` Bot会发送二维码让你扫描，打开你的米游社 `我的-左上角扫码` 然后进行扫码  
 然后你就可以任意使用查询角色面板等功能啦
+
+<QQChat title="原神绑定查询">
+  <QQMessage align="right" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=480352716&spec=640">
+    <div>#扫码登录</div>
+  </QQMessage>
+  
+  <QQMessage align="left" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640">
+    <div>@JQ-28 请使用米游社扫码登录</div>
+  </QQMessage>
+
+  <QQImage 
+    align="left" 
+    avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640"
+    src="https://drive.nekodayo.top/raw/nekodocs/image/BABABOIQRCODE.png"
+    alt="神秘二维码"
+  />
+
+  <QQMessage align="right" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=480352716&spec=640">
+    <div>*使用米游社app扫描了二维码*</div>
+  </QQMessage>
+  
+  <QQMessage align="left" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640">
+    <div>绑定Cookie成功</div>
+    <div>【原神】:125993111</div>
+    <div>【星穹铁道】:110130549</div>
+  </QQMessage>
+
+  <QQMessage align="left" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640">
+    <div>【此处省略其他信息】</div>
+  </QQMessage>
+
+  <QQMessage align="right" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=480352716&spec=640">
+    <div>#更新面版</div>
+  </QQMessage>
+
+  <QQImage 
+    align="left" 
+    avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640"
+    src="https://drive.nekodayo.top/raw/nekodocs/image/gxmb.jpg"
+    alt="#更新面板"
+  />
+  
+
+</QQChat>
 
 ## **黄历**
 发送 `#原神黄历` 查看

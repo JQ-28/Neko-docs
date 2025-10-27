@@ -11,6 +11,14 @@ footer: 教我画画
 **Neko Bot的历史立绘，头像，小表情您都可以在此处找到 均出自JQ之手(黑历史)**
 
 
+### **2025-9-22**
+![海边](https://drive.nekodayo.top/raw/nekodocs/image/neko32.png =256x256) ![夜海](https://drive.nekodayo.top/raw/nekodocs/image/neko33.png =256x256)
+
+
+### **2025-8-28**
+![呜~](https://drive.nekodayo.top/raw/nekodocs/image/neko31.png =212x256)
+
+
 ### **2025-8-9**
 ![小表情](https://drive.nekodayo.top/raw/nekodocs/image/neko29.png =128x128) ![小表情](https://drive.nekodayo.top/raw/nekodocs/image/neko30.png =128x86)
 

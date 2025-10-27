@@ -99,3 +99,19 @@ footer: Neko docs - 实用系列
   background: rgba(248, 248, 255, 0.3)
   ```
 
+```component VPCard
+title: 谁问你了？
+desc: 那我问你
+logo: /assets/icon/material-symbols--question-mark.svg
+link: wsk
+background: rgba(248, 248, 255, 0.3)
+```
+
+```component VPCard
+title: 视频链接解析
+desc: 支持B站、抖音等多平台
+logo: /assets/icon/material-symbols--videocam-outline.svg
+link: parser
+background: rgba(248, 248, 255, 0.3)
+```
+

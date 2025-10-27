@@ -31,7 +31,9 @@ HarukiBot介绍 a.k.a. 开发计划
 
 目前Haruki仍然在活跃开发中，可能存在各种各样的bug，如果遇到bug请及时找Haruki开发者反馈  
 
-
+:::warning 注意
+**HARUKI BOT并不支持官方机器人**
+:::
 
 ### **以下文档均转自[HarukiBot 帮助文档](https://docs.shiromiku.moe/)**
 **如有侵权请联系删除**

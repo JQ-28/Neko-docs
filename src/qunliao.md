@@ -33,4 +33,12 @@ footer: Neko docs - 邀群
     src="https://drive.nekodayo.top/raw/nekodocs/image/poster.webp"
     alt="芝士问卷"
   />
+
+  <QQMessage align="left" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=480352716&spec=640">
+    <div>BOT曾经加过的群需要的话可以直接邀 新群需要填写问卷</div>
+  </QQMessage>
+
+  <QQMessage align="left" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=480352716&spec=640">
+    <div>未经允许同意请不要擅自将BOT拉进自己的群聊</div>
+  </QQMessage>
 </QQChat>

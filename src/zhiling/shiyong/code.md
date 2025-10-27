@@ -10,6 +10,18 @@ copyright: false
 footer: 在线运行代码
 ---
 
+  ```component VPCard
+  title: nonebot_plugin_code
+  desc: 在线运行代码<_ 
+  logo: /assets/icon/github.svg
+  link: https://github.com/yzyyz1387/nonebot_plugin_code
+  background: rgba(248, 248, 255, 0.3)
+  ```
+
+:::warning 注意
+**暂未适配官方机器人**
+:::
+
 ## 指令💻
 ```
 code [语言] [inputText(空格将被转换为回车)]

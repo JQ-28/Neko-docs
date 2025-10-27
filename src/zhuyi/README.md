@@ -26,3 +26,11 @@ footer: Neko docs - 注意事项
   link: xuzhi
   background: rgba(248, 248, 255, 0.3)
   ```
+
+  ```component VPCard
+  title: 常见问题
+  desc: 常见问题
+  logo: /assets/icon/splotch.svg
+  link: faq
+  background: rgba(248, 248, 255, 0.3)
+  ```

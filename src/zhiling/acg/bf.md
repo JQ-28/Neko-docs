@@ -1,5 +1,5 @@
 ---
-title: 战地一/五
+title: 战地
 icon: https://drive.nekodayo.top/raw/nekodocs/image/bf.webp
 sticky: true
 category:
@@ -12,6 +12,15 @@ star: true
 copyright: false
 footer: 他们敢推进，我们就推回去！
 ---
+
+  ```component VPCard
+  title: nonebot-plugin-bfchat
+  desc: 基于nonebot2平台的战地1/5/2042聊天机器人
+  logo: /assets/icon/github.svg
+  link: https://github.com/050644zf/nonebot-plugin-bfchat
+  background: rgba(248, 248, 255, 0.3)
+  ```
+
 
 ## **命令列表**
 

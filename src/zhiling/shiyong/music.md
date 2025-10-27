@@ -12,6 +12,18 @@ copyright: false
 footer: This is the true music.webp
 ---
 
+:::warning 注意
+**暂未适配官方机器人**
+:::
+
+  ```component VPCard
+  title: NoneBot-Plugin-MultiNCM
+  desc: ✨ 网易云多选点歌 ✨
+  logo: /assets/icon/github.svg
+  link: https://github.com/lgc-NB2Dev/nonebot-plugin-multincm
+  background: rgba(248, 248, 255, 0.3)
+  ```
+
 ## **指令**
 ### **网易云点歌系列**
 #### **搜索指令**
@@ -46,23 +58,3 @@ footer: This is the true music.webp
 #### **Tip**
 - **点击 Bot 发送的音乐卡片会跳转到官网歌曲页**
 - **使用需要回复音乐卡片的指令时，如果没有回复，会自动使用你触发发送的最近一个音乐卡片的信息**
-
-
-### **QQ音乐，酷狗，酷我点歌系列**
-#### **#点歌 [歌曲名]    #多选点歌 [歌曲名]**
-**支持使用QQ，酷狗，酷我点播，默认QQ音乐**  
-**例：`#QQ点歌Sad Machine`   `#多选点歌AIKA`**
-
-
-
-#### **#语音 #高清语音**
-**将点播的音乐转为语音发送，请先点播音乐再使用该功能**
-
-#### **#歌词**
-**查询当前点播音乐的歌词，请先点播音乐再使用该功能**
-
-#### **#来首歌 #每日推荐 #个性电台**
-**根据你当前QQ的听歌口味推荐歌曲**
-
-#### **#我的收藏 #我喜欢的歌**
-**获取你当前QQ的收藏歌曲**

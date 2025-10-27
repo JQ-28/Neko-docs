@@ -17,7 +17,7 @@ footer: XX是这样的，XX只要XX就可以，可是XX要考虑的事情就多�
   title: WAVES-PLUGIN
   desc: 鸣潮游戏数据查询插件
   logo: /assets/icon/github.svg
-  link: https://github.com/erzaozi/waves-plugin
+  link: https://github.com/Xinglingsuiyue/waves-plugin
   background: rgba(248, 248, 255, 0.3)
   ```
 

@@ -16,6 +16,18 @@ copyright: false
 footer: 不错
 ---
 
+  ```component VPCard
+  title: 多源日报
+  desc: 一个聚合多种日报源的NoneBot2插件
+  logo: /assets/icon/github.svg
+  link: https://github.com/webjoin111/nonebot-plugin-multi-source-daily
+  background: rgba(248, 248, 255, 0.3)
+  ```
+
+:::warning 注意
+**暂未适配官方机器人**
+:::
+
 ## 🎮 使用指南
 
 ### 基础命令

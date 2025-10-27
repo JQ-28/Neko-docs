@@ -21,6 +21,10 @@ footer: 多练​
   background: rgba(248, 248, 255, 0.3)
   ```
 
+:::warning 注意
+**暂未适配官方机器人**
+:::
+
 ## **指令**
 ![](https://drive.nekodayo.top/raw/nekodocs/image/maimaidxhelp.png)
 
