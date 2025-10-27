@@ -20,6 +20,11 @@ link: https://github.com/fllesser/nonebot-plugin-parser
 background: rgba(248, 248, 255, 0.3)
 ```
 
+:::warning 注意
+**暂未适配官方机器人**
+:::
+
+
 ## **功能**
 
 自动识别并解析群聊中的音视频分享链接，支持多个主流平台：

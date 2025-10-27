@@ -10,6 +10,10 @@ copyright: false
 footer: 嘿嘿嘿~~
 ---
 
+:::warning 注意
+**暂未适配官方机器人**
+:::
+
 ## 🎉 使用
 
 ### 指令表

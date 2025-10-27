@@ -109,6 +109,8 @@ export default sidebar({
             "imgS",
             "wsk",
             "parser",
+            "githubcard",
+            "disconnect",
           ],
         },
         {

@@ -115,3 +115,19 @@ link: parser
 background: rgba(248, 248, 255, 0.3)
 ```
 
+```component VPCard
+title: GitHub卡片
+desc: 自动识别GitHub链接生成卡片
+logo: /assets/icon/github.svg
+link: githubcard
+background: rgba(248, 248, 255, 0.3)
+```
+
+```component VPCard
+title: 断连通知
+desc: Bot断连时自动通知管理员
+logo: /assets/icon/terminal.svg
+link: disconnect
+background: rgba(248, 248, 255, 0.3)
+```
+
