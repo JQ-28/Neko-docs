@@ -3,12 +3,11 @@ title: 恶臭数字论证器
 index: false
 icon: https://drive.nekodayo.top/raw/nekodocs/image/homo.jpg
 category:
-  - 114514
+  - 互动娱乐
 tag:
-  - 114
-  - 514
-  - 1919
-  - 810
+  - 恶臭
+  - 数字
+  - "114514"
 copyright: false
 footer: 哼 哼 哼 哼啊啊啊啊啊啊啊啊啊
 ---

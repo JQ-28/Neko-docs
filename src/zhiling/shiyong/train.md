@@ -3,11 +3,12 @@ title: 12306 列车时刻表查询
 index: false
 icon: /assets/icon/train-subway.svg
 category:
-  - 12306
+  - 指令列表
 tag:
   - 列车
   - 时刻
   - 查询
+  - "12306"
 copyright: false
 footer: 常回家看看~回家看~看~
 ---

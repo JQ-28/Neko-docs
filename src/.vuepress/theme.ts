@@ -75,6 +75,38 @@ export default hopeTheme({
         ],
       },
 
+    // 代码复制
+    copyCode: {
+      showInMobile: true,
+    },
+
+    // 通知插件
+    notice: [
+      {
+        path: '/',
+        title: '您有一个群聊邀请！',
+        content: 'ღ互联网小猫窝ღ邀请您加入游玩',
+        showOnce: false,
+        actions: [
+          {
+            text: '接受邀请',
+            link: 'http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=sy5x0Bv8IJoMVviC3dRbXTVD9zLdpitx&authKey=OPfY0G2zfQwDQJmf5xV5cqJq7c6%2Beg1cqiCF%2BDHsSFEaGscmeo5ALIdyJ%2BYZmoJb&noverify=0&group_code=806446119',
+            type: 'primary',
+          },
+          { text: 'TD' },
+        ],
+      }
+    ],
+
+    // 搜索
+    searchPro: {
+      locales: {
+        '/': {
+          placeholder: '搜索',
+        }
+      },
+    },
+
     components: {
       components: ["Badge", "VPCard"],
     },

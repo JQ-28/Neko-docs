@@ -6,7 +6,6 @@ category:
   - book
 tag:
   - book
-  - 
 copyright: false
 footer: 愿一切无解都有解！解除你的迷惑，终结你的纠结！
 ---

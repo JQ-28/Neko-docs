@@ -3,11 +3,6 @@ import { getDirname, path } from "vuepress/utils";
 
 import theme from "./theme.js";
 
-import { oml2dPlugin } from 'vuepress-plugin-oh-my-live2d';
-import { copyCodePlugin } from '@vuepress/plugin-copy-code'
-import { noticePlugin } from '@vuepress/plugin-notice'
-import { backToTopPlugin } from '@vuepress/plugin-back-to-top'
-import { searchProPlugin } from "vuepress-plugin-search-pro";
 import { removeHtmlExtensionPlugin } from 'vuepress-plugin-remove-html-extension'
 
 const __dirname = getDirname(import.meta.url);
@@ -24,35 +19,6 @@ export default defineUserConfig({
   clientConfigFile: path.resolve(__dirname, './client.ts'),
 
   plugins: [
-    copyCodePlugin({
-      showInMobile: true // options
-    }),
-    noticePlugin({
-      config: [
-        {
-          path: '/',
-          title: '您有一个群聊邀请！',
-          content: 'ღ互联网小猫窝ღ邀请您加入游玩',
-          showOnce: false,
-          actions: [
-            {
-              text: '接受邀请',
-              link: 'http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=sy5x0Bv8IJoMVviC3dRbXTVD9zLdpitx&authKey=OPfY0G2zfQwDQJmf5xV5cqJq7c6%2Beg1cqiCF%2BDHsSFEaGscmeo5ALIdyJ%2BYZmoJb&noverify=0&group_code=806446119',
-              type: 'primary',
-            },
-            { text: 'TD' },
-          ],
-        }
-      ],
-    }),
-    backToTopPlugin(),
-    searchProPlugin({
-      locales: {
-        '/': {
-          placeholder: '搜索',
-        }
-      },
-    }),
     removeHtmlExtensionPlugin()
     //  ...other plugins
   ],

@@ -34,20 +34,44 @@ export default sidebar({
           link: "acg/",
           collapsible: true,
           children: [
-            "genshin",
-            "guangyu",
-            "mingchao",
-            "juequ0",
-            "ark",
-            "limbus",
-            "ba",
-            "sr",
-            "wws",
-            "wot",
-            "CSGO",
-            "bf",
-            "DeltaForce",
-            "l4d2"
+            // ACG 二次元游戏
+            {
+              text: "ACG Games",
+              icon: "/assets/icon/heart.svg",
+              collapsible: true,
+              children: [
+                "genshin",
+                "sr",
+                "juequ0",
+                "ba",
+                "ark",
+                "limbus",
+                "mingchao",
+                "guangyu",
+              ]
+            },
+            // FPS 射击游戏
+            {
+              text: "FPS",
+              icon: "/assets/icon/superpowers.svg",
+              collapsible: true,
+              children: [
+                "CSGO",
+                "DeltaForce",
+                "bf",
+                "l4d2",
+              ]
+            },
+            // 战争游戏
+            {
+              text: "War Games",
+              icon: "/assets/icon/gamepad.svg",
+              collapsible: true,
+              children: [
+                "wot",
+                "wws",
+              ]
+            },
           ],
         },
         {
@@ -96,21 +120,62 @@ export default sidebar({
           link: "shiyong/",
           collapsible: true,
           children: [
-            "train",
-            "Multi-Source Daily",
-            "status",
-            "code",
-            "english",
-            "bw",
-            "music",
-            "price",
-            "imga",
-            "imgts",
-            "imgS",
-            "wsk",
-            "parser",
-            "githubcard",
-            "disconnect",
+            // 信息查询
+            {
+              text: "信息查询",
+              icon: "/assets/icon/eye.svg",
+              collapsible: true,
+              children: [
+                "train",
+                "Multi-Source Daily",
+                "status",
+                "price",
+              ]
+            },
+            // 图片工具
+            {
+              text: "图片工具",
+              icon: "/assets/icon/image.svg",
+              collapsible: true,
+              children: [
+                "imga",
+                "imgts",
+                "imgS",
+              ]
+            },
+            // 媒体解析
+            {
+              text: "媒体解析",
+              icon: "/assets/icon/share.svg",
+              collapsible: true,
+              children: [
+                "music",
+                "bw",
+                "parser",
+                "githubcard",
+              ]
+            },
+            // 学习工具
+            {
+              text: "学习工具",
+              icon: "/assets/icon/book.svg",
+              collapsible: true,
+              children: [
+                "code",
+                "english",
+              ]
+            },
+            // Bot 管理
+            {
+              text: "其他工具",
+              icon: "/assets/icon/robot.svg",
+              collapsible: true,
+              children: [
+                "wsk",
+                "disconnect",
+                "withdraw",
+              ]
+            },
           ],
         },
         {
@@ -120,48 +185,79 @@ export default sidebar({
           link: "yule/",
           collapsible: true,
           children: [
-            "bqb",
-            "bqbmaker",
-            "dinshi",
-            "KFCcrazythursdayvme50",
-            "Atri",
-            "todaywife",
-            "todaycatgirl",
-            "qiandao",
-            "yiyan",
-            "bamotalk",
-            "jrrp",
-            "abook",
-            "image_collection",
-            "otto",
-            "emoji",
-            "mypower",
-            "bottle",
-            "ciyun",
-            "megumin",
-            "homo",
-            "wordle",
-            "jitang",
-            "cxh",
-            "zhanbu",
-            "fabing",
-            "oooo",
-            "Poke-Plugin",
-            "Earth-K-Plugin",
-            "L-Plugin",
-            "jq",
+            // 图片相关
+            {
+              text: "图片功能",
+              icon: "/assets/icon/image.svg",
+              collapsible: true,
+              children: [
+                "bqb",
+                "bqbmaker",
+                "image_collection",
+                "dinshi",
+                "bamotalk",
+              ]
+            },
+            // 文字生成
+            {
+              text: "文字生成",
+              icon: "/assets/icon/file.svg",
+              collapsible: true,
+              children: [
+                "KFCcrazythursdayvme50",
+                "yiyan",
+                "jitang",
+                "cxh",
+                "fabing",
+                "oooo",
+              ]
+            },
+            // 互动娱乐（合并）
+            {
+              text: "互动娱乐",
+              icon: "/assets/icon/face-laugh-squint.svg",
+              collapsible: true,
+              children: [
+                "qiandao",
+                "todaywife",
+                "todaycatgirl",
+                "jrrp",
+                "zhanbu",
+                "abook",
+                "otto",
+                "homo",
+                "Atri",
+                "emoji",
+                "wordle",
+                "megumin",
+                "mypower",
+                "bottle",
+                "ciyun",
+                "jq",
+              ]
+            },
+            // 插件包
+            {
+              text: "综合插件包",
+              icon: "/assets/icon/box.svg",
+              collapsible: true,
+              children: [
+                "Poke-Plugin",
+                "Earth-K-Plugin",
+                "L-Plugin",
+              ]
+            },
           ],
         },
-        {
-          text: "AI",
-          icon: "robot",
-          prefix: "AI/",
-          link: "AI/",
-          collapsible: true,
-          children: [
-
-          ],
-        },
+        // AI 功能暂时隐藏，待添加内容后再显示
+        // {
+        //   text: "AI",
+        //   icon: "robot",
+        //   prefix: "AI/",
+        //   link: "AI/",
+        //   collapsible: true,
+        //   children: [],
+        // },
       ],
     },
     {
@@ -181,8 +277,8 @@ export default sidebar({
         "fankui",
       ],
     },
-    "/draw",
     "/qunliao",
+    "/draw",
     "/zanzhu",
     "/thankU",
   ],
