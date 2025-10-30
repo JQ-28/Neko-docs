@@ -222,6 +222,7 @@ export default sidebar({
                "qiandao",
                "todaywife",
                "todaycatgirl",
+               "groupmate_waifu",
                "jrrp",
                "roll",
                "whateat",
