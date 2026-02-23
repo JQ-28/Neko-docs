@@ -19,6 +19,30 @@ footer: 教我画画
 
 <div class="timeline-container">
 
+<TimelineGallery date="2026-2-22">
+  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko40.png" alt="生日快乐~" width="256">
+</TimelineGallery>
+
+<TimelineGallery date="2026-2-7">
+  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko39.png" alt="喵~" width="256">
+</TimelineGallery>
+
+<TimelineGallery date="2026-1-26">
+  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko38.png" alt="喵~" width="256">
+</TimelineGallery>
+
+<TimelineGallery date="2025-11-19">
+  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko37.png" alt="设计蚂蚁" width="256">
+</TimelineGallery>
+
+<TimelineGallery date="2025-11-15">
+  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko36.png" alt="设定图(大概?)" width="256">
+</TimelineGallery>
+
+<TimelineGallery date="2025-10-31">
+  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko35.png" alt="zzz" width="256">
+</TimelineGallery>
+
 <TimelineGallery date="2025-9-22">
   <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko32.png" alt="海边" width="256">
   <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko33.png" alt="夜海" width="256">

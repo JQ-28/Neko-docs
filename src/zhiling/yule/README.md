@@ -138,10 +138,18 @@ background: rgba(248, 248, 255, 0.3)
 ```
 
 ```component VPCard
-title: 娶群友
-desc: 娶群友做CP
-logo: http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640
-link: groupmate_waifu
+title: 今日小猪
+desc: 今天是什么小猪
+logo: https://pighub.top/data/%E7%8C%AA%E5%92%AA%E4%BA%A4%E6%B5%81%E7%BE%A4.jpg
+link: pig
+background: rgba(248, 248, 255, 0.3)
+```
+
+```component VPCard
+title: 今日doro结局
+desc: 随机获取今日的 doro 结局
+logo: https://ts2.tc.mm.bing.net/th/id/OIP-C.UWpuAn-Yh17rX0xcHTuKzQHaFj?w=108&h=108&c=1&bgcl=d01c56&r=0&o=7&pid=ImgRC&rm=3
+link: doro
 background: rgba(248, 248, 255, 0.3)
 ```
 

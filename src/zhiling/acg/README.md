@@ -47,7 +47,7 @@ background: rgba(255, 255, 255, 0.3)
 ```
 
 ```component VPCard
-title: 明日方舟
+title: 明日方舟/终末地
 desc: 太弱小了，没有力量~
 logo: https://drive.nekodayo.top/raw/nekodocs/image/ark.webp
 link: ark
