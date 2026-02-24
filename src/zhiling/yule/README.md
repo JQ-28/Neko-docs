@@ -130,6 +130,14 @@ background: rgba(248, 248, 255, 0.3)
 ```
 
 ```component VPCard
+title: 娶群友
+desc: 宝宝宝宝
+logo: http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640
+link: groupmate_waifu
+background: rgba(248, 248, 255, 0.3)
+```
+
+```component VPCard
 title: 今日猫娘
 desc: 随机抽取群友作为猫娘吧！
 logo: http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640

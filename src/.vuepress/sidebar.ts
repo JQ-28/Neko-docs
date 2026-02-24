@@ -221,6 +221,7 @@ export default sidebar({
              children: [
                "qiandao",
                "todaywife",
+               "groupmate_waifu",
                "todaycatgirl",
                "pig",
                "doro",
