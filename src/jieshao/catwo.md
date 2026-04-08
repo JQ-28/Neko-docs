@@ -15,12 +15,28 @@ copyright: false
 footer: 系统提示：永恒服务器的剩余运行时间——∞
 ---
 
+:::danger ⚠ 重要声明
+nekoBot主群 互联网小猫窝 已于2026年4月7日因未知因素被封禁，现已移至小猫窝地下室群聊
+:::
+
+
 ::: center
   ```component VPCard
   title: ღ互联网小猫窝ღ
   desc: 喵喵喵喵喵喵喵喵
   logo: http://p.qlogo.cn/gh/806446119/806446119/
   link: http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=sy5x0Bv8IJoMVviC3dRbXTVD9zLdpitx&authKey=OPfY0G2zfQwDQJmf5xV5cqJq7c6%2Beg1cqiCF%2BDHsSFEaGscmeo5ALIdyJ%2BYZmoJb&noverify=0&group_code=806446119
+  background: rgba(243, 186, 255, 0.3)
+  ```
+:::
+
+
+::: center
+  ```component VPCard
+  title: ✦🌷小猫窝地下室☁️✩
+  desc: 喵喵喵喵喵喵喵喵
+  logo: http://p.qlogo.cn/gh/1061878042/1061878042/
+  link: https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info
   background: rgba(243, 186, 255, 0.3)
   ```
 :::
@@ -64,5 +80,6 @@ footer: 系统提示：永恒服务器的剩余运行时间——∞
 ღ **加入我们** ღ
 
 我们随时欢迎您来互联网小猫窝玩耍休息~  
-**QQ群主群**：[806446119](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=sy5x0Bv8IJoMVviC3dRbXTVD9zLdpitx&authKey=OPfY0G2zfQwDQJmf5xV5cqJq7c6%2Beg1cqiCF%2BDHsSFEaGscmeo5ALIdyJ%2BYZmoJb&noverify=0&group_code=806446119)  
+（已停用）**QQ群主群**：[806446119](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=sy5x0Bv8IJoMVviC3dRbXTVD9zLdpitx&authKey=OPfY0G2zfQwDQJmf5xV5cqJq7c6%2Beg1cqiCF%2BDHsSFEaGscmeo5ALIdyJ%2BYZmoJb&noverify=0&group_code=806446119)  
+**QQ群现主群**：[1061878042](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info)  
 QQ频道：[neko20220222](https://pd.qq.com/s/fzkgxc2ye?b=9)

@@ -8,4 +8,4 @@ copyright: false
 footer: Neko docs - 菜单
 ---
 
-![](https://drive.nekodayo.top/raw/nekodocs/image/help.png)
+![](/assets/image/Neko_help.png)
