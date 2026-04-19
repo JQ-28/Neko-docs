@@ -1,76 +1,96 @@
 ---
 title: ✦🌷小猫窝地下室☁️✩
 icon: http://p.qlogo.cn/gh/1061878042/1061878042/
-order: 1
+order: 2
 author: JQ-28
 sticky: true
 category:
   - 介绍
 tag:
-  - 避风港
+  - 开心
   - 猫窝
-  - 美好
-  - 重生
+  - 地下室
+  - 新据点
 star: true
 copyright: false
-footer: 系统提示：地下堡垒的备用电源与温暖永不枯竭——∞
+footer: 🏮 地下室的壁灯永远亮着，等你回家喵～
 ---
 
-:::tip 💌 欢迎来到秘密基地
-由于未知的数据风暴，nekoBot主群「互联网小猫窝」已于2026年4月7日封印。
-但温暖不会消失，我们已全员安全转移至「小猫窝地下室」。外面的风雨再大，地下室依然是个安稳的家！
+::: danger ⚠ 前情提要 · 猫窝搬迁公告
+原「互联网小猫窝」主群已于 **2026年4月7日** 因未知波动被封印 😿  
+但故事并没有结束！我们在更深的土壤里挖出了一片 **更暖、更软、更隐秘的地下室**。  
+所有设施、机器猫、老朋友，全都转移过来啦 —— 甚至比从前更舒服！
 :::
 
 ::: center
   ```component VPCard
   title: ✦🌷小猫窝地下室☁️✩
-  desc: 嘘...欢迎来到我们的新秘密基地！喵喵喵喵喵喵喵喵~
-  logo: [http://p.qlogo.cn/gh/1061878042/1061878042/](http://p.qlogo.cn/gh/1061878042/1061878042/)
-  link: [https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info)
-  background: rgba(243, 186, 255, 0.3)
+  desc: 喵～这里是全新的猫窝地下室！灯光微黄，地毯厚实，没有坏天气～
+  logo: http://p.qlogo.cn/gh/1061878042/1061878042/
+  link: https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info
+  background: rgba(253, 226, 211, 0.4)
   ```
 :::
 
-## **互联网风暴中的坚固避风港** ---
+## **藏在地表之下的柔软乌托邦**  
+---
 
-# ⚝ **小猫窝地下室** ⚝
-**——嘘，喵~** **原窝成立时间**：2022年5月16日  
-**地下室启用时间**：2026年4月7日  
-**位置**：位于地球Online“QQ区·喵喵市114弄514号”的地下隐藏空间，是一个不受外界打扰的虚拟社交安全屋。
+# ⚝ **小猫窝地下室** ⚝  
+**——隐秘 · 温暖 · 永不消失的喵信号**  
 
-## ★ **关于我们** ★
+**成立时间**：2026年4月7日（作为新主据点启用）  
+**地理位置**：原猫窝正下方 114.514 米处 · 一座由毛线团与数据流构成的温暖地堡  
 
-**小猫窝地下室**是「互联网小猫窝」的意志延续。当表层网络遭遇未知封禁时，JQ-28 迅速在数据底层为大家开辟了这处新居所。这里依然是一个以QQ群聊生态为蓝本的沉浸式网络互动空间。不论外面发生了什么，这里永远为每一位漂泊的赛博旅人提供一个温馨、舒适、安全的数字毛毯。
+## ★ **地下室是什么？** ★  
 
-## ✮ **地下室专属设施** ✮
+「小猫窝地下室」并不是一个阴冷潮湿的地方 —— 恰恰相反，它是原 **互联网小猫窝** 的 **灵魂继承者与强化版本**。  
+在原主群因不可抗力沉睡后，JQ-28 连夜用猫罐头和代码砖块搭建了这座地底猫窝。  
 
-虽然搬到了地下，但我们的设施不仅没有减少，反而更有安全感了：
+这里 **保留了原猫窝所有的温馨基因**，又增加了几分地下特有的私密感与松弛感。白天可以晒太阳（通过头顶的虚拟天窗），夜晚围坐在地毯上听 Neko 讲故事。  
+**成员、氛围、机器猫、全部原班人马；唯一变的是 —— 我们更安全、更隐蔽了。**  
 
-* **地下全息大厅**：全天候亮起暖黄色的灯光，消息气泡在这里依然轻盈悬浮，支持文字、语音、表情包等多种互动。
-* **深潜客房区**：根据用户的潜意识自动生成的私密房间，隔绝一切外部噪音，提供绝对个性的虚拟休息空间。
-* **地热数据温泉**：利用底层服务器散发的热量打造，泡一泡不仅能洗去一天的疲惫，还能有效修复数据风暴带来的创伤。
-* **BUG游乐场（地下特供版）**：由于地基仍在建设中，你可以体验到比表层更有趣的虚拟系统“故障”特效，如穿墙遁地、重力反转等。  
-* **更多盲盒空间**：等待各位小猫咪们一起添砖加瓦来构造！
+## ✮ **地下设施一览** ✮  
 
-## ❀ **喵可机器人（Neko Bot）** ❀
+虽然叫地下室，但经过 **Neko 空间折叠技术** 扩建，这里可一点不逼仄：
 
-无论搬去哪里，由 JQ-28 倾心打造的机器人 **「Neko」** 始终与大家同在。建立于多个强大的QQ机器人框架之上的她，既是地下室的安保总管，也是大家的贴心玩伴：
+- **绒毛大厅** 🛋️：主聊天区，全息气泡消息漂浮在暖色灯光下，支持文字 / 喵语 / 动图连打。  
+- **猫抓板公告栏** 📌：记录每日重要通知、群规、以及成员手绘涂鸦。  
+- **数据温泉·地下分汤** ♨️：修复网上冲浪带来的疲惫与焦虑，水温恒定 36.5℃。  
+- **BUG 游乐场 2.0** 🎪：新增“穿墙逗猫棒”与“反向重力毛线团”，故障也可以很有趣。  
+- **树洞小单间** 🌳：想自己待一会儿？可以申请临时静音小窝，Neko 会帮你把门。  
 
-* 🔧 **实用工具指令与娱乐互动**：查天气、玩游戏、点歌，样样精通。
-* ⏰ **消息定时与数据查询**：你的随身赛博备忘录。
-* 🎉 **群聊活跃氛围管理**：保证地下室永远充满欢声笑语。
-* ✨ **更多隐藏功能**：等待你的探索...
+## ❀ **地下室常驻管理员：Neko Bot** ❀  
 
-## ø **我们的信念** ø
+你可能担心：搬了家，机器猫会不会迷路？完全不会！  
+**Neko Bot** 是地下室的第一位住民兼看板猫，如今它的算力更强、尾巴摇得更欢了。  
 
-即使遭遇了封禁与迁徙，我们依然致力于营造一个轻松、自由、欢迎所有人的网络家园。我们相信，**重要的从来不是那个群号，而是聚在一起的大家**。只要猫窝的灵魂还在，地下室一样能充满阳光。
+**它的日常职责包括：**  
+- 🧹 打理群聊秩序，温柔地提醒新来的小猫看群规  
+- 🎲 提供海量娱乐指令（抽签、占卜、小游戏、点歌）  
+- 📅 定时播报天气、提醒吃饭喝水  
+- 💬 记住每位成员的喜好，偶尔还会主动蹭蹭你  
+
+> 地下室里的 Neko，比以往任何时候都更像一只真正的猫 —— 因为这里就是它真正的家。
+
+## ø **地下室的生存哲学** ø  
+
+> “既然地面太吵，就住到地下去。只要猫罐头还有，毛线团还转，就没什么大不了。”
+
+我们不追求喧闹的数字，只希望每一位误入（或被邀请）这里的朋友，都能 **卸下现实世界的包袱，做一只慵懒的、被善待的小猫**。  
+
+- 🐾 **不欢迎**：引战、焦虑、冷暴力。  
+- 🐾 **热烈欢迎**：发呆、分享午餐照片、深夜 emo 与凌晨大笑。  
 
 ---
 
-ღ **加入我们的秘密基地** ღ
+ღ **推开地下室的木门** ღ  
 
-大门永远为你敞开，快顺着梯子爬下来一起玩耍吧~  
+随时欢迎你带着猫耳朵（没有也行）来地下室打滚、取暖、长住。  
+门把手是鱼形状的，轻轻一拧就开啦——
 
-🚪 **全新主群入口（小猫窝地下室）**：[点击这里加入 (1061878042)](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info)  
-📺 **QQ频道同频共振**：[neko20220222](https://pd.qq.com/s/fzkgxc2ye?b=9)  
-🪦 *(缅怀旧址) 互联网小猫窝主群：[806446119] - 愿它在赛博废墟中安息*
+**🐱 现主群（地下室入口）**：[1061878042](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info)  
+**📡 备用频道（同样热闹）**：[neko20220222](https://pd.qq.com/s/fzkgxc2ye?b=9)  
+
+::: center
+**—— 地下室灯永远亮，Neko 永远在。喵～ ——**
+:::

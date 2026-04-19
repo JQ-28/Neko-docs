@@ -246,15 +246,16 @@ export default sidebar({
            },
           ],
         },
-        // AI 功能暂时隐藏，待添加内容后再显示
-        // {
-        //   text: "AI",
-        //   icon: "robot",
-        //   prefix: "AI/",
-        //   link: "AI/",
-        //   collapsible: true,
-        //   children: [],
-        // },
+         {
+           text: "AI",
+           icon: "robot",
+           prefix: "AI/",
+           link: "AI/",
+           collapsible: true,
+           children: [
+            "GroupInsight"
+           ],
+         },
       ],
     },
     {

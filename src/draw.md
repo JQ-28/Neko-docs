@@ -19,6 +19,11 @@ footer: 教我画画
 
 <div class="timeline-container">
 
+<TimelineGallery date="2026-4-12">
+  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko41.png" alt="~" width="256">
+  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko42.png" alt="~" width="256">
+</TimelineGallery>
+
 <TimelineGallery date="2026-2-22">
   <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko40.png" alt="生日快乐~" width="256">
 </TimelineGallery>

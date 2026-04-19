@@ -54,7 +54,7 @@ footer: Neko docs - 帮助
 
   ```component VPCard
   title: AI系列
-  desc: 你说他好用吧，确实好用，说他不好用吧，有时确实不好用
+  desc: neko deepsleeping...
   logo: /assets/icon/robot.svg
   link: AI/
   background: rgba(248, 248, 255, 0.3)
