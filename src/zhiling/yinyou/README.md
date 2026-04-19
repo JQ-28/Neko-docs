@@ -33,6 +33,14 @@ footer: 多练.webp
   ```
 
   ```component VPCard
+  title: 舞立方
+  desc: 吴丽芳
+  logo: https://ts4.tc.mm.bing.net/th/id/OIP-C.z0P5wn_5cwtt1vpa-MJOwQAAAA?w=108&h=108&c=1&bgcl=56418f&r=0&o=7&pid=ImgRC&rm=3
+  link: dancecube
+  background: rgba(230, 247, 249, 0.3)
+  ```
+
+  ```component VPCard
   title: osu!
   desc: welcome to osu!
   logo: https://drive.nekodayo.top/raw/nekodocs/image/osu.png

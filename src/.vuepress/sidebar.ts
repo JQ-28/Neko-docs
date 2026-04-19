@@ -110,6 +110,7 @@ export default sidebar({
             "vs",
             "chu",
             "maimai",
+            "dancecube",
             "bs",
           ],
         },
