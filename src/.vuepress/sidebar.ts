@@ -99,7 +99,6 @@ export default sidebar({
               link: "pjsk/",
               collapsible: true,
               children: [
-                "uni",
                 "haruki",
                 "pjsk"
               ],
