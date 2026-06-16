@@ -233,13 +233,6 @@ link: emoji
 background: rgba(248, 248, 255, 0.3)
 ```
 
-```component VPCard
-title: wordle 猜单词
-desc: 妈妈生的
-logo: /assets/icon/book.svg
-link: wordle
-background: rgba(248, 248, 255, 0.3)
-```
 
 ```component VPCard
 title: 爆裂魔法！
@@ -273,13 +266,6 @@ link: ciyun
 background: rgba(248, 248, 255, 0.3)
 ```
 
-```component VPCard
-title: 群语录库
-desc: 上传聊天截图为语录，随机投放语录，关键词搜索语录
-logo: /assets/icon/image.svg
-link: quote
-background: rgba(248, 248, 255, 0.3)
-```
 
 ```component VPCard
 title: Poke-Plugin

@@ -55,14 +55,6 @@ background: rgba(255, 255, 255, 0.3)
 ```
 
 ```component VPCard
-title: 边狱巴士
-desc: A+
-logo: https://drive.nekodayo.top/raw/nekodocs/image/084.webp
-link: limbus
-background: rgba(255, 255, 255, 0.3)
-```
-
-```component VPCard
 title: 鸣潮
 desc: 沟槽的公式还在追我
 logo: https://drive.nekodayo.top/raw/nekodocs/image/mc.jpg

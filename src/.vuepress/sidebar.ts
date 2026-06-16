@@ -45,7 +45,6 @@ export default sidebar({
                 "juequ0",
                 "ba",
                 "ark",
-                "limbus",
                 "mingchao",
                 "guangyu",
               ]
@@ -88,7 +87,6 @@ export default sidebar({
               link: "arc/",
               collapsible: true,
               children: [
-                "b30",
                 "arc"
               ],
             },
@@ -106,8 +104,6 @@ export default sidebar({
             "pgr",
             "BangDream",
             "osu",
-            "vs",
-            "chu",
             "maimai",
             "dancecube",
             "bs",
@@ -234,12 +230,10 @@ export default sidebar({
                "homo",
                "Atri",
                "emoji",
-               "wordle",
                "megumin",
                "mypower",
                "bottle",
                "ciyun",
-               "quote",
                "Poke-Plugin",
                "jq",
              ]

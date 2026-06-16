@@ -48,14 +48,6 @@ footer: 多练.webp
   background: rgba(253, 238, 247, 0.3)
   ```  
 
-  ```component VPCard
-  title: vivid/stasis
-  desc: grode
-  logo: https://drive.nekodayo.top/raw/nekodocs/image/vs.webp
-  link: vs
-  background: rgba(253, 238, 247, 0.3)
-  ```  
-
   
   ```component VPCard
   title: Phigros
@@ -65,13 +57,6 @@ footer: 多练.webp
   background: rgba(235, 233, 249, 0.3)
   ```
 
-  ```component VPCard
-  title: Chunithm
-  desc: 键盘比
-  logo: https://drive.nekodayo.top/raw/nekodocs/image/chu.png
-  link: chu
-  background: rgba(255, 252, 243, 0.3)
-  ```
 
   ```component VPCard
   title: Project sekai
