@@ -273,6 +273,7 @@ export default sidebar({
     "/draw",
     "/zanzhu",
     "/thankU",
+    "/todo",
   ],
 });
 

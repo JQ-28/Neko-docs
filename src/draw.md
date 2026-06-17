@@ -23,7 +23,7 @@ footer: 教我画画
 <TimelineGallery date="2026-6-16">
   <div style="margin-bottom: 15px; background: rgba(255,255,255,0.05); padding: 12px 20px; border-radius: 8px; border-left: 4px solid #ab47bc; display: inline-block; text-align: left;">
       <b>neko EmoteLab 系列动态表情包</b><br>
-    <span style="font-size: 14px; color: #888;">下方仅展示部分预览。长按或右键可单张保存，或前往蓝奏云打包下载全部不限速：</span><br>
+    <span style="font-size: 14px; color: #888;">下方仅展示部分预览。长按或右键可单张保存，或前往123云盘打包下载全部不限速：</span><br>
       <a href="https://1820130831.share.123865.com/123pan/LkHojv-eEzF" target="_blank" style="color: #ab47bc; font-weight: bold; text-decoration: underline;">点击前往打包下载全套表情包</a>
   </div>
   <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-start; margin-top: 10px;">
