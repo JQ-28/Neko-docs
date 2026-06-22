@@ -1,7 +1,7 @@
 <template>
   <div class="apply-form-wrapper">
     <div class="apply-form-header">
-      <div class="form-title">申请加入群聊</div>
+      <div class="form-title">申请使用 nekoBot</div>
     </div>
 
     <div class="apply-form-body">
@@ -43,14 +43,34 @@
         </div>
 
         <div class="form-group">
-          <label for="groupSize">群聊人数</label>
-          <select id="groupSize" v-model="formData.groupSize">
+          <label for="groupSize">群聊人数 <span class="required">*</span></label>
+          <select id="groupSize" v-model="formData.groupSize" required>
             <option value="">请选择</option>
             <option value="1-50">1-50人</option>
             <option value="51-100">51-100人</option>
             <option value="101-200">101-200人</option>
             <option value="201-500">201-500人</option>
             <option value="500+">500人以上</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="groupAtmosphere">群聊氛围类型 <span class="required">*</span></label>
+          <select id="groupAtmosphere" v-model="formData.groupAtmosphere" required>
+            <option value="">请选择</option>
+            <option value="二次元相关且氛围和谐">二次元相关且氛围和谐</option>
+            <option value="非二次元但氛围和谐">非二次元但氛围和谐</option>
+            <option value="多元包含二次元且氛围和谐">多元包含二次元且氛围和谐</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="applicantRole">你在群聊中的身份 <span class="required">*</span></label>
+          <select id="applicantRole" v-model="formData.applicantRole" required>
+            <option value="">请选择</option>
+            <option value="群主">我是群主</option>
+            <option value="管理员">我是管理员</option>
+            <option value="普通成员">我是普通成员（已获得群主/管理员同意）</option>
           </select>
         </div>
 
@@ -118,6 +138,8 @@ const formData = ref({
   groupNumber: '',
   groupName: '',
   groupSize: '',
+  groupAtmosphere: '',
+  applicantRole: '',
   reason: '',
   agreeTerms: false
 })
@@ -193,6 +215,8 @@ const handleSubmit = async () => {
         groupNumber: '',
         groupName: '',
         groupSize: '',
+        groupAtmosphere: '',
+        applicantRole: '',
         reason: '',
         agreeTerms: false
       }
