@@ -4,6 +4,7 @@ import QQMessage from "./components/QQMessage.vue";
 import QQVoice from "./components/QQVoice.vue";
 import QQImage from "./components/QQImage.vue";
 import TimelineGallery from "./components/TimelineGallery.vue";
+import ApplyForm from "./components/ApplyForm.vue";
 
 export default defineClientConfig({
   enhance: ({ app }) => {
@@ -12,6 +13,7 @@ export default defineClientConfig({
     app.component("QQVoice", QQVoice);
     app.component("QQImage", QQImage);
     app.component("TimelineGallery", TimelineGallery);
+    app.component("ApplyForm", ApplyForm);
   },
 });
 
