@@ -15,6 +15,7 @@
             placeholder="请输入你的QQ号"
             required
             pattern="[0-9]{5,11}"
+            title="请输入5-11位数字的QQ号"
           />
         </div>
 
@@ -27,6 +28,7 @@
             placeholder="请输入群号"
             required
             pattern="[0-9]{6,11}"
+            title="请输入6-11位数字的群号"
           />
         </div>
 
@@ -184,7 +186,7 @@ const handleSubmit = async () => {
     const result = await response.json()
 
     if (response.ok) {
-      successMessage.value = '申请已提交！我们会尽快审核并通过 QQ 联系你'
+      successMessage.value = '申请已提交！审核结果将通过 QQ 邮箱（您填写的 QQ 号@qq.com）通知您，请注意查收'
       // 重置表单
       formData.value = {
         qq: '',
