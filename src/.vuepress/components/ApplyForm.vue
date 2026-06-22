@@ -74,6 +74,31 @@
           </select>
         </div>
 
+        <div class="form-group" v-if="formData.applicantRole === '管理员' || formData.applicantRole === '普通成员'">
+          <label for="screenshot">同意截图证明 <span class="required">*</span></label>
+          <div class="upload-area">
+            <input 
+              type="file" 
+              id="screenshot"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              @change="handleFileSelect"
+              :disabled="isUploading"
+              style="display: none"
+              ref="fileInput"
+            />
+            <label for="screenshot" class="upload-label" :class="{ disabled: isUploading }">
+              <span v-if="!screenshotFile && !screenshotUrl">📎 点击选择图片（JPG/PNG/WebP，最大5MB）</span>
+              <span v-else-if="isUploading">⏳ 上传中...</span>
+              <span v-else-if="screenshotUrl">✅ {{ screenshotFile?.name }}</span>
+            </label>
+            <div v-if="screenshotUrl" class="screenshot-preview">
+              <img :src="screenshotUrl" alt="Screenshot preview" />
+              <button type="button" @click="removeScreenshot" class="remove-btn">✕ 删除</button>
+            </div>
+          </div>
+          <p class="help-text">请上传包含群号、群主/管理员列表以及明确同意消息的聊天记录截图</p>
+        </div>
+
         <div class="form-group">
           <label for="reason">申请理由 / 补充说明</label>
           <textarea 
@@ -150,6 +175,73 @@ const successMessage = ref('')
 const showCaptcha = ref(true)
 const turnstileWidget = ref<HTMLElement | null>(null)
 const captchaToken = ref('')
+const screenshotFile = ref<File | null>(null)
+const screenshotUrl = ref('')
+const isUploading = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+const handleFileSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  
+  if (!file) return
+
+  // 验证文件类型
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    errorMessage.value = '仅支持 JPG、PNG、WebP 格式图片'
+    return
+  }
+
+  // 验证文件大小
+  const maxSize = 5 * 1024 * 1024
+  if (file.size > maxSize) {
+    errorMessage.value = '图片大小不能超过 5MB'
+    return
+  }
+
+  screenshotFile.value = file
+  
+  // 立即上传
+  await uploadScreenshot(file)
+}
+
+const uploadScreenshot = async (file: File) => {
+  isUploading.value = true
+  errorMessage.value = ''
+
+  try {
+    const formData = new FormData()
+    formData.append('screenshot', file)
+
+    const response = await fetch('/api/upload-screenshot', {
+      method: 'POST',
+      body: formData
+    })
+
+    const result = await response.json()
+
+    if (response.ok) {
+      screenshotUrl.value = result.url
+    } else {
+      errorMessage.value = result.error || '上传失败，请重试'
+      screenshotFile.value = null
+    }
+  } catch (error) {
+    errorMessage.value = '上传失败，请检查网络连接'
+    screenshotFile.value = null
+  } finally {
+    isUploading.value = false
+  }
+}
+
+const removeScreenshot = () => {
+  screenshotFile.value = null
+  screenshotUrl.value = ''
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
 
 // Cloudflare Turnstile 验证码初始化
 onMounted(() => {
@@ -186,6 +278,12 @@ const handleSubmit = async () => {
     return
   }
 
+  // 验证截图上传
+  if ((formData.value.applicantRole === '管理员' || formData.value.applicantRole === '普通成员') && !screenshotUrl.value) {
+    errorMessage.value = '管理员和普通成员需要上传同意截图证明'
+    return
+  }
+
   if (showCaptcha.value && !captchaToken.value) {
     errorMessage.value = '请完成人机验证'
     return
@@ -201,6 +299,7 @@ const handleSubmit = async () => {
       },
       body: JSON.stringify({
         ...formData.value,
+        screenshotUrl: screenshotUrl.value,
         captchaToken: captchaToken.value
       })
     })
@@ -220,7 +319,12 @@ const handleSubmit = async () => {
         reason: '',
         agreeTerms: false
       }
+      screenshotFile.value = null
+      screenshotUrl.value = ''
       captchaToken.value = ''
+      if (fileInput.value) {
+        fileInput.value.value = ''
+      }
       if (window.turnstile) {
         window.turnstile.reset()
       }
@@ -502,6 +606,90 @@ html.dark .message-box.success {
 .cf-turnstile {
   display: flex;
   justify-content: center;
+}
+
+.upload-area {
+  margin-top: 4px;
+}
+
+.upload-label {
+  display: block;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.upload-label:hover:not(.disabled) {
+  border-color: #ffc0e3;
+  background: #fef2f8;
+}
+
+.upload-label.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+html.dark .upload-label {
+  background: #374151;
+  border-color: #4b5563;
+  color: #9ca3af;
+}
+
+html.dark .upload-label:hover:not(.disabled) {
+  border-color: #ffd4ea;
+  background: rgba(255, 212, 234, 0.1);
+}
+
+.screenshot-preview {
+  margin-top: 12px;
+  position: relative;
+}
+
+.screenshot-preview img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  display: block;
+  border: 1px solid #e5e7eb;
+}
+
+html.dark .screenshot-preview img {
+  border-color: #4b5563;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.remove-btn:hover {
+  opacity: 0.8;
+}
+
+.help-text {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+html.dark .help-text {
+  color: #9ca3af;
 }
 
 @media (max-width: 768px) {

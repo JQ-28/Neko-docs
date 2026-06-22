@@ -4,11 +4,19 @@ export const onRequestPost = async (context) => {
 
   try {
     const body = await request.json();
-    const { qq, groupNumber, groupName, groupSize, groupAtmosphere, applicantRole, reason, captchaToken } = body;
+    const { qq, groupNumber, groupName, groupSize, groupAtmosphere, applicantRole, screenshotUrl, reason, captchaToken } = body;
 
     // 验证必填字段
     if (!qq || !groupNumber || !groupSize || !groupAtmosphere || !applicantRole) {
       return new Response(JSON.stringify({ error: '请填写所有必填字段' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 验证截图上传（管理员和普通成员必须上传）
+    if ((applicantRole === '管理员' || applicantRole === '普通成员') && !screenshotUrl) {
+      return new Response(JSON.stringify({ error: '管理员和普通成员需要上传同意截图证明' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -56,8 +64,8 @@ export const onRequestPost = async (context) => {
     // 存入 D1 数据库
     const result = await env.DB.prepare(
       `INSERT INTO applications 
-       (qq, group_number, group_name, group_size, group_atmosphere, applicant_role, reason, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`
+       (qq, group_number, group_name, group_size, group_atmosphere, applicant_role, screenshot_url, reason, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
     ).bind(
       qq,
       groupNumber,
@@ -65,6 +73,7 @@ export const onRequestPost = async (context) => {
       groupSize,
       groupAtmosphere,
       applicantRole,
+      screenshotUrl || '',
       reason || ''
     ).run();
 
