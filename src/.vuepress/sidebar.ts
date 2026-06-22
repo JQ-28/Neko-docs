@@ -126,6 +126,7 @@ export default sidebar({
                 "Multi-Source Daily",
                 "status",
                 "price",
+                "60sapi",
               ]
             },
             // 图片工具
