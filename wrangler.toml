@@ -1,0 +1,13 @@
+name = "nekodayo-docs"
+compatibility_date = "2026-06-22"
+
+# D1 数据库绑定
+[[d1_databases]]
+binding = "DB"
+database_name = "neko-apply-db"
+database_id = "2763ef1f-1cbd-4a60-bd29-bb424d5093da"
+
+# R2 存储桶绑定
+[[r2_buckets]]
+binding = "SCREENSHOTS"
+bucket_name = "neko-apply-screenshots"
