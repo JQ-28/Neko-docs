@@ -127,6 +127,7 @@ export default sidebar({
                 "status",
                 "price",
                 "60sapi",
+                "steam",
               ]
             },
             // 图片工具

@@ -79,6 +79,14 @@ link: price
 background: rgba(248, 248, 255, 0.3)
 ```
 
+ ```component VPCard
+title: Steam 功能
+desc: 提供 steam 相关功能
+logo: /assets/icon/gamepad.svg
+link: steam
+background: rgba(248, 248, 255, 0.3)
+```
+
 ---
 
 ## ⌗ 图片工具
