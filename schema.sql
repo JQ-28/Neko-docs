@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS applications (
     group_number TEXT NOT NULL,
     group_name TEXT,
     group_size TEXT,
+    group_atmosphere TEXT,
+    applicant_role TEXT,
+    screenshot_url TEXT DEFAULT '',
     reason TEXT,
     status TEXT DEFAULT 'pending',  -- pending, approved, rejected
     admin_reply TEXT,
