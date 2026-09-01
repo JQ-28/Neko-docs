@@ -63,7 +63,7 @@ footer: Neko docs - 感谢名单
   
   <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">⋆ 奕迟</div>
   
-  <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✧ 蔚卍</div>
+  <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✧ Napart</div>
   
   <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❦ 彩叶</div>
   
@@ -79,7 +79,7 @@ footer: Neko docs - 感谢名单
   
   <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❀ isAe</div>
   
-  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❦ Eternal_o</div>
+  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❦ Cloud_Yume</div>
   
   <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✿ 迷途归</div>
   
