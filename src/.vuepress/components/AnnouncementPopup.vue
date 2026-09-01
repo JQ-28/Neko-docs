@@ -1,6 +1,7 @@
 <template>
-  <Teleport to="body">
-    <Transition name="announcement-fade">
+  <ClientOnly>
+    <Teleport to="body">
+      <Transition name="announcement-fade">
       <div v-if="visible" class="announcement-mask" @click.self="close">
         <div class="announcement-dialog" role="dialog" aria-modal="true">
           <div class="announcement-header">
@@ -26,8 +27,9 @@
           </div>
         </div>
       </div>
-    </Transition>
-  </Teleport>
+      </Transition>
+    </Teleport>
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">
