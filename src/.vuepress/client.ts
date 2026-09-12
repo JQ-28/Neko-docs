@@ -6,10 +6,8 @@ import QQVoice from "./components/QQVoice.vue";
 import QQImage from "./components/QQImage.vue";
 import TimelineGallery from "./components/TimelineGallery.vue";
 import ApplyForm from "./components/ApplyForm.vue";
-import AnnouncementPopup from "./components/AnnouncementPopup.vue";
 
 export default defineClientConfig({
-  rootComponents: [AnnouncementPopup],
   enhance: ({ app }) => {
     app.component("NavbarToolsLink", NavbarToolsLink);
     app.component("QQChat", QQChat);
