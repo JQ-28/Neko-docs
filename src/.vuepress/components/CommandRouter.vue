@@ -41,12 +41,14 @@
 
         <div class="neko-chat-wrap">
           <div ref="chatEl" class="neko-chat" @scroll="onScroll">
+            <TransitionGroup name="neko-msg">
             <div
-              v-for="message in messages"
+              v-for="(message, index) in messages"
               :key="message.id"
               class="neko-msg"
               :class="message.role"
               :data-time="message.time"
+              :style="{ '--i': Math.min(index, LEAVE_MAX) }"
             >
               <template v-if="message.role === 'user'">
                 <div class="neko-bubble">
@@ -101,6 +103,8 @@
                 </div>
               </template>
             </div>
+
+            </TransitionGroup>
 
             <div v-if="typing" class="neko-msg neko typing">
               <div class="neko-avatar neko" aria-hidden="true"></div>
@@ -224,6 +228,7 @@ interface ChatMessage {
 const OPEN_EVENT = "neko-open-router";
 const TOOLS_URL = "https://tools.nekodayo.top/";
 const GREETING = "你好喵~ 我是 neko！说说你想做什么，我来帮你找到对应的指令。";
+const CLEAR_HINT = "真的要扔掉我们的聊天记录吗喵…neko 会想念它们的。再点一次垃圾桶就清空啦。";
 const HIT_REPLIES = [
   "找到啦，看看这几个喵~",
   "喵！这几个应该对得上~",
@@ -235,17 +240,22 @@ const MISS_REPLIES = [
 ];
 const BUSY = "neko 现在有点忙喵，稍后再试试吧~";
 const STICK_THRESHOLD = 40;
+const LEAVE_STEP = 26;
+const LEAVE_DURATION = 220;
+const LEAVE_MAX = 12;
 
 const open = ref(false);
 const query = ref("");
 const messages = ref<ChatMessage[]>([]);
 const typing = ref(false);
+const clearArmed = ref(false);
 const showToBottom = ref(false);
 const chatEl = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLInputElement | null>(null);
 const router = useRouter();
 
 let messageId = 0;
+let clearTimer: number | undefined;
 
 function fmtTime(date: Date): string {
   const pad = (value: number): string => String(value).padStart(2, "0");
@@ -398,9 +408,27 @@ function openTools(): void {
 }
 
 function clearChat(): void {
+  if (typing.value) return;
+
+  if (!clearArmed.value) {
+    clearArmed.value = true;
+    pushMessage({ role: "neko", text: CLEAR_HINT });
+    window.clearTimeout(clearTimer);
+    clearTimer = window.setTimeout(() => {
+      clearArmed.value = false;
+    }, 4000);
+    return;
+  }
+
+  clearArmed.value = false;
+  window.clearTimeout(clearTimer);
+  const removed = messages.value.length;
   messages.value = [];
-  messageId = 0;
-  pushMessage({ role: "neko", text: GREETING });
+
+  window.setTimeout(() => {
+    messageId = 0;
+    pushMessage({ role: "neko", text: GREETING });
+  }, Math.min(removed - 1, LEAVE_MAX) * LEAVE_STEP + LEAVE_DURATION);
 }
 
 function openRouter(): void {
@@ -408,6 +436,8 @@ function openRouter(): void {
   query.value = "";
   messages.value = [];
   typing.value = false;
+  clearArmed.value = false;
+  window.clearTimeout(clearTimer);
   messageId = 0;
   pushMessage({ role: "neko", text: GREETING });
   nextTick(() => inputEl.value?.focus());
@@ -433,6 +463,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKeydown);
   window.removeEventListener(OPEN_EVENT, openRouter);
+  window.clearTimeout(clearTimer);
 });
 </script>
 
@@ -646,6 +677,17 @@ onBeforeUnmount(() => {
     opacity: 1;
     transform: none;
   }
+}
+
+.neko-msg-leave-active {
+  animation: none;
+  transition: opacity 0.22s var(--ease-out), transform 0.22s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 26ms);
+}
+
+.neko-msg-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.9);
 }
 
 .neko-avatar {
