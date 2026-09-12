@@ -281,7 +281,7 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-const AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8-fast";
+const AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8";
 
 export const onRequestPost = async (context: {
   request: Request;
