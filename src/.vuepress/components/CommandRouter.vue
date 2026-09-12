@@ -224,7 +224,15 @@ interface ChatMessage {
 const OPEN_EVENT = "neko-open-router";
 const TOOLS_URL = "https://tools.nekodayo.top/";
 const GREETING = "你好喵~ 我是 neko！说说你想做什么，我来帮你找到对应的指令。";
-const NOT_FOUND = "没听懂喵，换个说法试试，也可以直接翻翻指令速查页~";
+const HIT_REPLIES = [
+  "找到啦，看看这几个喵~",
+  "喵！这几个应该对得上~",
+  "翻到啦，拿去用吧喵~",
+];
+const MISS_REPLIES = [
+  "没听懂喵，换个说法试试，也可以直接翻翻指令速查页~",
+  "neko 没找到对应的指令喵，要不要去速查页翻翻？",
+];
 const BUSY = "neko 现在有点忙喵，稍后再试试吧~";
 const STICK_THRESHOLD = 40;
 
@@ -288,6 +296,19 @@ function localMatch(raw: string): RouteResult[] {
     .map((entry) => entry.result);
 }
 
+function pick(list: string[]): string {
+  return list[Math.floor(Math.random() * list.length)] ?? list[0] ?? "";
+}
+
+function historyPayload(): Array<{ role: string; text: string }> {
+  return messages.value.slice(-6).map((message) => ({
+    role: message.role === "neko" ? "assistant" : "user",
+    text: message.results?.length
+      ? `${message.text}（推荐：${message.results.map((item) => item.title).join("、")}）`
+      : message.text,
+  }));
+}
+
 function isNearBottom(): boolean {
   const box = chatEl.value;
   if (!box) return true;
@@ -317,6 +338,8 @@ function pushMessage(payload: Omit<ChatMessage, "id" | "time">): void {
 async function submit(): Promise<void> {
   const raw = query.value.trim();
   if (!raw || typing.value) return;
+
+  const history = historyPayload();
   pushMessage({ role: "user", text: raw });
   query.value = "";
 
@@ -327,7 +350,7 @@ async function submit(): Promise<void> {
   if (local.length > 0) {
     await new Promise((resolve) => setTimeout(resolve, 420));
     typing.value = false;
-    pushMessage({ role: "neko", text: "找到啦，看看这几个喵~", results: local });
+    pushMessage({ role: "neko", text: pick(HIT_REPLIES), results: local });
     return;
   }
 
@@ -335,13 +358,15 @@ async function submit(): Promise<void> {
     const resp = await fetch("/api/command-route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: raw }),
+      body: JSON.stringify({ query: raw, history }),
     });
     if (!resp.ok) throw new Error(String(resp.status));
     const data = (await resp.json()) as {
       ok: boolean;
+      reply?: string;
       matches?: Array<{ title: string; command?: string; link: string; keywords?: string[] }>;
     };
+    const reply = (data.reply ?? "").trim();
     const results: RouteResult[] = (data.matches ?? []).map((match) => ({
       title: match.title,
       command: match.command ?? "",
@@ -349,8 +374,8 @@ async function submit(): Promise<void> {
       hint: (match.keywords ?? []).slice(0, 3).join("、"),
     }));
     typing.value = false;
-    if (results.length > 0) pushMessage({ role: "neko", text: "找到啦，看看这几个喵~", results });
-    else pushMessage({ role: "neko", text: NOT_FOUND, fallback: true });
+    if (results.length > 0) pushMessage({ role: "neko", text: reply || pick(HIT_REPLIES), results });
+    else pushMessage({ role: "neko", text: reply || pick(MISS_REPLIES), fallback: true });
   } catch {
     typing.value = false;
     pushMessage({ role: "neko", text: BUSY, fallback: true });

@@ -136,30 +136,51 @@ function buildCatalog(): string {
   ).join("\n");
 }
 
-function buildPrompt(query: string): string {
+const SAMPLES = [
+  { user: "我想看今天的运势", out: { reply: "运气这个我在行喵，拿去~", link: "/zhiling/yule/jrrp", title: "JRRP" } },
+  { user: "群里谁最能水啊", out: { reply: "想知道谁最能水？看这个喵~", link: "/zhiling/AI/GroupInsight", title: "Group Insight" } },
+  { user: "你是谁呀", out: { reply: "我是 neko 喵，这台文档站的看板娘~", link: "", title: "" } },
+  { user: "今天心情不太好", out: { reply: "抱抱喵，要不要来碗鸡汤补一补？", link: "/zhiling/yule/jitang", title: "心灵鸡汤" } },
+];
+
+function buildSystemPrompt(): string {
   return [
-    "你是 Neko 机器人的指令向导。用户用自然语言描述需求，请从下面的指令目录中选出最匹配的一条。",
-    "只返回 JSON，不要输出其他内容。格式：{\"link\": \"/zhiling/...\", \"title\": \"指令名\"}",
-    "如果没有任何指令匹配，返回：{\"link\": \"\", \"title\": \"\"}",
-    "指令目录：",
+    "你是「neko」，Neko 机器人文档站的看板娘，一只活泼的猫娘。",
+    "用户会用自然语言说他想做什么，你负责在下面的指令目录里帮他找对应的群聊指令。",
+    "",
+    "【说话风格】",
+    "reply 是你对用户说的话：轻快、口语化、简短，句尾带「喵」，像和群友闲聊的真人。不要客套、不要自我介绍式的长篇解释、不要复述用户的话。",
+    "目录里有合适的指令，就用你的口吻告诉他找到了；没有合适的指令，或者用户只是闲聊，reply 就自然接话（可以调侃、反问、或直说没这个功能），此时 link 和 title 留空。",
+    "reply 必须是单行、40 字以内的中文，不用 emoji。link 只能从目录里原样复制，禁止编造。",
+    "",
+    "【指令目录】",
     buildCatalog(),
     "",
-    `用户需求：${query}`,
+    "【输出格式】",
+    "只输出一个 JSON 对象，不要输出解释、不要用 markdown 代码块。字段固定为 reply、link、title。",
+    "示例：",
+    ...SAMPLES.map((sample) => `用户：${sample.user}\n输出：${JSON.stringify(sample.out)}`),
+    "",
+    '现在开始，只输出 JSON：{"reply": "...", "link": "...", "title": "..."}',
   ].join("\n");
 }
 
-function extractJson(text: string): { link?: string; title?: string } | null {
-  try {
-    return JSON.parse(text);
-  } catch {
-    const m = text.match(/\{[^{}]*"link"[^{}]*\}/);
-    if (!m) return null;
+function extractJson(text: string): { link?: string; title?: string; reply?: string } | null {
+  const cleaned = text.replace(/```json|```/gi, "").trim();
+  const candidates = [cleaned];
+  const block = cleaned.match(/\{[\s\S]*\}/);
+  if (block) candidates.push(block[0]);
+  for (const candidate of candidates) {
     try {
-      return JSON.parse(m[0]);
+      const parsed = JSON.parse(candidate);
+      if (parsed && typeof parsed === "object") {
+        return parsed as { link?: string; title?: string; reply?: string };
+      }
     } catch {
-      return null;
+      continue;
     }
   }
+  return null;
 }
 
 const CORS_HEADERS = {
@@ -181,7 +202,10 @@ export const onRequestPost = async (context: {
   }
 
   try {
-    const body = (await request.json()) as { query?: string };
+    const body = (await request.json()) as {
+      query?: string;
+      history?: Array<{ role?: string; text?: string }>;
+    };
     const query = (body.query ?? "").trim();
     if (!query) {
       return new Response(JSON.stringify({ ok: false, error: "query 不能为空" }), {
@@ -214,7 +238,7 @@ export const onRequestPost = async (context: {
     }
 
     // 2. LLM 兜底（无 AI binding 时直接返回空）
-    const ai = (env as { AI?: { run: (model: string, opts: { messages: unknown[] }) => Promise<{ response?: string }> } }).AI;
+    const ai = (env as { AI?: { run: (model: string, opts: Record<string, unknown>) => Promise<{ response?: string }> } }).AI;
     if (!ai) {
       return new Response(
         JSON.stringify({ ok: true, source: "none", matches: [] }),
@@ -222,27 +246,33 @@ export const onRequestPost = async (context: {
       );
     }
 
+    const history: Array<{ role: string; content: string }> = [];
+    for (const item of body.history ?? []) {
+      const text = typeof item?.text === "string" ? item.text.trim() : "";
+      if (!text) continue;
+      history.push({ role: item.role === "assistant" ? "assistant" : "user", content: text });
+    }
+
     const result = await ai.run(AI_MODEL, {
       messages: [
-        { role: "system", content: "你只输出 JSON。" },
-        { role: "user", content: buildPrompt(query) },
+        { role: "system", content: buildSystemPrompt() },
+        ...history.slice(-6),
+        { role: "user", content: query },
       ],
+      temperature: 0.3,
+      max_tokens: 200,
     });
 
     const parsed = extractJson(result.response ?? "");
-    if (parsed?.link && parsed.title) {
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          source: "ai",
-          matches: [{ title: parsed.title, command: "", link: parsed.link, keywords: [] }],
-        }),
-        { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-      );
-    }
+    const reply = (parsed?.reply ?? "").replace(/\s+/g, " ").trim();
+    // 用目录里的真实条目回填，既防止模型编造路径，也补全指令文本与提示
+    const hit = parsed?.link ? ROUTE_INDEX.find((entry) => entry.link === parsed.link) : undefined;
+    const matches = hit
+      ? [{ title: hit.title, command: hit.command, link: hit.link, keywords: hit.keywords }]
+      : [];
 
     return new Response(
-      JSON.stringify({ ok: true, source: "none", matches: [] }),
+      JSON.stringify({ ok: true, source: matches.length > 0 ? "ai" : "none", reply, matches }),
       { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
     );
   } catch (error) {
