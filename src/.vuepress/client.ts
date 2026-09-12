@@ -55,12 +55,15 @@ export default defineClientConfig({
     let copyApp: ReturnType<typeof createApp> | null = null;
     let copyHolder: HTMLElement | null = null;
     let contentObserver: MutationObserver | null = null;
+    let activePath = "";
 
     function mountCommandCard(command: string): void {
       if (typeof document === "undefined") return;
-      if (copyHolder && document.contains(copyHolder)) return;
-      const content = document.querySelector(".theme-hope-content");
+      const content = document.querySelector<HTMLElement>(".theme-hope-content");
       if (!content) return;
+      // 内容容器在路由切换时会被整体重建，只有卡片仍挂在当前容器内才视为已注入
+      if (copyHolder && content.contains(copyHolder)) return;
+      clearCommandCard();
       copyHolder = document.createElement("div");
       copyHolder.className = "command-copy-card-root";
       content.prepend(copyHolder);
@@ -79,25 +82,22 @@ export default defineClientConfig({
 
     watch(
       () => pageData.value.path,
-      () => {
+      (path) => {
         const command = pageData.value.frontmatter?.command;
+        activePath = path;
         contentObserver?.disconnect();
         contentObserver = null;
         clearCommandCard();
         if (typeof command !== "string" || !command) return;
-        nextTick(() => {
-          if (typeof document === "undefined") return;
-          const content = document.querySelector(".theme-hope-content");
-          if (!content) return;
-          // SPA 切换时页面内容异步渲染，监听内容容器，卡片被新内容冲掉后自动重注入
-          contentObserver = new MutationObserver(() => {
-            if (!document.querySelector(".command-copy-card-root")) {
-              mountCommandCard(command);
-            }
-          });
-          contentObserver.observe(content, { childList: true, subtree: true });
+        if (typeof document === "undefined") return;
+        // 路由切换后页面为异步渲染，.theme-hope-content 会被销毁重建，
+        // 故监听 body 而非该容器本身，待内容就绪或重建后重新注入
+        contentObserver = new MutationObserver(() => {
+          if (pageData.value.path !== activePath) return;
           mountCommandCard(command);
         });
+        contentObserver.observe(document.body, { childList: true, subtree: true });
+        nextTick(() => mountCommandCard(command));
       },
       { immediate: true }
     );
