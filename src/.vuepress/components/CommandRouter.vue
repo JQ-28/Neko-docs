@@ -93,8 +93,8 @@
                   <a
                     v-else-if="message.fallback"
                     class="cp-btn"
-                    href="/zhiling/cheatsheet/"
-                    @click.prevent="go('/zhiling/cheatsheet/')"
+                    href="/zhiling/cheatsheet"
+                    @click.prevent="go('/zhiling/cheatsheet')"
                   >
                     去指令速查页看看
                   </a>
