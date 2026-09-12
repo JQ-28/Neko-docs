@@ -1,4 +1,5 @@
 ---
+command: "bm"
 title: 视频链接解析
 icon: /assets/icon/material-symbols--videocam-outline.svg
 category:

@@ -1,4 +1,5 @@
 ---
+command: "更新b50"
 title: maimaiDX
 icon: https://drive.nekodayo.top/raw/nekodocs/image/maimai.webp
 sticky: true

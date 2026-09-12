@@ -1,4 +1,5 @@
 ---
+command: "不背单词"
 title: 不背单词
 index: false
 icon: /assets/icon/book.svg

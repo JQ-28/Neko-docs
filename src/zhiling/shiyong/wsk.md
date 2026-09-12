@@ -1,4 +1,5 @@
 ---
+command: "谁问我了"
 title: 谁问你了？
 icon: /assets/icon/material-symbols--question-mark.svg
 category:

@@ -1,4 +1,5 @@
 ---
+command: "code"
 title: 在线运行代码
 index: false
 icon: /assets/icon/code.svg

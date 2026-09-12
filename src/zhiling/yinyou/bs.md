@@ -1,4 +1,5 @@
 ---
+command: "BS绑定"
 title: Beat Saber
 icon: https://drive.nekodayo.top/raw/nekodocs/image/Beat_Saber_Logo.png
 sticky: true

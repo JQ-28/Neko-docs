@@ -1,4 +1,5 @@
 ---
+command: "今日词云"
 title: WordCloud
 index: false
 icon: /assets/icon/superpowers.svg

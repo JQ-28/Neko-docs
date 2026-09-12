@@ -1,4 +1,5 @@
 ---
+command: "pjsk"
 title: ✨pjsk表情包制作✨
 icon: https://drive.nekodayo.top/raw/nekodocs/image/wonderhoy.png
 sticky: true

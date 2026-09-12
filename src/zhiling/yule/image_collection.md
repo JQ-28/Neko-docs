@@ -1,4 +1,5 @@
 ---
+command: "鉴赏帮助"
 title: 综合搜图
 icon: /assets/icon/image.svg
 category:

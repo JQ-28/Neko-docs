@@ -1,4 +1,5 @@
 ---
+command: "#cs 开箱"
 title: CSGO
 icon: https://drive.nekodayo.top/raw/nekodocs/image/csgo.png
 sticky: true

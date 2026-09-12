@@ -1,4 +1,5 @@
 ---
+command: "天气"
 title: 60s API 查询
 icon: /assets/icon/eye.svg
 category:

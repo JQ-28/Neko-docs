@@ -1,4 +1,5 @@
 ---
+command: "签到"
 title: 签到
 index: false
 icon: https://drive.nekodayo.top/raw/nekodocs/image/100.png

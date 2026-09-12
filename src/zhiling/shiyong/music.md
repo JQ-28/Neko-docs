@@ -1,4 +1,5 @@
 ---
+command: "点歌"
 title: 音乐点歌
 index: false
 icon: https://drive.nekodayo.top/raw/nekodocs/image/wyy.png

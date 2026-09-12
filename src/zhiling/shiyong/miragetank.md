@@ -1,4 +1,5 @@
 ---
+command: "幻影坦克"
 title: 幻影坦克
 icon: /assets/icon/image.svg
 category:

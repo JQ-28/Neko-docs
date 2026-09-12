@@ -1,4 +1,5 @@
 ---
+command: "金价"
 title: 金/油价查询
 index: false
 icon: /assets/icon/price.svg

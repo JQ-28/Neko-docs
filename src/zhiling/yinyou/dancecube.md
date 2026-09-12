@@ -1,4 +1,5 @@
 ---
+command: "/dc"
 title: dancecube
 icon: https://ts4.tc.mm.bing.net/th/id/OIP-C.z0P5wn_5cwtt1vpa-MJOwQAAAA?w=108&h=108&c=1&bgcl=56418f&r=0&o=7&pid=ImgRC&rm=3
 sticky: true

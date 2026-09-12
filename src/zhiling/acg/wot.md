@@ -1,4 +1,5 @@
 ---
+command: "wot帮助"
 title: 坦克世界
 icon: https://drive.nekodayo.top/raw/nekodocs/image/wot.png
 category:

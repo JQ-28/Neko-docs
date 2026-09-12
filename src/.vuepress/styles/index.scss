@@ -1,3 +1,5 @@
+@use "sass:color";
+
 // Neko 聊天界面样式 - 可爱风格
 :root {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -508,4 +510,24 @@ html.dark .v-notification__content {
   .v-notification__group {
     width: min(330px, calc(100vw - 2rem));
   }
+}
+
+// 主题色选择器：hope 会把 $theme-colors 按明度归一化后再应用，浅色样本需展示真实生效色
+// nth-child(2)/(3) 对应 $theme-colors 的第 1/2 项：#fcdfff、#e6f8ff
+.vp-theme-color-picker li:nth-child(2) span {
+  background: color.change(#fcdfff, $lightness: 45%) !important;
+}
+
+.vp-theme-color-picker li:nth-child(3) span {
+  background: color.change(#e6f8ff, $lightness: 45%) !important;
+}
+
+html.dark .vp-theme-color-picker li:nth-child(2) span,
+[data-theme="dark"] .vp-theme-color-picker li:nth-child(2) span {
+  background: color.change(#fcdfff, $lightness: 47.5%) !important;
+}
+
+html.dark .vp-theme-color-picker li:nth-child(3) span,
+[data-theme="dark"] .vp-theme-color-picker li:nth-child(3) span {
+  background: color.change(#e6f8ff, $lightness: 47.5%) !important;
 }

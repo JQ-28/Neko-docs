@@ -1,4 +1,5 @@
 ---
+command: "bf help"
 title: 战地
 icon: https://drive.nekodayo.top/raw/nekodocs/image/bf.webp
 sticky: true

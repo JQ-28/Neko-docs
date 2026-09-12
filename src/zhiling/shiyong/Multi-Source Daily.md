@@ -1,4 +1,5 @@
 ---
+command: "日报"
 title: 多源日报
 index: false
 icon: /assets/icon/image.svg

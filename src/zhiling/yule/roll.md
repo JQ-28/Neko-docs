@@ -1,4 +1,5 @@
 ---
+command: "roll"
 title: Roll 随机选择
 icon: /assets/icon/superpowers.svg
 category:

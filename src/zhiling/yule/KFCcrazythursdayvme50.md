@@ -1,4 +1,5 @@
 ---
+command: "疯狂星期四"
 title: 🍗疯狂星期四🍗
 index: false
 icon: https://drive.nekodayo.top/raw/nekodocs/image/KFC.jpg

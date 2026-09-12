@@ -1,4 +1,5 @@
 ---
+command: "扔漂流瓶"
 title: 漂流瓶插件
 index: false
 icon: /assets/icon/bottle.svg

@@ -1,4 +1,5 @@
 ---
+command: "/掉线测试"
 title: 断连通知
 icon: /assets/icon/terminal.svg
 category:

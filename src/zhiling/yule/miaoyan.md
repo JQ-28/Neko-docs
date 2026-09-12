@@ -1,4 +1,5 @@
 ---
+command: "喵言喵语"
 title: 喵言喵语
 index: false
 icon: http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640

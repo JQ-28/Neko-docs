@@ -1,4 +1,5 @@
 ---
+command: "/osu info"
 title: osu!
 icon: https://drive.nekodayo.top/raw/nekodocs/image/osu.png
 sticky: true

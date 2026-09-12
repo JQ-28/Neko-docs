@@ -1,4 +1,5 @@
 ---
+command: "今日小猪"
 title: 今日小猪
 index: false
 icon: https://pighub.top/images/%E7%8C%AA%E5%92%AA.png

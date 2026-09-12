@@ -1,4 +1,5 @@
 ---
+command: "arc"
 title: ✨Arcaea表情包制作✨
 icon: https://drive.nekodayo.top/raw/nekodocs/image/luna.jpg
 sticky: true

@@ -1,4 +1,5 @@
 ---
+command: "今天早上吃什么"
 title: 今天吃什么
 icon: /assets/icon/hotel.svg
 category:

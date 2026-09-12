@@ -1,4 +1,5 @@
 ---
+command: "光遇菜单"
 title: 光遇
 icon: https://drive.nekodayo.top/raw/nekodocs/image/guangyu.webp
 sticky: true

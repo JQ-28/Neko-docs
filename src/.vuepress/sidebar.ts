@@ -21,6 +21,12 @@ export default sidebar({
       collapsible: true,
       children: [
         {
+          text: "指令速查",
+          icon: "/assets/icon/search.svg",
+          link: "cheatsheet",
+          collapsible: true,
+        },
+        {
           text: "菜单帮助help",
           icon: "/assets/icon/book.svg",
           prefix: "help",

@@ -42,13 +42,6 @@ export default hopeTheme({
   footer: "喵",
   displayFooter: true,
 
-  // 加密配置
-  encrypt: {
-    config: {
-      "/demo/encrypt.html": ["1234"],
-    },
-  },
-
   // 多语言配置
   metaLocales: {
     editLink: "在 GitHub 上编辑此页",

@@ -1,4 +1,5 @@
 ---
+command: "占卜列表"
 title: 趣味占卜
 index: false
 icon: /assets/icon/wand-sparkles.svg

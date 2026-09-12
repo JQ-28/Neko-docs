@@ -1,4 +1,5 @@
 ---
+command: "/去背景"
 title: 图片背景消除
 index: false
 icon: /assets/icon/image.svg

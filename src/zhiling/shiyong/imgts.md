@@ -1,4 +1,5 @@
 ---
+command: "图片翻译"
 title: 图片/漫画翻译插件
 index: false
 icon: /assets/icon/image.svg

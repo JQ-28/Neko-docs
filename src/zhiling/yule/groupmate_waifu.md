@@ -1,4 +1,5 @@
 ---
+command: "娶群友"
 title: 娶群友
 index: false
 icon: http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640

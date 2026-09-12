@@ -1,4 +1,5 @@
 ---
+command: "今日猫娘"
 title: 今日猫娘
 index: false
 icon: http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640

@@ -1,4 +1,5 @@
 ---
+command: "#戳戳榜"
 title: Poke-Plugin
 index: false
 icon: /assets/icon/gamepad.svg

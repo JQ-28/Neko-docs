@@ -11,3 +11,7 @@ database_id = "2763ef1f-1cbd-4a60-bd29-bb424d5093da"
 [[r2_buckets]]
 binding = "SCREENSHOTS"
 bucket_name = "neko-apply-screenshots"
+
+# 敏感凭据不在 vars 中明文存放，请通过 wrangler secret 设置（提交前务必执行）：
+#   wrangler secret put TURNSTILE_SECRET_KEY
+#   wrangler secret put API_TOKEN

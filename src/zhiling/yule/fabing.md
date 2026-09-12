@@ -1,4 +1,5 @@
 ---
+command: "发病"
 title: 发病语录
 index: false
 icon: /assets/icon/pills.svg

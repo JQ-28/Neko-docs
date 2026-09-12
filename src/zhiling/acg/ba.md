@@ -1,4 +1,5 @@
 ---
+command: "ba帮助"
 title: 蔚蓝档案
 icon: https://drive.nekodayo.top/raw/nekodocs/image/ba.webp
 sticky: true

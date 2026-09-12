@@ -1,4 +1,5 @@
 ---
+command: "今日doro结局"
 title: 今日doro结局
 index: false
 icon: https://ts2.tc.mm.bing.net/th/id/OIP-C.UWpuAn-Yh17rX0xcHTuKzQHaFj?w=108&h=108&c=1&bgcl=d01c56&r=0&o=7&pid=ImgRC&rm=3

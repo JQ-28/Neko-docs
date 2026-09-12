@@ -1,4 +1,5 @@
 ---
+command: "表情包制作"
 title: 表情包制作
 index: false
 icon: /assets/icon/image.svg

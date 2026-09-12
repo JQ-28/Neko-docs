@@ -1,4 +1,5 @@
 ---
+command: "#状态"
 title: 系统状态查询
 index: false
 icon: /assets/icon/terminal.svg

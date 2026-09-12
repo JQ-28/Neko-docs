@@ -1,4 +1,5 @@
 ---
+command: "jq在干什么"
 title: 视奸jq
 index: false
 icon: /assets/icon/eye.svg

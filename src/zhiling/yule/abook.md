@@ -1,4 +1,5 @@
 ---
+command: "答案之书"
 title: 答案之书
 index: false
 icon: /assets/icon/book.svg

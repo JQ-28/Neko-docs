@@ -1,4 +1,5 @@
 ---
+command: "我的超能力"
 title: 我的超能力
 index: false
 icon: /assets/icon/superpowers.svg

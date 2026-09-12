@@ -1,4 +1,5 @@
 ---
+command: "#steam帮助"
 title: Steam 功能
 index: false
 icon: /assets/icon/gamepad.svg

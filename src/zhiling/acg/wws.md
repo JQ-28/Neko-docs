@@ -1,4 +1,5 @@
 ---
+command: "wws help"
 title: 战舰世界
 icon: https://drive.nekodayo.top/raw/nekodocs/image/wws.png
 sticky: true

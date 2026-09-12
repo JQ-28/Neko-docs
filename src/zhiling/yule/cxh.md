@@ -1,4 +1,5 @@
 ---
+command: "抽象话"
 title: 抽象话等文本生成
 index: false
 icon: /assets/icon/book.svg

@@ -1,4 +1,5 @@
 ---
+command: "撤回"
 title: 撤回插件
 icon: /assets/icon/share.svg
 category:

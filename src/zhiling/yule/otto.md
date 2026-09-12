@@ -1,4 +1,5 @@
 ---
+command: "hzys"
 title: ottohzys
 index: false
 icon: /assets/icon/accessible-icon.svg

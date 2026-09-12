@@ -1,4 +1,5 @@
 ---
+command: "skland"
 title: 明日方舟/终末地
 icon: https://drive.nekodayo.top/raw/nekodocs/image/ark.webp
 sticky: true

@@ -1,4 +1,5 @@
 ---
+command: "train"
 title: 12306 列车时刻表查询
 index: false
 icon: /assets/icon/train-subway.svg

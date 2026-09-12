@@ -1,4 +1,5 @@
 ---
+command: "%绑定设备帮助"
 title: 绝区零
 icon: https://drive.nekodayo.top/raw/nekodocs/image/juequ0.webp
 sticky: true

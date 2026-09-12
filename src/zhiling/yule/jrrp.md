@@ -1,4 +1,5 @@
 ---
+command: "jrrp"
 title: JRRP
 index: false
 icon: /assets/icon/superpowers.svg

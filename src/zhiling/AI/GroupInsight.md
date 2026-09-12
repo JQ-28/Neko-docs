@@ -1,4 +1,5 @@
 ---
+command: "#群聊报告"
 title: Group Insight
 icon: /assets/icon/github.svg
 sticky: true

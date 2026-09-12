@@ -1,4 +1,5 @@
 ---
+command: "表情包仓库"
 title: 表情包仓库
 index: false
 icon: /assets/icon/image.svg

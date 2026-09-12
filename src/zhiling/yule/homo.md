@@ -1,4 +1,5 @@
 ---
+command: "臭数字"
 title: 恶臭数字论证器
 index: false
 icon: https://drive.nekodayo.top/raw/nekodocs/image/homo.jpg

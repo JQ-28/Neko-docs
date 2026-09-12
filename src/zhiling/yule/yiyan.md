@@ -1,4 +1,5 @@
 ---
+command: "一言"
 title: 一言
 index: false
 icon: /assets/icon/book.svg

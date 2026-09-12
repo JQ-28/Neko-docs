@@ -1,7 +1,7 @@
-import { defineClientConfig } from "vuepress/client";
-import { onBeforeUnmount, onMounted } from "vue";
+import { defineClientConfig, usePageData } from "vuepress/client";
+import { createApp, nextTick, onBeforeUnmount, onMounted, watch } from "vue";
 import { Popper } from "@moefy-canvas/theme-popper";
-import ClipboardJS from "clipboard";
+import { copyText, showTip } from "./components/copy-utils";
 import NavbarToolsLink from "./components/NavbarToolsLink.vue";
 import QQChat from "./components/QQChat.vue";
 import QQMessage from "./components/QQMessage.vue";
@@ -9,48 +9,11 @@ import QQVoice from "./components/QQVoice.vue";
 import QQImage from "./components/QQImage.vue";
 import TimelineGallery from "./components/TimelineGallery.vue";
 import ApplyForm from "./components/ApplyForm.vue";
+import CopyCommand from "./components/CopyCommand.vue";
+import CommandCheatsheet from "./components/CommandCheatsheet.vue";
 
 const COPY_TEXT = "复制代码";
-const TIP_TITLE = "提示";
 const TIP_CONTENT = "复制成功";
-const TIP_TIME = 3000;
-
-function copyText(text: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const btn = document.createElement("div");
-    btn.style.display = "none";
-    document.body.appendChild(btn);
-    const cli = new ClipboardJS(btn, { text: () => text });
-    cli.on("success", () => {
-      cli.destroy();
-      btn.remove();
-      resolve(text);
-    });
-    cli.on("error", (e) => {
-      cli.destroy();
-      btn.remove();
-      reject(e.action);
-    });
-    btn.dispatchEvent(new Event("click"));
-  });
-}
-
-function showTip(content: string): void {
-  let list = document.querySelector<HTMLElement>(".alert-list");
-  if (!list) {
-    list = document.createElement("div");
-    list.className = "alert-list";
-    document.body.appendChild(list);
-  }
-  const tip = document.createElement("div");
-  tip.className = "v-notification__group";
-  tip.innerHTML = `<h2 class="v-notification__title">${TIP_TITLE}</h2><div class="v-notification__content"><p>${content}</p></div>`;
-  list.appendChild(tip);
-  setTimeout(() => {
-    tip.classList.add("v-notification__leave");
-    setTimeout(() => tip.remove(), 300);
-  }, TIP_TIME);
-}
 
 function injectCopyButtons(): void {
   document
@@ -80,28 +43,86 @@ export default defineClientConfig({
     app.component("QQImage", QQImage);
     app.component("TimelineGallery", TimelineGallery);
     app.component("ApplyForm", ApplyForm);
+    app.component("CopyCommand", CopyCommand);
+    app.component("CommandCheatsheet", CommandCheatsheet);
   },
 
   setup() {
+    let popper: Popper | null = null;
+    let canvas: HTMLCanvasElement | null = null;
+    let observer: MutationObserver | null = null;
+
+    let copyApp: ReturnType<typeof createApp> | null = null;
+    let copyHolder: HTMLElement | null = null;
+    let contentObserver: MutationObserver | null = null;
+
+    function mountCommandCard(command: string): void {
+      if (typeof document === "undefined") return;
+      if (copyHolder && document.contains(copyHolder)) return;
+      const content = document.querySelector(".theme-hope-content");
+      if (!content) return;
+      copyHolder = document.createElement("div");
+      copyHolder.className = "command-copy-card-root";
+      content.prepend(copyHolder);
+      copyApp = createApp(CopyCommand, { command });
+      copyApp.mount(copyHolder);
+    }
+
+    function clearCommandCard(): void {
+      copyApp?.unmount();
+      copyApp = null;
+      copyHolder?.remove();
+      copyHolder = null;
+    }
+
+    const pageData = usePageData();
+
+    watch(
+      () => pageData.value.path,
+      () => {
+        const command = pageData.value.frontmatter?.command;
+        contentObserver?.disconnect();
+        contentObserver = null;
+        clearCommandCard();
+        if (typeof command !== "string" || !command) return;
+        nextTick(() => {
+          if (typeof document === "undefined") return;
+          const content = document.querySelector(".theme-hope-content");
+          if (!content) return;
+          // SPA 切换时页面内容异步渲染，监听内容容器，卡片被新内容冲掉后自动重注入
+          contentObserver = new MutationObserver(() => {
+            if (!document.querySelector(".command-copy-card-root")) {
+              mountCommandCard(command);
+            }
+          });
+          contentObserver.observe(content, { childList: true, subtree: true });
+          mountCommandCard(command);
+        });
+      },
+      { immediate: true }
+    );
+
     onMounted(() => {
-      const canvas = document.createElement("canvas");
+      canvas = document.createElement("canvas");
       canvas.id = "vuepress-canvas-cursor";
       document.body.appendChild(canvas);
-      const popper = new Popper(
+      popper = new Popper(
         { shape: "star", size: 2 },
         { opacity: 1, zIndex: 999999999 }
       );
       popper.mount(canvas);
 
       injectCopyButtons();
-      const observer = new MutationObserver(() => injectCopyButtons());
+      observer = new MutationObserver(() => injectCopyButtons());
       observer.observe(document.body, { childList: true, subtree: true });
+    });
 
-      onBeforeUnmount(() => {
-        popper.unmount();
-        canvas.remove();
-        observer.disconnect();
-      });
+    onBeforeUnmount(() => {
+      popper?.unmount();
+      canvas?.remove();
+      observer?.disconnect();
+      contentObserver?.disconnect();
+      clearCommandCard();
     });
   },
 });

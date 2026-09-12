@@ -1,4 +1,5 @@
 ---
+command: "齁语加密"
 title: 齁语加密/解密
 index: false
 icon: /assets/icon/love.svg

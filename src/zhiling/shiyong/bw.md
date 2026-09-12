@@ -1,4 +1,5 @@
 ---
+command: "#订阅B站推送"
 title: B站动态和微博动态订阅推送
 index: false
 icon: /assets/icon/bilibili.svg

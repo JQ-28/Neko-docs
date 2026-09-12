@@ -1,4 +1,5 @@
 ---
+command: "#面板帮助"
 title: 原神
 icon: https://drive.nekodayo.top/raw/nekodocs/image/genshin.webp
 sticky: true

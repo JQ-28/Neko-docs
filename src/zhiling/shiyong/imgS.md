@@ -1,4 +1,5 @@
 ---
+command: "#搜图"
 title: 以图搜源
 index: false
 icon: /assets/icon/image.svg

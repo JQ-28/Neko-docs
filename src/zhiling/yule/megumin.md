@@ -1,4 +1,5 @@
 ---
+command: "爆裂魔法"
 title: 为美好群聊献上爆炎
 index: false
 icon: https://drive.nekodayo.top/raw/nekodocs/image/megumin.png

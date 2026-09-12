@@ -1,4 +1,5 @@
 ---
+command: "鸡汤"
 title: 心灵鸡汤
 index: false
 icon: /assets/icon/book.svg
