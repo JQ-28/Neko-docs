@@ -239,6 +239,8 @@ const MISS_REPLIES = [
   "neko 没找到对应的指令喵，要不要去速查页翻翻？",
 ];
 const BUSY = "neko 现在有点忙喵，稍后再试试吧~";
+const STORAGE_KEY = "neko-chat-history";
+const STORAGE_MAX = 40;
 const STICK_THRESHOLD = 40;
 const LEAVE_STEP = 26;
 const LEAVE_DURATION = 220;
@@ -336,9 +338,41 @@ function onScroll(): void {
   showToBottom.value = !isNearBottom();
 }
 
+function loadMessages(): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as ChatMessage[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (message) =>
+        !!message &&
+        typeof message.id === "number" &&
+        typeof message.text === "string" &&
+        (message.role === "user" || message.role === "neko"),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveMessages(): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.value.slice(-STORAGE_MAX)));
+  } catch {
+    return;
+  }
+}
+
+function restoreMessages(): void {
+  if (messages.value.length > 0) return;
+  messages.value = loadMessages();
+  messageId = messages.value.reduce((max, message) => Math.max(max, message.id), 0);
+}
+
 function pushMessage(payload: Omit<ChatMessage, "id" | "time">): void {
   const stick = isNearBottom();
   messages.value.push({ ...payload, id: ++messageId, time: fmtTime(new Date()) });
+  saveMessages();
   nextTick(() => {
     if (stick) scrollToBottom();
     else showToBottom.value = true;
@@ -424,6 +458,7 @@ function clearChat(): void {
   window.clearTimeout(clearTimer);
   const removed = messages.value.length;
   messages.value = [];
+  saveMessages();
 
   window.setTimeout(() => {
     messageId = 0;
@@ -434,13 +469,15 @@ function clearChat(): void {
 function openRouter(): void {
   open.value = true;
   query.value = "";
-  messages.value = [];
   typing.value = false;
   clearArmed.value = false;
   window.clearTimeout(clearTimer);
-  messageId = 0;
-  pushMessage({ role: "neko", text: GREETING });
-  nextTick(() => inputEl.value?.focus());
+  restoreMessages();
+  if (messages.value.length === 0) pushMessage({ role: "neko", text: GREETING });
+  nextTick(() => {
+    scrollToBottom();
+    inputEl.value?.focus();
+  });
 }
 
 function close(): void {
@@ -456,6 +493,7 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(() => {
+  restoreMessages();
   window.addEventListener("keydown", onKeydown);
   window.addEventListener(OPEN_EVENT, openRouter);
 });
