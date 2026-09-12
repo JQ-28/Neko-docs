@@ -13,7 +13,6 @@
   "devDependencies": {
     "@vuepress-reco/vuepress-plugin-bulletin-popover": "^1.6.16",
     "@vuepress/bundler-vite": "2.0.0-rc.17",
-    "@vuepress/plugin-search": "^2.0.0-rc.52",
     "@waline/client": "^3.3.2",
     "sass-embedded": "^1.79.4",
     "vue": "^3.5.10",
@@ -24,7 +23,6 @@
     "vuepress-theme-hope": "2.0.0-rc.58"
   },
   "dependencies": {
-    "markdown-it-emoji": "^2.0.2",
     "vuepress-plugin-oh-my-live2d": "^0.19.3",
     "vuepress-plugin-remove-html-extension": "^1.15.0"
   }

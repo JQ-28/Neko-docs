@@ -412,3 +412,100 @@ html.dark .qq-footer {
     color: #666;
   }
 }
+
+// ===== 掘金风代码复制 =====
+div[class*="language-"]::before {
+  right: 70px;
+}
+
+.v-copy-code-btn {
+  position: absolute;
+  z-index: 3;
+  top: 0.8em;
+  right: 15px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: hsla(0, 0%, 54.9%, 0.8);
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color 0.1s;
+
+  &:hover {
+    color: #8c8c8c;
+  }
+}
+
+.alert-list {
+  position: fixed;
+  top: 4rem;
+  right: 1rem;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.v-notification__group {
+  width: 330px;
+  padding: 14px 26px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  border: 1px solid #ebeef5;
+  background-color: #fff;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+  animation: v-notification-in 0.3s ease-out;
+  transition: opacity 0.3s, transform 0.3s;
+
+  &.v-notification__leave {
+    opacity: 0;
+    transform: translateX(calc(100% + 1rem));
+  }
+}
+
+@keyframes v-notification-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(100% + 1rem));
+  }
+}
+
+.v-notification__title {
+  margin: 0;
+  border: none;
+  font-weight: 700;
+  font-size: 16px;
+  color: #303133;
+}
+
+.v-notification__content {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 21px;
+  color: #606266;
+  text-align: justify;
+
+  p {
+    margin: 0;
+  }
+}
+
+html.dark .v-notification__group {
+  background-color: #1e1e20;
+  border-color: #3a3a3d;
+}
+
+html.dark .v-notification__title {
+  color: #e6e8ee;
+}
+
+html.dark .v-notification__content {
+  color: #9aa3b2;
+}
+
+@media (max-width: 768px) {
+  .v-notification__group {
+    width: min(330px, calc(100vw - 2rem));
+  }
+}

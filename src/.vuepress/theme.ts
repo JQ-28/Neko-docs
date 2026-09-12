@@ -75,10 +75,10 @@ export default hopeTheme({
         ],
       },
 
-    // 代码复制
-    copyCode: {
-      showInMobile: true,
-    },
+    // 代码复制（由 nuggets-style-copy 的掘金风按钮替代）
+    // copyCode: {
+    //   showInMobile: true,
+    // },
 
     // 通知插件
     notice: [
