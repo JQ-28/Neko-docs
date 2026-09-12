@@ -85,9 +85,9 @@ const ROUTE_INDEX: RouteEntry[] = [
   { title: "Group Insight", command: "#群聊报告", link: "/zhiling/AI/GroupInsight", keywords: ["群聊报告", "报告", "词云", "艾特", "活跃度"] },
 ];
 
-// 简易限流：单实例内按 IP 每分钟 10 次
+// 简易限流：单实例内按 IP 每分钟 5 次
 const RATE_LIMIT: Record<string, { count: number; resetAt: number }> = {};
-const RATE_MAX = 10;
+const RATE_MAX = 5;
 const RATE_WINDOW = 60_000;
 
 function rateLimited(ip: string): boolean {
@@ -213,7 +213,7 @@ export const onRequestPost = async (context: {
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
     }
-    if (query.length > 100) {
+    if (query.length > 50) {
       return new Response(JSON.stringify({ ok: false, error: "query 过长" }), {
         status: 400,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
@@ -260,7 +260,7 @@ export const onRequestPost = async (context: {
         { role: "user", content: query },
       ],
       temperature: 0.3,
-      max_tokens: 200,
+      max_tokens: 120,
     });
 
     const parsed = extractJson(result.response ?? "");
