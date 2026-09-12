@@ -168,6 +168,8 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+const AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8";
+
 export const onRequestPost = async (context: {
   request: Request;
   env: Record<string, unknown>;
@@ -220,7 +222,7 @@ export const onRequestPost = async (context: {
       );
     }
 
-    const result = await ai.run("@cf/meta/llama-3.1-8b-instruct", {
+    const result = await ai.run(AI_MODEL, {
       messages: [
         { role: "system", content: "你只输出 JSON。" },
         { role: "user", content: buildPrompt(query) },
