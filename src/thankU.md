@@ -6,9 +6,186 @@ copyright: false
 footer: Neko docs - 感谢名单
 ---
 
-# 感谢名单 ❦
+<style scoped>
+/* ===== 玻璃卡片通用（参考功能站侧边栏一言卡片） ===== */
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, .3);
+  box-shadow: 0 8px 24px rgba(127, 176, 255, .14), inset 0 1px 0 rgba(255, 255, 255, .4);
+  transition: border-color .2s, transform .2s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)), box-shadow .2s;
+}
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 158, 213, .42), rgba(127, 176, 255, .28), transparent);
+  filter: blur(26px);
+  opacity: .7;
+  pointer-events: none;
+  animation: aurora-bounce 7s infinite ease;
+}
+.glass-card::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  outline: 2px solid rgba(255, 255, 255, .5);
+  pointer-events: none;
+}
+.glass-card > * { position: relative; z-index: 2; }
+.glass-card:hover {
+  border-color: rgba(255, 158, 213, .55);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(127, 176, 255, .2), inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+@keyframes aurora-bounce {
+  0%   { transform: translate(-100%, -100%) translate3d(0, 0, 0); }
+  25%  { transform: translate(-100%, -100%) translate3d(120%, 0, 0); }
+  50%  { transform: translate(-100%, -100%) translate3d(120%, 120%, 0); }
+  75%  { transform: translate(-100%, -100%) translate3d(0, 120%, 0); }
+  100% { transform: translate(-100%, -100%) translate3d(0, 0, 0); }
+}
 
-:::info ❦ 致赞助者
+/* ===== 标题装饰图标 ===== */
+.title-ico {
+  width: 26px;
+  height: 26px;
+  vertical-align: -4px;
+  margin-left: 6px;
+}
+
+/* ===== 赞助统计 ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 28px 0;
+}
+.stat-card {
+  padding: 24px 16px 20px;
+  text-align: center;
+}
+.stat-ico {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 10px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(127, 176, 255, .18), rgba(255, 158, 213, .18));
+  color: var(--brand-light, #7fb0ff);
+  transition: transform .25s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.stat-card:hover .stat-ico { transform: rotate(8deg) scale(1.12); }
+.stat-ico img { width: 22px; height: 22px; }
+.stat-card b {
+  display: block;
+  font-size: 1.9em;
+  line-height: 1.2;
+  font-weight: 800;
+}
+.stat-card p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #666;
+}
+html.dark .stat-card p { color: #9aa3b2; }
+
+/* ===== 赞助者名单 ===== */
+.names-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+  margin: 28px 0;
+}
+.name-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 16px;
+  font-size: 14px;
+  color: #666;
+  cursor: default;
+}
+.name-card::before { opacity: 0; transition: opacity .3s; }
+.name-card:hover::before { opacity: .7; }
+.name-card::after { display: none; }
+.name-card img {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  opacity: .85;
+}
+html.dark .name-card { color: #e6e8ee; }
+
+/* ===== 底部支持按钮 ===== */
+.support-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #f9bdeb 0%, #c5d8f8 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 25px;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(249, 189, 235, .3);
+  transition: all .3s;
+}
+.support-btn:hover {
+  opacity: .92;
+  box-shadow: 0 6px 20px rgba(249, 189, 235, .45);
+  transform: translateY(-2px);
+}
+.support-btn img { width: 16px; height: 16px; }
+
+/* 卡片入场 */
+.stat-card,
+.name-card {
+  animation: card-fade-up 0.24s ease-out both;
+}
+.name-card:nth-child(3n) {
+  animation-delay: 40ms;
+}
+@keyframes card-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .name-card {
+    animation: none;
+  }
+}
+
+/* 移动端 */
+@media (max-width: 768px) {
+  .stats-grid { gap: 12px; }
+  .names-grid { gap: 10px; }
+}
+</style>
+
+# 感谢名单 <img class="title-ico" src="https://api.iconify.design/mdi:heart-multiple.svg?color=%23f9bdeb" alt="heart">
+
+:::info 致赞助者
 感谢你们对 Neko 的支持！
 
 作为一个非盈利性质的 QQ Bot，我们的运营离不开大家的慷慨赞助。\
@@ -17,78 +194,59 @@ footer: Neko docs - 感谢名单
 
 ***
 
-## ⌗ 赞助统计
+## 赞助统计
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0;">
-  <div style="text-align: center; padding: 20px; background: rgba(249, 189, 235, 0.1); border-radius: 15px;">
-    <h3 style="font-size: 2em; margin: 0; color: #f9bdeb;">22</h3>
-    <p style="margin: 5px 0 0 0; color: #666;">位赞助者</p>
+<div class="stats-grid">
+  <div class="stat-card glass-card">
+    <span class="stat-ico"><img src="https://api.iconify.design/mdi:account-heart.svg?color=%237fb0ff" alt="sponsors"></span>
+    <b style="color: #7fb0ff;">22</b>
+    <p>位赞助者</p>
   </div>
 
-  <div style="text-align: center; padding: 20px; background: rgba(168, 230, 207, 0.1); border-radius: 15px;">
-    <h3 style="font-size: 2em; margin: 0; color: #81c995;">¥600+</h3>
-    <p style="margin: 5px 0 0 0; color: #666;">累计赞助</p>
+  <div class="stat-card glass-card">
+    <span class="stat-ico"><img src="https://api.iconify.design/mdi:hand-coin.svg?color=%2381c995" alt="money"></span>
+    <b style="color: #81c995;">¥600+</b>
+    <p>累计赞助</p>
   </div>
 
-  <div style="text-align: center; padding: 20px; background: rgba(197, 216, 248, 0.1); border-radius: 15px;">
-    <h3 style="font-size: 2em; margin: 0; color: #c5d8f8;">♥</h3>
-    <p style="margin: 5px 0 0 0; color: #666;">无限感激</p>
+  <div class="stat-card glass-card">
+    <span class="stat-ico"><img src="https://api.iconify.design/mdi:heart.svg?color=%23f9bdeb" alt="grateful"></span>
+    <b style="color: #f9bdeb; line-height: 1;"><img src="https://api.iconify.design/mdi:heart.svg?color=%23f9bdeb" alt="grateful" style="width:34px;height:34px;vertical-align:-2px;"></b>
+    <p>无限感激</p>
   </div>
 </div>
 
 ***
 
-## ⋆ 赞助者名单
+## 赞助者名单
 
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin: 30px 0;">
-  <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❦ 心燃</div>
-
-  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✿ Nớvậ、星辰</div>
-
-  <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">⋆ 宝宝你是一个大葱</div>
-
-  <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❀ 世一晴</div>
-
-  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✧ 守宸</div>
-
-  <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✦ 巡林官小小提</div>
-
-  <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">⊹ 八戒</div>
-
-  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✿ yee~</div>
-
-  <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❀ Al8sN</div>
-
-  <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✦ French wooden egg</div>
-
-  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">⋆ 奕迟</div>
-
-  <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✧ Napart</div>
-
-  <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❦ 彩叶</div>
-
-  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✿ whiteLT</div>
-
-  <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">⊹ 孤枫</div>
-
-  <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">⋆ 攸枫凝</div>
-
-  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✦ Meow!</div>
-
-  <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✧ ✞Fu聚乙烯✞</div>
-
-  <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❀ isAe</div>
-
-  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">❦ Cloud_Yume</div>
-
-  <div style="padding: 15px 20px; background: rgba(232, 213, 248, 0.15); border-left: 4px solid #e8d5f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(232, 213, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✿ 迷途归</div>
-
-  <div style="padding: 15px 20px; background: rgba(249, 189, 235, 0.15); border-left: 4px solid #f9bdeb; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(249, 189, 235, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">⋆ 爱发电用户_86fb0</div>
-
-  <div style="padding: 15px 20px; background: rgba(197, 216, 248, 0.15); border-left: 4px solid #c5d8f8; border-radius: 8px; color: #666; font-size: 14px; transition: all 0.3s ease; cursor: default;" onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 3px 10px rgba(197, 216, 248, 0.2)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">✦ 一般路过Youkia</div>
+<div class="names-grid">
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:heart-outline.svg?color=%23f9bdeb" alt="">心燃</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:star-four-points-outline.svg?color=%237fb0ff" alt="">Nớvậ、星辰</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:flower-outline.svg?color=%2381c995" alt="">宝宝你是一个大葱</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:heart-outline.svg?color=%23f9bdeb" alt="">世一晴</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:star-four-points-outline.svg?color=%237fb0ff" alt="">守宸</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:flower-outline.svg?color=%2381c995" alt="">巡林官小小提</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:heart-outline.svg?color=%23f9bdeb" alt="">八戒</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:star-four-points-outline.svg?color=%237fb0ff" alt="">yee~</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:flower-outline.svg?color=%2381c995" alt="">Al8sN</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:heart-outline.svg?color=%23f9bdeb" alt="">French wooden egg</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:star-four-points-outline.svg?color=%237fb0ff" alt="">奕迟</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:flower-outline.svg?color=%2381c995" alt="">Napart</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:heart-outline.svg?color=%23f9bdeb" alt="">彩叶</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:star-four-points-outline.svg?color=%237fb0ff" alt="">whiteLT</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:flower-outline.svg?color=%2381c995" alt="">孤枫</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:heart-outline.svg?color=%23f9bdeb" alt="">攸枫凝</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:star-four-points-outline.svg?color=%237fb0ff" alt="">Meow!</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:flower-outline.svg?color=%2381c995" alt="">✞Fu聚乙烯✞</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:heart-outline.svg?color=%23f9bdeb" alt="">isAe</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:star-four-points-outline.svg?color=%237fb0ff" alt="">Cloud_Yume</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:flower-outline.svg?color=%2381c995" alt="">迷途归</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:heart-outline.svg?color=%23f9bdeb" alt="">爱发电用户_86fb0</div>
+  <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:star-four-points-outline.svg?color=%237fb0ff" alt="">一般路过Youkia</div>
 </div>
 
-:::tip ⌗ 说明
+:::tip 说明
 以上昵称均使用微信/QQ/支付宝/爱发电昵称\
 如有遗漏请联系我们 ww
 :::
@@ -102,8 +260,9 @@ footer: Neko docs - 感谢名单
   </p>
 
   <p style="margin: 30px 0;">
-    <a href="/zanzhu" style="display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #f9bdeb 0%, #c5d8f8 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; box-shadow: 0 4px 15px rgba(249, 189, 235, 0.3); transition: all 0.3s;">
-      ❦ 我也想支持 Neko
+    <a class="support-btn" href="/zanzhu">
+      <img src="https://api.iconify.design/mdi:heart.svg?color=%23fff" alt="">
+      我也想支持 Neko
     </a>
   </p>
 

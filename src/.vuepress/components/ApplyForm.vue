@@ -91,10 +91,12 @@
               <span v-else-if="isUploading">⏳ 上传中...</span>
               <span v-else-if="screenshotUrl">✅ {{ screenshotFile?.name }}</span>
             </label>
-            <div v-if="screenshotUrl" class="screenshot-preview">
-              <img :src="screenshotUrl" alt="Screenshot preview" />
-              <button type="button" @click="removeScreenshot" class="remove-btn">✕ 删除</button>
-            </div>
+            <Transition name="preview">
+              <div v-if="screenshotUrl" class="screenshot-preview">
+                <img :src="screenshotUrl" alt="Screenshot preview" />
+                <button type="button" @click="removeScreenshot" class="remove-btn">✕ 删除</button>
+              </div>
+            </Transition>
           </div>
           <p class="help-text">请上传包含群号、群主/管理员列表以及明确同意消息的聊天记录截图</p>
         </div>
@@ -135,13 +137,17 @@
           <div class="cf-turnstile" ref="turnstileWidget"></div>
         </div>
 
-        <div v-if="errorMessage" class="message-box error">
-          {{ errorMessage }}
-        </div>
+        <Transition name="msg">
+          <div v-if="errorMessage" class="message-box error">
+            {{ errorMessage }}
+          </div>
+        </Transition>
 
-        <div v-if="successMessage" class="message-box success">
-          {{ successMessage }}
-        </div>
+        <Transition name="msg">
+          <div v-if="successMessage" class="message-box success">
+            {{ successMessage }}
+          </div>
+        </Transition>
 
         <button 
           type="submit" 
@@ -559,12 +565,16 @@ html.dark .notice-list li {
   border: none;
   cursor: pointer;
   font-size: 16px;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 160ms var(--ease-out);
   width: 100%;
 }
 
 .submit-btn:hover:not(:disabled) {
   opacity: 0.8;
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .submit-btn:disabled {
@@ -690,6 +700,26 @@ html.dark .screenshot-preview img {
 
 html.dark .help-text {
   color: #9ca3af;
+}
+
+/* 消息入场动画 */
+.msg-enter-active {
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+}
+
+.msg-enter-from {
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+}
+
+/* 截图预览入场动画 */
+.preview-enter-active {
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.preview-enter-from {
+  opacity: 0;
+  transform: scale(0.96);
 }
 
 @media (max-width: 768px) {

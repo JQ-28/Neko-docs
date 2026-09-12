@@ -23,3 +23,15 @@
     </a>
   </div>
 </template>
+
+<style scoped>
+.vp-action-link svg {
+  transition: transform 150ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vp-action-link:hover svg {
+    transform: translateY(-1px);
+  }
+}
+</style>
