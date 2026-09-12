@@ -1,11 +1,10 @@
-***
-
+---
 title: 感谢名单
 icon: /assets/icon/heart.svg
 pageview: true
 copyright: false
 footer: Neko docs - 感谢名单
-------------------------
+---
 
 # 感谢名单 ❦
 
