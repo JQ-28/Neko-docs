@@ -204,6 +204,7 @@ export default sidebar({
               collapsible: true,
               children: [
                 "KFCcrazythursdayvme50",
+                "miaoyan",
                 "yiyan",
                 "jitang",
                 "cxh",

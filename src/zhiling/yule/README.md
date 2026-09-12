@@ -60,6 +60,14 @@ background: rgba(248, 248, 255, 0.3)
 各种有趣的文字生成
 
 ```component VPCard
+title: 喵言喵语
+desc: 生成喵言喵语
+logo: http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640
+link: miaoyan
+background: rgba(248, 248, 255, 0.3)
+```
+
+```component VPCard
 title: 🍗疯狂星期四🍗
 desc: 天天疯狂！随机输出KFC疯狂星期四文案。
 logo: https://drive.nekodayo.top/raw/nekodocs/image/KFC.jpg
@@ -148,7 +156,7 @@ background: rgba(248, 248, 255, 0.3)
 ```component VPCard
 title: 今日小猪
 desc: 今天是什么小猪
-logo: https://pighub.top/data/%E7%8C%AA%E5%92%AA%E4%BA%A4%E6%B5%81%E7%BE%A4.jpg
+logo: https://pighub.top/images/%E7%8C%AA%E5%92%AA.png
 link: pig
 background: rgba(248, 248, 255, 0.3)
 ```
@@ -282,3 +290,5 @@ logo: /assets/icon/eye.svg
 link: jq
 background: rgba(248, 248, 255, 0.3)
 ```
+
+

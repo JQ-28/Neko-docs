@@ -1,7 +1,7 @@
 ---
 title: 今日小猪
 index: false
-icon: https://pighub.top/data/%E7%8C%AA%E5%92%AA%E4%BA%A4%E6%B5%81%E7%BE%A4.jpg
+icon: https://pighub.top/images/%E7%8C%AA%E5%92%AA.png
 category:
   - pig
 tag:
@@ -11,6 +11,15 @@ tag:
 copyright: false
 footer: 猪降临...
 ---
+
+```component VPCard
+title: nonebot-plugin-rollpig-plus
+desc: 每天抽一只属于你的小猪
+logo: /assets/icon/github.svg
+link: https://github.com/Felis2026/nonebot-plugin-rollpig-plus
+background: rgba(248, 248, 255, 0.3)
+```
+
 
 ## 🎮 功能概览
 
