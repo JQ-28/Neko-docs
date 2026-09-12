@@ -13,7 +13,7 @@ export default hopeTheme({
 
   iconAssets: "fontawesome-with-brands",
 
-  favicon: "https://drive.nekodayo.top/raw/nekodocs/image/neko.webp",
+  favicon: "/assets/image/neko.webp",
 
   logo: "https://drive.nekodayo.top/raw/nekodocs/image/neko.webp",
 
@@ -179,29 +179,29 @@ export default hopeTheme({
 
     // PWA 支持
     pwa: {
-      favicon: "/favicon.ico",
+      favicon: "/assets/image/neko.webp",
       cacheHTML: true,
       cacheImage: true,
       appendBase: true,
       apple: {
-        icon: "/logo.png",
+        icon: "/assets/image/neko.webp",
         statusBarColor: "black",
       },
       msTile: {
-        image: "/logo.png",
+        image: "/assets/image/neko.webp",
         color: "#ffffff",
       },
       manifest: {
         icons: [
           {
-            src: "/logo.png",
+            src: "/assets/image/neko.webp",
             sizes: "512x512",
-            type: "image/png",
+            type: "image/webp",
           },
           {
-            src: "/logo.png",
+            src: "/assets/image/neko.webp",
             sizes: "192x192",
-            type: "image/png",
+            type: "image/webp",
           },
         ],
       },

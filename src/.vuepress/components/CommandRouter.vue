@@ -1,5 +1,5 @@
 <template>
-  <Teleport to="body">
+  <ClientOnly>
     <div class="neko-mask" :class="{ open }" @click.self="close">
       <div class="neko-modal" role="dialog" aria-modal="true" aria-label="问问neko">
         <div class="neko-modal-head">
@@ -196,7 +196,7 @@
         </div>
       </div>
     </div>
-  </Teleport>
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">
