@@ -95,7 +95,7 @@ const commandHints: Record<string, string> = {
 };
 
 export function hintFor(title: string, command: string): string {
-  return commandHints[command] ?? featureHints[title] ?? title;
+  return commandHints[command] ?? featureHints[title] ?? "";
 }
 
 const yule = (name: string, title: string, command: string, commands: string[]): CommandEntry => ({

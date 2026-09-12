@@ -7,11 +7,13 @@
             <path d="M21.53 20.47l-3.66-3.66C19.195 15.24 20 13.214 20 11c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9c2.215 0 4.24-.804 5.808-2.13l3.66 3.66c.147.146.34.22.53.22s.385-.073.53-.22c.295-.293.295-.767.002-1.06zM3.5 11c0-4.135 3.365-7.5 7.5-7.5s7.5 3.365 7.5 7.5-3.365 7.5-7.5 7.5-7.5-3.365-7.5-7.5z" />
           </svg>
           <input
+            ref="searchInput"
             v-model="keyword"
             type="search"
             class="cheatsheet-input"
             placeholder="搜索指令或功能名称…"
             aria-label="搜索指令"
+            @keydown.esc="resetSearch"
           />
         </div>
       </div>
@@ -41,17 +43,31 @@
       <TransitionGroup tag="div" name="card" class="cheatsheet-grid">
         <div v-for="item in cat.items" :key="item.link" class="cheatsheet-card">
           <span class="card-glass"></span>
-          <RouterLink :to="item.link" class="cheatsheet-name">{{ item.title }}</RouterLink>
+          <RouterLink :to="item.link" class="cheatsheet-name">
+            <template v-for="(seg, i) in highlight(item.title)" :key="i">
+              <mark v-if="seg.hit" class="cheatsheet-mark">{{ seg.text }}</mark>
+              <template v-else>{{ seg.text }}</template>
+            </template>
+          </RouterLink>
           <div class="cheatsheet-cmds">
             <button
               v-for="cmd in item.commands"
               :key="cmd"
               type="button"
               class="cheatsheet-cmd"
-              :title="hintFor(item.title, cmd)"
+              :title="hintFor(item.title, cmd) || undefined"
+              :aria-label="cmdLabel(item.title, cmd)"
               @click="copy(cmd)"
             >
-              {{ cmd }}
+              <span class="cmd-text">
+                <template v-for="(seg, i) in highlight(cmd)" :key="i">
+                  <mark v-if="seg.hit" class="cheatsheet-mark">{{ seg.text }}</mark>
+                  <template v-else>{{ seg.text }}</template>
+                </template>
+              </span>
+              <span v-if="hintFor(item.title, cmd)" class="cmd-hint" aria-hidden="true">
+                {{ hintFor(item.title, cmd) }}
+              </span>
             </button>
           </div>
         </div>
@@ -59,8 +75,8 @@
     </section>
 
     <p v-if="filteredCategories.length === 0" class="cheatsheet-empty">
-      没有找到匹配的指令
-      <button type="button" class="cheatsheet-empty-reset" @click="keyword = ''">
+      没有找到与「{{ normalizedKeyword }}」匹配的指令
+      <button type="button" class="cheatsheet-empty-reset" @click="resetSearch">
         清空搜索
       </button>
     </p>
@@ -70,44 +86,83 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { commandCategories, hintFor } from "./commands-data";
 import { copyText, showTip } from "./copy-utils";
 
-const keyword = ref("");
+interface HighlightSegment {
+  text: string;
+  hit: boolean;
+}
+
+const QUERY_KEY = "q";
+const ANNOUNCE_DELAY = 400;
+
+const keyword = ref(readKeywordFromUrl());
 const liveMessage = ref("");
+const searchInput = ref<HTMLInputElement | null>(null);
 const statCats = ref<HTMLElement | null>(null);
 const statFeats = ref<HTMLElement | null>(null);
 const statCmds = ref<HTMLElement | null>(null);
 
-const totalFeats = computed(() =>
-  commandCategories.reduce((sum, cat) => sum + cat.items.length, 0)
+const normalizedKeyword = computed(() => keyword.value.trim().toLowerCase());
+
+const filteredCategories = computed(() => {
+  const kw = normalizedKeyword.value;
+  if (!kw) return commandCategories;
+  return commandCategories.flatMap((cat) => {
+    // 命中分类名时整类保留，避免搜索「音游」这类词返回空
+    if (cat.name.toLowerCase().includes(kw)) return [cat];
+    const items = cat.items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(kw) ||
+        item.command.toLowerCase().includes(kw) ||
+        item.commands.some((cmd) => cmd.toLowerCase().includes(kw))
+    );
+    return items.length ? [{ name: cat.name, items }] : [];
+  });
+});
+
+const filteredFeats = computed(() =>
+  filteredCategories.value.reduce((sum, cat) => sum + cat.items.length, 0)
 );
-const totalCmds = computed(() =>
-  commandCategories.reduce(
-    (sum, cat) => sum + cat.items.reduce((s, it) => s + it.commands.length, 0),
+
+const filteredCmds = computed(() =>
+  filteredCategories.value.reduce(
+    (sum, cat) => sum + cat.items.reduce((total, item) => total + item.commands.length, 0),
     0
   )
 );
 
-const filteredCategories = computed(() => {
-  const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return commandCategories;
-  return commandCategories
-    .map((cat) => ({
-      ...cat,
-      items: cat.items.filter(
-        (item) =>
-          item.title.toLowerCase().includes(kw) ||
-          item.command.toLowerCase().includes(kw) ||
-          item.commands.some((cmd) => cmd.toLowerCase().includes(kw))
-      ),
-    }))
-    .filter((cat) => cat.items.length > 0);
-});
+function highlight(text: string): HighlightSegment[] {
+  const kw = normalizedKeyword.value;
+  if (!kw) return [{ text, hit: false }];
+  const lowerText = text.toLowerCase();
+  const segments: HighlightSegment[] = [];
+  let cursor = 0;
+  let index = lowerText.indexOf(kw);
+  while (index !== -1) {
+    if (index > cursor) segments.push({ text: text.slice(cursor, index), hit: false });
+    segments.push({ text: text.slice(index, index + kw.length), hit: true });
+    cursor = index + kw.length;
+    index = lowerText.indexOf(kw, cursor);
+  }
+  if (!segments.length) return [{ text, hit: false }];
+  if (cursor < text.length) segments.push({ text: text.slice(cursor), hit: false });
+  return segments;
+}
+
+function cmdLabel(title: string, cmd: string): string {
+  const hint = hintFor(title, cmd);
+  return hint ? `复制指令 ${cmd}：${hint}` : `复制指令 ${cmd}`;
+}
+
+const animationFrames = new WeakMap<HTMLElement, number>();
 
 function animateNumber(el: HTMLElement, target: number): void {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  window.cancelAnimationFrame(animationFrames.get(el) ?? 0);
+  const from = Number(el.textContent) || 0;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || from === target) {
     el.textContent = String(target);
     return;
   }
@@ -116,25 +171,78 @@ function animateNumber(el: HTMLElement, target: number): void {
   const tick = (now: number): void => {
     const p = Math.min((now - start) / dur, 1);
     const eased = 1 - Math.pow(1 - p, 3);
-    el.textContent = String(Math.round(target * eased));
-    if (p < 1) requestAnimationFrame(tick);
+    el.textContent = String(Math.round(from + (target - from) * eased));
+    if (p < 1) animationFrames.set(el, requestAnimationFrame(tick));
+    else animationFrames.delete(el);
   };
-  requestAnimationFrame(tick);
+  animationFrames.set(el, requestAnimationFrame(tick));
 }
 
-onMounted(() => {
-  nextTick(() => {
-    if (statCats.value) animateNumber(statCats.value, commandCategories.length);
-    if (statFeats.value) animateNumber(statFeats.value, totalFeats.value);
-    if (statCmds.value) animateNumber(statCmds.value, totalCmds.value);
-  });
-});
+function updateStats(): void {
+  if (statCats.value) animateNumber(statCats.value, filteredCategories.value.length);
+  if (statFeats.value) animateNumber(statFeats.value, filteredFeats.value);
+  if (statCmds.value) animateNumber(statCmds.value, filteredCmds.value);
+}
+
+let cardObserver: IntersectionObserver | null = null;
+let announceTimer = 0;
+
+function refreshCardObserver(): void {
+  cardObserver?.disconnect();
+  const cards = document.querySelectorAll<HTMLElement>(".cheatsheet-card");
+  if (!cards.length) return;
+  // 仅对进入视口的卡片启用悬浮动画，避免数十张卡片同时持续合成
+  cardObserver ??= new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        entry.target.classList.toggle("is-visible", entry.isIntersecting);
+      });
+    },
+    { rootMargin: "120px" }
+  );
+  cards.forEach((card) => cardObserver?.observe(card));
+}
+
+function readKeywordFromUrl(): string {
+  if (typeof window === "undefined") return "";
+  return new URL(window.location.href).searchParams.get(QUERY_KEY) ?? "";
+}
+
+function writeKeywordToUrl(value: string): void {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (value) url.searchParams.set(QUERY_KEY, value);
+  else url.searchParams.delete(QUERY_KEY);
+  // 用原生 replaceState 保留 router 的 state：router.replace 会触发 scrollBehavior 滚回顶部
+  window.history.replaceState(window.history.state, "", url.toString());
+}
 
 function announce(message: string): void {
   liveMessage.value = "";
   requestAnimationFrame(() => {
     liveMessage.value = message;
   });
+}
+
+function resetSearch(): void {
+  keyword.value = "";
+  searchInput.value?.blur();
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target.isContentEditable ||
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT"
+  );
+}
+
+function handleGlobalKeydown(event: KeyboardEvent): void {
+  if (event.key !== "/" || isEditableTarget(event.target)) return;
+  event.preventDefault();
+  searchInput.value?.focus();
 }
 
 function copy(text: string): void {
@@ -148,6 +256,37 @@ function copy(text: string): void {
       announce("复制失败");
     });
 }
+
+watch(keyword, (value) => {
+  writeKeywordToUrl(value.trim());
+});
+
+watch(filteredFeats, (count) => {
+  if (!normalizedKeyword.value) return;
+  window.clearTimeout(announceTimer);
+  announceTimer = window.setTimeout(() => {
+    announce(count ? `找到 ${count} 个功能` : "没有找到匹配的指令");
+  }, ANNOUNCE_DELAY);
+});
+
+watch(filteredCategories, () => {
+  updateStats();
+  nextTick(refreshCardObserver);
+});
+
+onMounted(() => {
+  nextTick(() => {
+    updateStats();
+    refreshCardObserver();
+  });
+  window.addEventListener("keydown", handleGlobalKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleGlobalKeydown);
+  window.clearTimeout(announceTimer);
+  cardObserver?.disconnect();
+});
 </script>
 
 <style scoped>
@@ -408,11 +547,14 @@ html.dark .cat-count {
   --animation-delay: 0s;
   rotate: var(--rotation);
   scale: 1;
-  animation: card-float 10s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
-  animation-delay: var(--animation-delay);
   transition: rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     scale 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     box-shadow 0.45s ease, border-color 0.3s ease;
+}
+
+.cheatsheet-card.is-visible {
+  animation: card-float 10s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+  animation-delay: var(--animation-delay);
 }
 
 .cheatsheet-card:nth-child(4n+1) { --rotation: 0.8deg; --animation-delay: -1s; }
@@ -511,6 +653,7 @@ html.dark .cheatsheet-name {
 .cheatsheet-cmd {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 28px;
   padding: 4px 12px;
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
@@ -521,6 +664,44 @@ html.dark .cheatsheet-name {
   cursor: pointer;
   transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease,
     transform 0.15s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+.cmd-text {
+  display: inline-flex;
+}
+
+.cmd-hint {
+  display: none;
+}
+
+.cheatsheet-mark {
+  padding: 0 1px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: inherit;
+}
+
+html.dark .cheatsheet-mark {
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+/* 触屏设备无法显示 title 提示，改为卡内展示用途并加大触控区域 */
+@media (hover: none) {
+  .cheatsheet-cmd {
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 44px;
+    padding: 8px 14px;
+    border-radius: 16px;
+  }
+
+  .cmd-hint {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.3;
+    color: color-mix(in srgb, var(--accent) 65%, transparent);
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -624,6 +805,14 @@ html.dark .cheatsheet-empty {
   transition: transform 0.2s ease-out;
 }
 
+/* card-float 是 10s 无限动画：若不过滤，Vue 会把过渡超时判定为 10s - animation-delay(≈9s)，
+   且无限动画不会触发 animationend，导致被移除的卡片滞留 9 秒占据网格位置，
+   其余卡片无法及时归位（表现为搜索结果几秒后才抖动上移） */
+.cheatsheet-card.card-enter-active,
+.cheatsheet-card.card-leave-active {
+  animation: none;
+}
+
 /* ===== 动画 ===== */
 @keyframes hero-reveal {
   from { transform: scaleX(0); }
@@ -649,7 +838,8 @@ html.dark .cheatsheet-empty {
     animation: none;
   }
 
-  .cheatsheet-card {
+  .cheatsheet-card,
+  .cheatsheet-card.is-visible {
     animation: none;
   }
 
