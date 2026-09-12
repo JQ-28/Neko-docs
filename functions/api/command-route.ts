@@ -281,7 +281,7 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-const AI_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
+const AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8-fast";
 
 export const onRequestPost = async (context: {
   request: Request;
@@ -373,8 +373,7 @@ export const onRequestPost = async (context: {
       messages: [
         { role: "system", content: buildSystemPrompt(hijacked) },
         ...history.slice(-4),
-        // Qwen3 默认带思维链，/no_think 软关闭，避免思考过程吃掉 max_tokens
-        { role: "user", content: `${wrapUserMessage(query)} /no_think` },
+        { role: "user", content: wrapUserMessage(query) },
       ],
       temperature: 0.3,
       max_tokens: 200,
