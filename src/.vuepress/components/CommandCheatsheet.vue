@@ -17,6 +17,10 @@
           />
         </div>
       </div>
+      <button type="button" class="cheatsheet-ask" title="不知道用哪条指令？问问neko" @click="openRouter">
+        <img class="cheatsheet-ask-ico" src="/assets/image/neko.webp" alt="" aria-hidden="true" />
+        <span>问问neko</span>
+      </button>
     </div>
 
     <div class="cheatsheet-hero">
@@ -97,6 +101,11 @@ interface HighlightSegment {
 
 const QUERY_KEY = "q";
 const ANNOUNCE_DELAY = 400;
+const OPEN_EVENT = "neko-open-router";
+
+function openRouter(): void {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT));
+}
 
 const keyword = ref(readKeywordFromUrl());
 const liveMessage = ref("");
@@ -408,7 +417,68 @@ html.dark .hero-stat b {
 
 /* ===== 搜索框（胶囊流动渐变） ===== */
 .cheatsheet-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 20px;
+}
+
+.cheatsheet-ask {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  align-self: stretch;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(var(--vp-c-bg), var(--vp-c-bg)) padding-box,
+    linear-gradient(135deg, #ff9ed5, #7fb0ff) border-box;
+  color: var(--vp-c-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 192, 203, 0.18);
+  transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+}
+
+.cheatsheet-ask-ico {
+  flex: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 158, 213, 0.6);
+}
+
+.cheatsheet-ask:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cheatsheet-ask:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(255, 158, 213, 0.32);
+  }
+}
+
+html.dark .cheatsheet-ask {
+  background: linear-gradient(var(--vp-c-bg), var(--vp-c-bg)) padding-box,
+    linear-gradient(135deg, #d48ad0, #6f9be6) border-box;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 480px) {
+  .cheatsheet-ask span {
+    display: none;
+  }
+
+  .cheatsheet-ask {
+    padding: 0 10px;
+  }
 }
 
 .search-shell {

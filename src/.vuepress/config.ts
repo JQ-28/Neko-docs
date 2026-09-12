@@ -38,8 +38,7 @@ export default defineUserConfig({
   ],
 
 
-  
-  // 和 PWA 一起启用
-  // shouldPrefetch: false,
+  // 与 PWA 配套：SW 接管资源缓存，关闭 VuePress 预取避免冲突
+  shouldPrefetch: false,
 });
 

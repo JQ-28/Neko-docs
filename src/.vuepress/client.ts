@@ -11,6 +11,7 @@ import TimelineGallery from "./components/TimelineGallery.vue";
 import ApplyForm from "./components/ApplyForm.vue";
 import CopyCommand from "./components/CopyCommand.vue";
 import CommandCheatsheet from "./components/CommandCheatsheet.vue";
+import CommandRouter from "./components/CommandRouter.vue";
 
 const COPY_TEXT = "复制代码";
 const TIP_CONTENT = "复制成功";
@@ -45,7 +46,10 @@ export default defineClientConfig({
     app.component("ApplyForm", ApplyForm);
     app.component("CopyCommand", CopyCommand);
     app.component("CommandCheatsheet", CommandCheatsheet);
+    app.component("CommandRouter", CommandRouter);
   },
+
+  rootComponents: [CommandRouter],
 
   setup() {
     let popper: Popper | null = null;

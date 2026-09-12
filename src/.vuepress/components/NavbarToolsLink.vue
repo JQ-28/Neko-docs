@@ -1,5 +1,14 @@
 <template>
   <div class="vp-nav-item vp-action">
+    <button
+      type="button"
+      class="vp-action-link"
+      aria-label="问问neko"
+      title="问问neko（Ctrl+Shift+K）"
+      @click="openRouter"
+    >
+      <img class="vp-action-neko" src="/assets/image/neko.webp" alt="问问neko" />
+    </button>
     <a
       class="vp-action-link"
       href="https://tools.nekodayo.top/"
@@ -24,13 +33,50 @@
   </div>
 </template>
 
+<script setup lang="ts">
+const OPEN_EVENT = "neko-open-router";
+
+function openRouter(): void {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT));
+}
+</script>
+
 <style scoped>
+.vp-nav-item.vp-action {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.vp-nav-item.vp-action .vp-action-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vp-action-neko {
+  display: block;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  object-fit: cover;
+  transition: transform 150ms var(--ease-out);
+}
+
 .vp-action-link svg {
+  display: block;
   transition: transform 150ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .vp-action-link:hover svg {
+  .vp-action-link:hover svg,
+  .vp-action-link:hover .vp-action-neko {
     transform: translateY(-1px);
   }
 }
