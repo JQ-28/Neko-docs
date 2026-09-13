@@ -121,6 +121,7 @@ copyright: false
 
 :::tip 快捷链接
 - [使用须知](/zhuyi/xuzhi) - 日常使用注意事项
+- [隐私政策](/zhuyi/privacy) - 数据收集与保护说明
 - [常见问题](/zhuyi/faq) - 遇到问题先看这里
 - [反馈](/about/fankui) - 问题反馈和建议
 :::

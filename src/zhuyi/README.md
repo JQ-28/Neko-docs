@@ -28,6 +28,14 @@ footer: Neko docs - 注意事项
   ```
 
   ```component VPCard
+  title: 隐私政策
+  desc: 数据收集与保护说明
+  logo: /assets/icon/user.svg
+  link: privacy
+  background: rgba(248, 248, 255, 0.3)
+  ```
+
+  ```component VPCard
   title: 常见问题
   desc: 常见问题
   logo: /assets/icon/splotch.svg

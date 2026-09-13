@@ -1,5 +1,10 @@
 <template>
-  <div class="bot-status" role="status" aria-live="polite">
+  <div
+    class="bot-status"
+    :class="{ 'is-hidden': hidden, 'is-idle': isIdle }"
+    role="status"
+    aria-live="polite"
+  >
     <div class="bot-status-head" :class="`is-${viewState}`">
       <span class="bot-status-head-dot" aria-hidden="true"></span>
       <span class="bot-status-head-text">{{ summaryText }}</span>
@@ -215,6 +220,7 @@ const status = ref<StatusResponse | null>(null);
 const failed = ref(false);
 const refreshing = ref(false);
 const brokenAvatars = ref<Set<string>>(new Set());
+const hidden = ref(false);
 
 const accountStale = computed(() => !status.value || status.value.accountsStale);
 const serviceStale = computed(() => !status.value || status.value.servicesStale);
@@ -233,6 +239,28 @@ const viewState = computed<ViewState>(() => {
   if (accountStale.value || serviceStale.value) return "partial";
   return "ready";
 });
+
+// 取账号与服务的在线集合作指纹：连续多轮轮询无变化即判定"稳定"，暂停装饰动画省 GPU
+function statusFingerprint(value: StatusResponse): string {
+  const accounts = Object.entries(value.accounts)
+    .map(([key, entry]) => `${key}:${entry.online}`)
+    .sort()
+    .join(",");
+  const services = Object.entries(value.services)
+    .map(([key, entry]) => `${key}:${entry.online}`)
+    .sort()
+    .join(",");
+  return `a[${accounts}]s[${services}]`;
+}
+
+const IDLE_TICKS_THRESHOLD = 3;
+const idleTicks = ref(0);
+let lastFingerprint = "";
+
+// 数据稳定（≥3 轮无变化）且视图正常时进入静止态；状态一旦翻转立即恢复动画
+const isIdle = computed(
+  () => viewState.value === "ready" && idleTicks.value >= IDLE_TICKS_THRESHOLD
+);
 
 function formatDuration(seconds: number): string {
   const total = Math.max(Math.floor(seconds), 0);
@@ -382,6 +410,13 @@ async function load(): Promise<void> {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     status.value = (await response.json()) as StatusResponse;
     failed.value = false;
+    const fingerprint = statusFingerprint(status.value);
+    if (fingerprint === lastFingerprint) {
+      idleTicks.value += 1;
+    } else {
+      lastFingerprint = fingerprint;
+      idleTicks.value = 0;
+    }
   } catch {
     failed.value = true;
   } finally {
@@ -390,10 +425,12 @@ async function load(): Promise<void> {
 }
 
 function handleVisibilityChange(): void {
+  hidden.value = document.hidden;
   if (!document.hidden) void load();
 }
 
 onMounted(() => {
+  hidden.value = document.hidden;
   void load();
   // 页面不可见时跳过轮询，避免后台标签页空耗请求
   timer = window.setInterval(() => {
@@ -919,6 +956,31 @@ onBeforeUnmount(() => {
   50% {
     transform: scale(1.16);
   }
+}
+
+/* 标签页不可见时暂停全部动画（配合浏览器节能，!important 压过各动画简写的默认 running） */
+.bot-status.is-hidden * {
+  animation-play-state: paused !important;
+}
+
+/* 数据稳定进入静止态：blob 停在正中、呼吸/涟漪/呼吸点全部定格，状态翻转瞬间自动恢复 */
+.bot-status.is-idle .bot-status-blob {
+  animation: none;
+  opacity: 0.45;
+  transform: translate(-50%, -50%);
+}
+
+.bot-status.is-idle .bot-status-light-core {
+  animation: none;
+}
+
+.bot-status.is-idle .bot-status-light-ring {
+  animation: none;
+  opacity: 0;
+}
+
+.bot-status.is-idle .bot-status-head.is-ready .bot-status-head-dot {
+  animation: none;
 }
 
 html.dark .bot-status-head {

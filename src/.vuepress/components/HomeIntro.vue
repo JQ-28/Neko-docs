@@ -29,6 +29,28 @@
       </div>
     </div>
 
+    <section v-if="recents.length" class="home-recent">
+      <h2 class="home-intro-title">
+        <span class="home-intro-bar" aria-hidden="true"></span>
+        最近更新
+        <span class="home-intro-sub">文档站最近改动的页面</span>
+      </h2>
+      <div class="home-recent-list">
+        <RouterLink
+          v-for="item in recents"
+          :key="item.link"
+          :to="item.link"
+          class="home-recent-item"
+        >
+          <span class="home-recent-date">{{ item.date }}</span>
+          <span class="home-recent-title">{{ item.title }}</span>
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path fill="currentColor" d="M9.4 6.4 15 12l-5.6 5.6-1.4-1.4L12.2 12 8 7.8z" />
+          </svg>
+        </RouterLink>
+      </div>
+    </section>
+
     <div class="home-cta">
       <RouterLink class="home-cta-ghost" to="/start">
         <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -59,6 +81,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from "vue";
 import { copyText, showTip } from "./copy-utils";
 
 interface HomeFeat {
@@ -66,6 +89,12 @@ interface HomeFeat {
   desc: string;
   link: string;
   commands: string[];
+}
+
+interface RecentItem {
+  title: string;
+  link: string;
+  date: string;
 }
 
 const feats: HomeFeat[] = [
@@ -100,6 +129,22 @@ function copy(command: string): void {
     .then(() => showTip("指令已复制"))
     .catch(() => showTip("复制失败"));
 }
+
+const recents = ref<RecentItem[]>([]);
+
+onMounted(() => {
+  void (async () => {
+    try {
+      const response = await fetch("/recent-updates.json", {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) return;
+      recents.value = (await response.json()) as RecentItem[];
+    } catch {
+      // 构建期无 git 或文件缺失时静默隐藏「最近更新」区块
+    }
+  })();
+});
 </script>
 
 <style scoped>
@@ -356,6 +401,88 @@ html.dark .home-more {
   color: #a9a2b8;
 }
 
+/* ===== 最近更新 ===== */
+.home-recent {
+  margin-top: 24px;
+}
+
+.home-recent-list {
+  display: grid;
+  gap: 8px;
+}
+
+.home-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 8%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: transform 0.22s var(--ease-out), box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.home-recent-item svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-left: auto;
+  color: #a397b2;
+  transition: color 0.22s ease, transform 0.22s var(--ease-out);
+}
+
+.home-recent-date {
+  flex: none;
+  font-size: 12px;
+  color: #a397b2;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+
+.home-recent-title {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-recent-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 14%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 0.9);
+  }
+
+  .home-recent-item:hover svg {
+    color: var(--accent);
+    transform: translateX(2px);
+  }
+}
+
+html.dark .home-recent-item {
+  background: rgba(44, 44, 44, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+html.dark .home-recent-date {
+  color: #8b8398;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.dark .home-recent-item:hover {
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+}
+
 @media (max-width: 768px) {
   .home-intro-title {
     flex-wrap: wrap;
@@ -382,7 +509,9 @@ html.dark .home-more {
   .home-feat-glass,
   .home-feat-name,
   .home-feat-cmd,
-  .home-cta-ghost {
+  .home-cta-ghost,
+  .home-recent-item,
+  .home-recent-item svg {
     transition: none;
   }
 
