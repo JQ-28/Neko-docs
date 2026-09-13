@@ -478,7 +478,6 @@ async function submit(): Promise<void> {
   const history = historyPayload();
   pushMessage({ role: "user", text: raw });
   query.value = "";
-
   typing.value = true;
   nextTick(scrollToBottom);
 
@@ -506,7 +505,7 @@ async function submit(): Promise<void> {
     else pushMessage({ role: "neko", text: reply || pick(MISS_REPLIES), fallback: true });
   } catch {
     typing.value = false;
-    // 接口挂了也不能让指令查不了，退回本地粗匹配结果
+    // 后端不可用时退回本地匹配，至少还能给出指令卡片
     const local = localMatch(raw);
     if (local.length > 0) pushMessage({ role: "neko", text: pick(HIT_REPLIES), results: local });
     else pushMessage({ role: "neko", text: BUSY, fallback: true });
