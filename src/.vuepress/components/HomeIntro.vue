@@ -33,7 +33,6 @@
       <h2 class="home-intro-title">
         <span class="home-intro-bar" aria-hidden="true"></span>
         最近更新
-        <span class="home-intro-sub">文档站最近改动的页面</span>
       </h2>
       <div class="home-recent-list">
         <RouterLink
