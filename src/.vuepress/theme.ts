@@ -167,6 +167,10 @@ export default hopeTheme({
       cacheImage: true,
       appendBase: true,
       update: "available",
+      generateSWConfig: {
+        globIgnores: ["index.html", "404.html"],
+        navigateFallback: null,
+      },
       apple: {
         icon: "/assets/image/neko.webp",
         statusBarColor: "black",
