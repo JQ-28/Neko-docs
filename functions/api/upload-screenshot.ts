@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for uploading screenshots to R2
+import { ALLOWED_MIME_TYPES, contentTypeOf } from "../_shared/image-types";
+
 export const onRequestPost = async (context) => {
   const { request, env } = context;
 
@@ -13,9 +15,9 @@ export const onRequestPost = async (context) => {
       });
     }
 
-    // 验证文件类型
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+    // 服务端按扩展名白名单判定，不信任客户端 file.type（可伪造）
+    const contentType = contentTypeOf(file.name);
+    if (!contentType || !ALLOWED_MIME_TYPES.has(file.type)) {
       return new Response(JSON.stringify({ error: '仅支持 JPG、PNG、WebP 格式图片' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -31,17 +33,17 @@ export const onRequestPost = async (context) => {
       });
     }
 
-    // 生成唯一文件名
+    // 生成唯一文件名（扩展名已通过白名单校验，杜绝双扩展名注入）
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 15);
-    const ext = file.name.split('.').pop();
+    const ext = file.name.split('.').pop()!.toLowerCase();
     const fileName = `${timestamp}-${randomStr}.${ext}`;
 
-    // 上传到 R2
+    // 上传到 R2（contentType 由服务端映射，忽略客户端声明）
     const arrayBuffer = await file.arrayBuffer();
     await env.SCREENSHOTS.put(fileName, arrayBuffer, {
       httpMetadata: {
-        contentType: file.type,
+        contentType,
       },
     });
 

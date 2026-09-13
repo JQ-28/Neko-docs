@@ -87,14 +87,34 @@
               ref="fileInput"
             />
             <label for="screenshot" class="upload-label" :class="{ disabled: isUploading }">
-              <span v-if="!screenshotFile && !screenshotUrl">📎 点击选择图片（JPG/PNG/WebP，最大5MB）</span>
-              <span v-else-if="isUploading">⏳ 上传中...</span>
-              <span v-else-if="screenshotUrl">✅ {{ screenshotFile?.name }}</span>
+              <span v-if="!screenshotFile && !screenshotUrl" class="upload-label-content">
+                <svg class="upload-ico" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path fill="currentColor" d="M0 96C0 60.7 28.7 32 64 32H448c35.3 0 64 28.7 64 64V416c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V96zM323.8 202.5c-4.5-6.6-11.9-10.5-19.8-10.5s-15.4 3.9-19.8 10.5l-87 127.6L170.7 297c-4.6-5.7-11.5-9-18.7-9s-14.2 3.3-18.7 9l-64 80c-5.8 7.2-6.9 17.1-2.9 25.4s12.4 13.6 21.6 13.6h96 32H424c8.9 0 17.1-4.9 21.2-12.8s3.6-17.4-1.4-24.7l-120-176zM112 192a48 48 0 1 0 0-96 48 48 0 1 0 0 96z" />
+                </svg>
+                <span>点击选择图片（JPG/PNG/WebP，最大5MB）</span>
+              </span>
+              <span v-else-if="isUploading" class="upload-label-content">
+                <svg class="upload-ico spinning" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path fill="currentColor" d="M0 96C0 60.7 28.7 32 64 32H448c35.3 0 64 28.7 64 64V416c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V96zM323.8 202.5c-4.5-6.6-11.9-10.5-19.8-10.5s-15.4 3.9-19.8 10.5l-87 127.6L170.7 297c-4.6-5.7-11.5-9-18.7-9s-14.2 3.3-18.7 9l-64 80c-5.8 7.2-6.9 17.1-2.9 25.4s12.4 13.6 21.6 13.6h96 32H424c8.9 0 17.1-4.9 21.2-12.8s3.6-17.4-1.4-24.7l-120-176zM112 192a48 48 0 1 0 0-96 48 48 0 1 0 0 96z" />
+                </svg>
+                <span>上传中...</span>
+              </span>
+              <span v-else-if="screenshotUrl" class="upload-label-content">
+                <svg class="upload-ico" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path fill="currentColor" d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM369 209L241 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L335 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z" />
+                </svg>
+                <span>{{ screenshotFile?.name }}</span>
+              </span>
             </label>
             <Transition name="preview">
               <div v-if="screenshotUrl" class="screenshot-preview">
                 <img :src="screenshotUrl" alt="Screenshot preview" />
-                <button type="button" @click="removeScreenshot" class="remove-btn">✕ 删除</button>
+                <button type="button" @click="removeScreenshot" class="remove-btn">
+                  <svg class="remove-ico" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path fill="currentColor" d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z" />
+                  </svg>
+                  删除
+                </button>
               </div>
             </Transition>
           </div>
@@ -623,7 +643,10 @@ html.dark .message-box.success {
 }
 
 .upload-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 12px 16px;
   background: #f9fafb;
   border: 2px dashed #d1d5db;
@@ -633,6 +656,28 @@ html.dark .message-box.success {
   transition: all 0.2s;
   color: #6b7280;
   font-size: 14px;
+}
+
+.upload-label-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-ico {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.upload-ico.spinning {
+  animation: upload-spin 1s linear infinite;
+}
+
+@keyframes upload-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .upload-label:hover:not(.disabled) {
@@ -677,6 +722,9 @@ html.dark .screenshot-preview img {
   position: absolute;
   top: 8px;
   right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: rgba(239, 68, 68, 0.9);
   color: white;
   border: none;
@@ -685,6 +733,11 @@ html.dark .screenshot-preview img {
   font-size: 12px;
   cursor: pointer;
   transition: opacity 0.2s;
+}
+
+.remove-ico {
+  width: 12px;
+  height: 12px;
 }
 
 .remove-btn:hover {
@@ -720,6 +773,12 @@ html.dark .help-text {
 .preview-enter-from {
   opacity: 0;
   transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-ico.spinning {
+    animation: none;
+  }
 }
 
 @media (max-width: 768px) {
