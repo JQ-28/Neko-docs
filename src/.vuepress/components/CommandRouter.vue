@@ -353,6 +353,7 @@ const router = useRouter();
 let messageId = 0;
 let clearTimer: number | undefined;
 let greetingTimer: number | undefined;
+let voiceTimeout: number | undefined;
 let recognition: SpeechRecognition | null = null;
 
 function fmtTime(date: Date): string {
@@ -538,11 +539,13 @@ function openTools(): void {
 
 // 语音输入：优先 Web Speech API，不支持或识别失败时给出兜底提示
 function startVoice(): void {
-  if (typing.value) return;
+  // 取消优先：无论是否在等待回复，正在聆听就停止（此分支不受 typing 限制）
   if (listening.value) {
-    recognition?.stop();
+    stopVoice();
     return;
   }
+  if (typing.value) return;
+
   const SpeechCtor =
     window.SpeechRecognition ??
     (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition })
@@ -554,32 +557,71 @@ function startVoice(): void {
     });
     return;
   }
-  if (!recognition) {
-    recognition = new SpeechCtor();
-    recognition.lang = "zh-CN";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const text = event.results[0]?.[0]?.transcript?.trim() ?? "";
-      if (text) {
-        query.value = text;
-        void submit();
-      }
-    };
-    recognition.onerror = () => {
-      listening.value = false;
-      pushMessage({ role: "neko", text: "没听清喵，再说一次试试？" });
-    };
-    recognition.onend = () => {
-      listening.value = false;
-    };
-  }
-  try {
+
+  // SpeechRecognition 实例 start 后不可复用，每次重新创建，避免二次 start 抛 InvalidStateError
+  const current = new SpeechCtor();
+  recognition = current;
+  current.lang = "zh-CN";
+  current.interimResults = false;
+  current.maxAlternatives = 1;
+  current.onstart = () => {
     listening.value = true;
-    recognition.start();
+  };
+  current.onresult = (event: SpeechRecognitionEvent) => {
+    const text = event.results[0]?.[0]?.transcript?.trim() ?? "";
+    stopVoice();
+    if (text) {
+      query.value = text;
+      void submit();
+    }
+  };
+  current.onerror = (event: SpeechRecognitionErrorEvent) => {
+    const { error } = event;
+    if (error === "not-allowed" || error === "service-not-allowed") {
+      pushMessage({ role: "neko", text: "麦克风权限被拒绝了喵，去浏览器设置里允许一下~" });
+    } else if (error !== "aborted" && error !== "no-speech") {
+      pushMessage({ role: "neko", text: "没听清喵，再说一次试试？" });
+    }
+  };
+  current.onend = () => {
+    stopVoice();
+  };
+
+  try {
+    current.start();
   } catch {
-    listening.value = false;
+    stopVoice();
     pushMessage({ role: "neko", text: "语音好像没启动成功，检查一下麦克风权限喵~" });
+  }
+
+  // 3 秒内 onstart 未触发（安卓 WebView 常见：start 不报错但静默失败）→ 判定环境不可用
+  window.clearTimeout(voiceTimeout);
+  voiceTimeout = window.setTimeout(() => {
+    if (listening.value) return;
+    stopVoice();
+    pushMessage({
+      role: "neko",
+      text: "麦克风好像没反应，检查一下权限，或者换 Chrome 试试喵~",
+    });
+  }, 3000);
+}
+
+function stopVoice(): void {
+  window.clearTimeout(voiceTimeout);
+  voiceTimeout = undefined;
+  listening.value = false;
+  const current = recognition;
+  recognition = null;
+  if (!current) return;
+  // 先摘掉回调再 abort，避免 abort 触发的 onerror/onend 递归进来
+  current.onstart = null;
+  current.onresult = null;
+  current.onerror = null;
+  current.onend = null;
+  try {
+    current.abort();
+  } catch {
+    // 实例可能已结束，忽略
   }
 }
 
@@ -652,6 +694,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  stopVoice();
   window.removeEventListener("keydown", onKeydown);
   window.removeEventListener(OPEN_EVENT, openRouter);
   window.removeEventListener("popstate", onPopState);
