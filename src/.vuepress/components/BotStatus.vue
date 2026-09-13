@@ -3,52 +3,65 @@
     <div class="bot-status-head" :class="`is-${viewState}`">
       <span class="bot-status-head-dot" aria-hidden="true"></span>
       <span class="bot-status-head-text">{{ summaryText }}</span>
-      <span v-if="updatedText" class="bot-status-head-time">{{ updatedText }}</span>
+      <span v-if="updatedText && !failed" class="bot-status-head-time">{{ updatedText }}</span>
+      <button v-if="failed" class="bot-status-retry" type="button" @click="load()">重试</button>
     </div>
 
-    <section class="bot-status-block">
+    <section v-for="section in sections" :key="section.key" class="bot-status-block">
       <h3 class="bot-status-title">
         <span class="bot-status-bar" aria-hidden="true"></span>
-        NapCat 账号与官方机器人
+        {{ section.title }}
         <span class="bot-status-count">
-          {{ accountStale ? "状态未知" : `${accountOnline}/${accountRows.length} 在线` }}
+          {{ section.stale ? "状态未知" : `${section.onlineCount}/${section.rows.length} ${section.unit}` }}
         </span>
       </h3>
-      <div class="bot-status-list">
-        <div
-          v-for="row in accountRows"
-          :key="row.key"
-          class="bot-status-item"
-          :class="`is-${row.state}`"
-        >
-          <span class="bot-status-glass" aria-hidden="true"></span>
-          <span class="bot-status-badge" aria-hidden="true"></span>
-          <span class="bot-status-name">{{ row.name }}</span>
-          <span class="bot-status-meta">{{ row.meta }}</span>
-          <span class="bot-status-state">{{ STATE_TEXT[row.state] }}</span>
-        </div>
+      <div v-if="!status && !failed" class="bot-status-list">
+        <span
+          v-for="index in section.rows.length"
+          :key="index"
+          class="bot-status-skeleton"
+          aria-hidden="true"
+        ></span>
       </div>
-    </section>
-
-    <section class="bot-status-block">
-      <h3 class="bot-status-title">
-        <span class="bot-status-bar" aria-hidden="true"></span>
-        后台服务
-        <span class="bot-status-count">
-          {{ serviceStale ? "状态未知" : `${serviceOnline}/${serviceRows.length} 运行中` }}
-        </span>
-      </h3>
-      <div class="bot-status-list">
+      <div v-else class="bot-status-list">
         <div
-          v-for="row in serviceRows"
+          v-for="(row, index) in section.rows"
           :key="row.key"
           class="bot-status-item"
-          :class="`is-${row.state}`"
+          :class="[`is-${row.state}`, `is-${section.variant}`]"
+          :style="{ '--row-index': index + section.offset }"
         >
-          <span class="bot-status-glass" aria-hidden="true"></span>
-          <span class="bot-status-badge" aria-hidden="true"></span>
-          <span class="bot-status-name">{{ row.name }}</span>
-          <span class="bot-status-meta" v-if="row.meta">{{ row.meta }}</span>
+          <template v-if="section.variant === 'blob'">
+            <span class="bot-status-blob" aria-hidden="true"></span>
+            <span class="bot-status-frost" aria-hidden="true"></span>
+          </template>
+          <span v-else class="bot-status-glass" aria-hidden="true"></span>
+          <img
+            v-if="row.avatar && !brokenAvatars.has(row.key)"
+            class="bot-status-avatar"
+            :src="row.avatar"
+            :alt="`${row.name} 的头像`"
+            width="34"
+            height="34"
+            loading="lazy"
+            decoding="async"
+            @error="brokenAvatars.add(row.key)"
+          />
+          <span
+            v-else-if="row.avatar"
+            class="bot-status-avatar bot-status-avatar-fallback"
+            aria-hidden="true"
+          >
+            {{ row.name.trim().charAt(0) || "?" }}
+          </span>
+          <span class="bot-status-text">
+            <span class="bot-status-name">{{ row.name }}</span>
+            <span v-if="row.meta" class="bot-status-meta">{{ row.meta }}</span>
+          </span>
+          <span class="bot-status-light" aria-hidden="true">
+            <span class="bot-status-light-ring"></span>
+            <span class="bot-status-light-core"></span>
+          </span>
           <span class="bot-status-state">{{ STATE_TEXT[row.state] }}</span>
         </div>
       </div>
@@ -73,12 +86,24 @@ interface InventoryItem {
   key: string;
   name: string;
   meta?: string;
+  avatar?: string;
 }
 
 type RowState = "online" | "offline" | "unknown";
 
 interface StatusRow extends InventoryItem {
   state: RowState;
+}
+
+interface StatusSection {
+  key: string;
+  title: string;
+  unit: string;
+  stale: boolean;
+  rows: StatusRow[];
+  onlineCount: number;
+  variant: "flat" | "blob";
+  offset: number;
 }
 
 type ViewState = "loading" | "error" | "empty" | "stale" | "partial" | "ready";
@@ -91,13 +116,17 @@ const STATE_TEXT: Record<RowState, string> = {
 
 const REFRESH_INTERVAL = 30_000;
 const ENDPOINT = "/api/bot-status";
+const AVATAR_SIZE = 100;
+
+const avatarUrl = (qq: string): string =>
+  `https://q1.qlogo.cn/g?b=qq&nk=${qq}&s=${AVATAR_SIZE}`;
 
 const ACCOUNTS: InventoryItem[] = [
-  { key: "3582537505", name: "neko 主账号", meta: "3582537505" },
-  { key: "3309739044", name: "neko 一号机", meta: "3309739044" },
-  { key: "2760015052", name: "neko 二号机", meta: "2760015052" },
-  { key: "3278327679", name: "neko 三号机", meta: "3278327679" },
-  { key: "2854207094", name: "neko 官方机器人", meta: "2854207094" },
+  { key: "3582537505", name: "Neko_dayo~", meta: "3582537505", avatar: avatarUrl("3582537505") },
+  { key: "3309739044", name: "Neko一号机", meta: "3309739044", avatar: avatarUrl("3309739044") },
+  { key: "2760015052", name: "Neko二号机", meta: "2760015052", avatar: avatarUrl("2760015052") },
+  { key: "3278327679", name: "Neko三号机", meta: "3278327679", avatar: avatarUrl("3278327679") },
+  { key: "2854207094", name: "Neko官方机器人", meta: "2854207094", avatar: avatarUrl("2854207094") },
 ];
 
 const SERVICES: InventoryItem[] = [
@@ -111,6 +140,7 @@ const SERVICES: InventoryItem[] = [
 
 const status = ref<StatusResponse | null>(null);
 const failed = ref(false);
+const brokenAvatars = ref<Set<string>>(new Set());
 
 const accountStale = computed(() => !status.value || status.value.accountsStale);
 const serviceStale = computed(() => !status.value || status.value.servicesStale);
@@ -156,6 +186,32 @@ const accountOnline = computed(
 const serviceOnline = computed(
   () => serviceRows.value.filter((row) => row.state === "online").length
 );
+
+const sections = computed<StatusSection[]>(() => {
+  const accounts: StatusSection = {
+    key: "accounts",
+    title: "NapCat 账号与官方机器人",
+    unit: "在线",
+    stale: accountStale.value,
+    rows: accountRows.value,
+    onlineCount: accountOnline.value,
+    variant: "flat",
+    offset: 0,
+  };
+  return [
+    accounts,
+    {
+      key: "services",
+      title: "后台服务",
+      unit: "运行中",
+      stale: serviceStale.value,
+      rows: serviceRows.value,
+      onlineCount: serviceOnline.value,
+      variant: "blob",
+      offset: accounts.rows.length,
+    },
+  ];
+});
 
 const summaryText = computed(() => {
   switch (viewState.value) {
@@ -225,6 +281,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .bot-status {
   --accent: var(--vp-c-accent, #096dd9);
+  --state-online: #34c759;
+  --state-offline: #c4becd;
+  --state-unknown: #ff9f0a;
   margin: 20px 0 8px;
 }
 
@@ -251,15 +310,16 @@ onBeforeUnmount(() => {
 }
 
 .bot-status-head.is-ready .bot-status-head-dot {
-  background: #34c759;
-  box-shadow: 0 0 0 4px rgba(52, 199, 89, 0.2);
+  background: var(--state-online);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--state-online) 20%, transparent);
+  animation: bot-status-head-pulse 3.2s ease-in-out infinite;
 }
 
 .bot-status-head.is-stale .bot-status-head-dot,
 .bot-status-head.is-partial .bot-status-head-dot,
 .bot-status-head.is-error .bot-status-head-dot {
-  background: #ff9f0a;
-  box-shadow: 0 0 0 4px rgba(255, 159, 10, 0.2);
+  background: var(--state-unknown);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--state-unknown) 20%, transparent);
 }
 
 .bot-status-head-time {
@@ -267,6 +327,34 @@ onBeforeUnmount(() => {
   font-size: 12px;
   font-weight: 400;
   color: #a397b2;
+  font-variant-numeric: tabular-nums;
+}
+
+.bot-status-retry {
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--state-unknown) 40%, transparent);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #b26a00;
+  background: color-mix(in srgb, var(--state-unknown) 12%, transparent);
+  cursor: pointer;
+  transition: background-color 0.25s ease-out, border-color 0.25s ease-out;
+}
+
+.bot-status-retry:hover {
+  background: color-mix(in srgb, var(--state-unknown) 22%, transparent);
+}
+
+.bot-status-skeleton {
+  display: block;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #f0ecf6 25%, #fbfafe 37%, #f0ecf6 63%);
+  background-size: 400% 100%;
+  animation: bot-status-shimmer 1.5s ease-in-out infinite;
 }
 
 .bot-status-block {
@@ -296,6 +384,7 @@ onBeforeUnmount(() => {
   font-size: 12px;
   font-weight: 400;
   color: #7d6c8e;
+  font-variant-numeric: tabular-nums;
 }
 
 .bot-status-list {
@@ -310,12 +399,22 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-radius: 18px;
   background: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.75);
   box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 10%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  animation: bot-status-enter 0.44s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--row-index, 0) * 45ms);
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out,
+    background-color 0.35s ease-out, border-color 0.35s ease-out;
+}
+
+.bot-status-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 16%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .bot-status-glass {
@@ -332,39 +431,105 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.bot-status-item > :not(.bot-status-glass) {
+.bot-status-item.is-blob {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+.bot-status-blob {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    var(--blob-color) 0%,
+    color-mix(in srgb, var(--blob-color) 55%, transparent) 48%,
+    transparent 100%
+  );
+  opacity: 0.85;
+  animation: bot-status-blob 5s ease infinite;
+  animation-delay: calc(var(--row-index, 0) * -0.85s);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.bot-status-item.is-blob {
+  --blob-color: var(--state-online);
+}
+
+.bot-status-item.is-blob.is-offline {
+  --blob-color: var(--state-offline);
+}
+
+.bot-status-item.is-blob.is-offline .bot-status-blob {
+  opacity: 0.5;
+}
+
+.bot-status-item.is-blob.is-unknown {
+  --blob-color: var(--state-unknown);
+}
+
+.bot-status-frost {
+  position: absolute;
+  z-index: 1;
+  inset: 3px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.76);
+  outline: 1.5px solid rgba(255, 255, 255, 0.95);
+  pointer-events: none;
+}
+
+.bot-status-item > :not(.bot-status-glass):not(.bot-status-blob):not(.bot-status-frost) {
   position: relative;
   z-index: 2;
 }
 
-.bot-status-badge {
-  width: 8px;
-  height: 8px;
+.bot-status-avatar {
   flex: none;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: #34c759;
-  box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.18);
+  object-fit: cover;
+  background: #f4f1f8;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  filter: grayscale(0.85) opacity(0.6);
+  transition: filter 0.4s ease-out, border-color 0.4s ease-out, box-shadow 0.4s ease-out;
 }
 
-.bot-status-item.is-offline .bot-status-badge {
-  background: #c4becd;
-  box-shadow: 0 0 0 3px rgba(196, 190, 205, 0.2);
+.bot-status-item.is-online .bot-status-avatar {
+  filter: none;
+  border-color: color-mix(in srgb, var(--state-online) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--state-online) 14%, transparent);
 }
 
-.bot-status-item.is-unknown .bot-status-badge {
-  background: #ff9f0a;
-  box-shadow: 0 0 0 3px rgba(255, 159, 10, 0.18);
+.bot-status-avatar-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.bot-status-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .bot-status-name {
-  flex: 1;
-  min-width: 0;
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--accent);
+  transition: color 0.35s ease-out;
 }
 
 .bot-status-item.is-offline .bot-status-name {
@@ -372,16 +537,71 @@ onBeforeUnmount(() => {
 }
 
 .bot-status-meta {
-  flex: none;
   font-size: 11px;
+  letter-spacing: 0.2px;
   color: #a397b2;
+  font-variant-numeric: tabular-nums;
+}
+
+.bot-status-light {
+  flex: none;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+}
+
+.bot-status-light-core,
+.bot-status-light-ring {
+  grid-area: 1 / 1;
+  border-radius: 50%;
+}
+
+.bot-status-light-core {
+  width: 9px;
+  height: 9px;
+  background: var(--state-online);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--state-online) 18%, transparent);
+  animation: bot-status-breathe 2.4s ease-in-out infinite;
+  transition: background-color 0.35s ease-out, box-shadow 0.35s ease-out;
+}
+
+.bot-status-light-ring {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--state-online);
+  opacity: 0;
+  animation: bot-status-ripple 2.4s ease-out infinite;
+  will-change: transform, opacity;
+}
+
+.bot-status-item.is-offline .bot-status-light-core {
+  background: var(--state-offline);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--state-offline) 22%, transparent);
+  animation: none;
+}
+
+.bot-status-item.is-offline .bot-status-light-ring {
+  animation: none;
+}
+
+.bot-status-item.is-unknown .bot-status-light-core {
+  background: var(--state-unknown);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--state-unknown) 20%, transparent);
+  animation: bot-status-blink 1.8s ease-in-out infinite;
+}
+
+.bot-status-item.is-unknown .bot-status-light-ring {
+  border-color: var(--state-unknown);
+  animation: bot-status-ripple 1.8s ease-out infinite;
 }
 
 .bot-status-state {
   flex: none;
   font-size: 11px;
   font-weight: 700;
-  color: #34c759;
+  color: var(--state-online);
+  transition: color 0.35s ease-out;
 }
 
 .bot-status-item.is-offline .bot-status-state {
@@ -389,7 +609,92 @@ onBeforeUnmount(() => {
 }
 
 .bot-status-item.is-unknown .bot-status-state {
-  color: #ff9f0a;
+  color: var(--state-unknown);
+}
+
+@keyframes bot-status-enter {
+  from {
+    opacity: 0;
+    transform: translateY(7px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bot-status-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.68);
+    opacity: 0.72;
+  }
+}
+
+@keyframes bot-status-ripple {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.85;
+  }
+  70% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes bot-status-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes bot-status-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@keyframes bot-status-blob {
+  0% {
+    transform: translate(-100%, -100%) translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate(-100%, -100%) translate3d(100%, 0, 0);
+  }
+  50% {
+    transform: translate(-100%, -100%) translate3d(100%, 100%, 0);
+  }
+  75% {
+    transform: translate(-100%, -100%) translate3d(0, 100%, 0);
+  }
+  100% {
+    transform: translate(-100%, -100%) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes bot-status-head-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.16);
+  }
 }
 
 html.dark .bot-status-head {
@@ -410,8 +715,49 @@ html.dark .bot-status-item {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+html.dark .bot-status-item:hover {
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+html.dark .bot-status-item.is-blob {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html.dark .bot-status-item.is-blob .bot-status-blob {
+  opacity: 0.7;
+}
+
+html.dark .bot-status-item.is-blob.is-offline .bot-status-blob {
+  opacity: 0.4;
+}
+
+html.dark .bot-status-item.is-blob .bot-status-frost {
+  background: rgba(38, 38, 40, 0.78);
+  outline-color: rgba(255, 255, 255, 0.12);
+}
+
+html.dark .bot-status-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.11) 37%,
+    rgba(255, 255, 255, 0.05) 63%
+  );
+  background-size: 400% 100%;
+}
+
+html.dark .bot-status-retry {
+  color: #ffc46b;
+}
+
 html.dark .bot-status-glass {
   opacity: 0.3;
+}
+
+html.dark .bot-status-avatar {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 html.dark .bot-status-item.is-offline .bot-status-name {
@@ -430,6 +776,29 @@ html.dark .bot-status-item.is-offline .bot-status-name {
   .bot-status-head-time {
     margin-left: 0;
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bot-status-item,
+  .bot-status-light-core,
+  .bot-status-light-ring,
+  .bot-status-blob,
+  .bot-status-skeleton,
+  .bot-status-head.is-ready .bot-status-head-dot {
+    animation: none;
+  }
+
+  .bot-status-item {
+    transition: none;
+  }
+
+  .bot-status-blob {
+    transform: translate(-50%, -50%);
+  }
+
+  .bot-status-item:hover {
+    transform: none;
   }
 }
 </style>
