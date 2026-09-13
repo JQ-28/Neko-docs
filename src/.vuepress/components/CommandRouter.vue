@@ -730,7 +730,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: url("/assets/image/neko17.png") 50% center / cover no-repeat;
+  background: url("/assets/image/neko17.webp") 50% center / cover no-repeat;
   filter: blur(6px);
   opacity: 0.3;
 }

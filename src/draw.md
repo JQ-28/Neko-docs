@@ -90,11 +90,11 @@ footer: 教我画画
 </TimelineGallery>
 
 <TimelineGallery date="2025-6-10">
-  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko24.png" alt="Hi~" width="256" loading="lazy">
+  <img src="/assets/image/neko24.webp" alt="Hi~" width="256" loading="lazy">
 </TimelineGallery>
 
 <TimelineGallery date="2025-5-12">
-  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko23.png" alt="Life Love Lush" width="256" loading="lazy">
+  <img src="/assets/image/neko23.webp" alt="Life Love Lush" width="256" loading="lazy">
 </TimelineGallery>
 
 <TimelineGallery date="2025-4-16">
@@ -135,7 +135,7 @@ footer: 教我画画
 </TimelineGallery>
 
 <TimelineGallery date="2024-11-25">
-  <img src="https://drive.nekodayo.top/raw/nekodocs/image/neko17.png" alt="Neko" width="300" loading="lazy">
+  <img src="/assets/image/neko17.webp" alt="Neko" width="300" loading="lazy">
 </TimelineGallery>
 
 <TimelineGallery date="2024-11-16">
