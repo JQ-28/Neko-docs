@@ -156,7 +156,13 @@
         </div>
 
         <div class="neko-qq-footer">
-          <div title="语音" @click="openTools">
+          <div
+            title="语音输入"
+            role="button"
+            :aria-label="listening ? '正在聆听，点按结束' : '语音输入'"
+            :class="{ 'is-listening': listening }"
+            @click="startVoice"
+          >
             <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -164,7 +170,7 @@
               />
             </svg>
           </div>
-          <div title="图片" @click="openTools">
+          <div title="以图搜源" role="button" aria-label="以图搜源" @click="go('/zhiling/shiyong/imgS')">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -172,7 +178,7 @@
               />
             </svg>
           </div>
-          <div title="相机" @click="openTools">
+          <div title="图片背景消除" role="button" aria-label="图片背景消除" @click="go('/zhiling/shiyong/imga')">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -180,7 +186,7 @@
               />
             </svg>
           </div>
-          <div title="文件" @click="openTools">
+          <div title="在线运行代码" role="button" aria-label="在线运行代码" @click="go('/zhiling/shiyong/code')">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -188,7 +194,7 @@
               />
             </svg>
           </div>
-          <div title="表情" @click="openTools">
+          <div title="表情包制作" role="button" aria-label="表情包制作" @click="go('/zhiling/yule/bqbmaker')">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -196,7 +202,7 @@
               />
             </svg>
           </div>
-          <div title="更多" @click="openTools">
+          <div title="更多功能" role="button" aria-label="更多功能" @click="openTools">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -341,11 +347,13 @@ const clearArmed = ref(false);
 const showToBottom = ref(false);
 const chatEl = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLInputElement | null>(null);
+const listening = ref(false);
 const router = useRouter();
 
 let messageId = 0;
 let clearTimer: number | undefined;
 let greetingTimer: number | undefined;
+let recognition: SpeechRecognition | null = null;
 
 function fmtTime(date: Date): string {
   const pad = (value: number): string => String(value).padStart(2, "0");
@@ -526,6 +534,53 @@ function go(link: string): void {
 
 function openTools(): void {
   window.open(TOOLS_URL, "_blank", "noopener");
+}
+
+// 语音输入：优先 Web Speech API，不支持或识别失败时给出兜底提示
+function startVoice(): void {
+  if (typing.value) return;
+  if (listening.value) {
+    recognition?.stop();
+    return;
+  }
+  const SpeechCtor =
+    window.SpeechRecognition ??
+    (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition })
+      .webkitSpeechRecognition;
+  if (!SpeechCtor) {
+    pushMessage({
+      role: "neko",
+      text: "这个浏览器不支持语音喵，试试 Chrome 或 Edge，或者直接用键盘打字吧~",
+    });
+    return;
+  }
+  if (!recognition) {
+    recognition = new SpeechCtor();
+    recognition.lang = "zh-CN";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const text = event.results[0]?.[0]?.transcript?.trim() ?? "";
+      if (text) {
+        query.value = text;
+        void submit();
+      }
+    };
+    recognition.onerror = () => {
+      listening.value = false;
+      pushMessage({ role: "neko", text: "没听清喵，再说一次试试？" });
+    };
+    recognition.onend = () => {
+      listening.value = false;
+    };
+  }
+  try {
+    listening.value = true;
+    recognition.start();
+  } catch {
+    listening.value = false;
+    pushMessage({ role: "neko", text: "语音好像没启动成功，检查一下麦克风权限喵~" });
+  }
 }
 
 function clearChat(): void {
@@ -1136,6 +1191,21 @@ onBeforeUnmount(() => {
   transform: scale(1.1);
 }
 
+.neko-qq-footer > div.is-listening {
+  color: #ff5f8f;
+  animation: neko-voice-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes neko-voice-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
+
 .neko-qq-footer svg {
   display: block;
   width: 22px;
@@ -1258,6 +1328,10 @@ onBeforeUnmount(() => {
   .neko-to-bottom,
   .neko-qq-footer > div {
     transition: none;
+  }
+
+  .neko-qq-footer > div.is-listening {
+    animation: none;
   }
 
   .neko-act:active,
