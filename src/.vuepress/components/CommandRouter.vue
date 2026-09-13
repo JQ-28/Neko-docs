@@ -566,10 +566,19 @@ function openRouter(): void {
     scrollToBottom();
     inputEl.value?.focus();
   });
+  // 压一条历史记录：移动端返回键/滑动手势先关窗口，而不是直接退到别的页面
+  history.pushState({ nekoOpen: true }, "");
 }
 
 function close(): void {
+  if (!open.value) return;
   open.value = false;
+  // 弹出 openRouter 压入的记录；popstate 回调里 open 已为 false，不会递归
+  if (history.state?.nekoOpen) history.back();
+}
+
+function onPopState(): void {
+  if (open.value) close();
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -584,11 +593,13 @@ onMounted(() => {
   restoreMessages();
   window.addEventListener("keydown", onKeydown);
   window.addEventListener(OPEN_EVENT, openRouter);
+  window.addEventListener("popstate", onPopState);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKeydown);
   window.removeEventListener(OPEN_EVENT, openRouter);
+  window.removeEventListener("popstate", onPopState);
   window.clearTimeout(clearTimer);
   window.clearTimeout(greetingTimer);
 });
