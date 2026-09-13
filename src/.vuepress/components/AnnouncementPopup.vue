@@ -1,6 +1,6 @@
 <template>
   <Transition name="announcement-fade">
-    <div v-if="currentAnnouncement" class="announcement" role="dialog" aria-live="polite">
+    <div v-if="currentAnnouncement" class="announcement" role="dialog" aria-label="公告" aria-live="polite">
       <header class="announcement-head">
         <span class="announcement-title">{{ currentAnnouncement.title }}</span>
         <button class="announcement-close" type="button" aria-label="关闭公告" @click="dismiss">

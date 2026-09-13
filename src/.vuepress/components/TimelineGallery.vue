@@ -5,9 +5,9 @@
     </div>
     <div class="timeline-content">
       <div class="timeline-date">{{ date }}</div>
-      <div class="timeline-images" @mouseover="handleImageHover">
-        <slot></slot>
-      </div>
+      <div class="timeline-images">
+      <slot></slot>
+    </div>
     </div>
   </div>
 </template>
@@ -23,18 +23,13 @@ export default {
         wrapper.className = 'img-wrapper';
         img.parentNode.insertBefore(wrapper, img);
         wrapper.appendChild(img);
-        
+
         const overlay = document.createElement('div');
         overlay.className = 'img-overlay';
         overlay.textContent = img.alt || '';
         wrapper.appendChild(overlay);
       }
     });
-  },
-  methods: {
-    handleImageHover() {
-      // 可以添加额外的交互逻辑
-    }
   }
 }
 </script>

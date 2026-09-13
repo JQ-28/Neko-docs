@@ -6,3 +6,6 @@ src/.vuepress/dist/
 .wrangler-cfg/
 .wrangler/
 .cache/
+
+# 项目上下文文档（仅本地给 Agent 看，不上传）
+PROJECT_CONTEXT.md
