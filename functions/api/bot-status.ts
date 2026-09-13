@@ -5,7 +5,8 @@
 //   nonebot —— 上报账号在线情况（只有它能从 get_bots() 拿到真实连接状态）
 //   watchdog —— 独立进程，上报 TCP/进程探测结果（含 nonebot 自身端口），不依赖 nonebot
 
-const STALE_SECONDS = 300;
+// 上报间隔 60 秒，容 2 次丢包；超过该时长未收到上报即视为「状态未知」
+const STALE_SECONDS = 120;
 
 const ACCOUNT_SOURCE = "nonebot";
 const SERVICE_SOURCE = "watchdog";

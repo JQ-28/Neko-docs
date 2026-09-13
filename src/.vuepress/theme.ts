@@ -163,10 +163,10 @@ export default hopeTheme({
     // PWA 支持
     pwa: {
       favicon: "/assets/image/neko.webp",
-      cacheHTML: true,
+      cacheHTML: false,
       cacheImage: true,
       appendBase: true,
-      update: "hint",
+      update: "force",
       apple: {
         icon: "/assets/image/neko.webp",
         statusBarColor: "black",
