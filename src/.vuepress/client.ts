@@ -3,6 +3,7 @@ import { createApp, nextTick, onBeforeUnmount, onMounted, watch } from "vue";
 import { Popper } from "@moefy-canvas/theme-popper";
 import { copyText, showTip } from "./components/copy-utils";
 import NavbarToolsLink from "./components/NavbarToolsLink.vue";
+import HomeIntro from "./components/HomeIntro.vue";
 import QQChat from "./components/QQChat.vue";
 import QQMessage from "./components/QQMessage.vue";
 import QQVoice from "./components/QQVoice.vue";
@@ -39,6 +40,7 @@ function injectCopyButtons(): void {
 export default defineClientConfig({
   enhance: ({ app }) => {
     app.component("NavbarToolsLink", NavbarToolsLink);
+    app.component("HomeIntro", HomeIntro);
     app.component("QQChat", QQChat);
     app.component("QQMessage", QQMessage);
     app.component("QQVoice", QQVoice);

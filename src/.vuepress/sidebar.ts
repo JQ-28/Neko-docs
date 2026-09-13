@@ -4,6 +4,7 @@ export default sidebar({
   "/": [
     "",
     "/qianyan",
+    "/start",
     {
       text: "介绍",
       icon: "/assets/icon/sheet-plastic.svg",

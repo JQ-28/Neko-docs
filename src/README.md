@@ -23,3 +23,6 @@ copyright: false
 footer: 使用 <a href="https://theme-hope.vuejs.press/zh/" target="_blank">VuePress Theme Hope</a> 主题 | MIT 协议, 版权所有 © 2022-至今 JQ-28  
 ---
 
+<HomeIntro />
+
+
