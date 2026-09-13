@@ -479,16 +479,8 @@ async function submit(): Promise<void> {
   pushMessage({ role: "user", text: raw });
   query.value = "";
 
-  const local = localMatch(raw);
   typing.value = true;
   nextTick(scrollToBottom);
-
-  if (local.length > 0) {
-    await new Promise((resolve) => setTimeout(resolve, 420));
-    typing.value = false;
-    pushMessage({ role: "neko", text: pick(HIT_REPLIES), results: local });
-    return;
-  }
 
   try {
     const resp = await fetch("/api/command-route", {
@@ -514,7 +506,10 @@ async function submit(): Promise<void> {
     else pushMessage({ role: "neko", text: reply || pick(MISS_REPLIES), fallback: true });
   } catch {
     typing.value = false;
-    pushMessage({ role: "neko", text: BUSY, fallback: true });
+    // 接口挂了也不能让指令查不了，退回本地粗匹配结果
+    const local = localMatch(raw);
+    if (local.length > 0) pushMessage({ role: "neko", text: pick(HIT_REPLIES), results: local });
+    else pushMessage({ role: "neko", text: BUSY, fallback: true });
   }
 }
 
