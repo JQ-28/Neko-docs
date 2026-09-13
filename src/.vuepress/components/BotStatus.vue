@@ -9,7 +9,7 @@
     <section class="bot-status-block">
       <h3 class="bot-status-title">
         <span class="bot-status-bar" aria-hidden="true"></span>
-        NapCat 账号
+        NapCat 账号与官方机器人
         <span class="bot-status-count">
           {{ accountStale ? "状态未知" : `${accountOnline}/${accountRows.length} 在线` }}
         </span>
@@ -48,7 +48,7 @@
           <span class="bot-status-glass" aria-hidden="true"></span>
           <span class="bot-status-badge" aria-hidden="true"></span>
           <span class="bot-status-name">{{ row.name }}</span>
-          <span class="bot-status-meta">{{ row.meta }}</span>
+          <span class="bot-status-meta" v-if="row.meta">{{ row.meta }}</span>
           <span class="bot-status-state">{{ STATE_TEXT[row.state] }}</span>
         </div>
       </div>
@@ -72,7 +72,7 @@ interface StatusResponse {
 interface InventoryItem {
   key: string;
   name: string;
-  meta: string;
+  meta?: string;
 }
 
 type RowState = "online" | "offline" | "unknown";
@@ -97,17 +97,16 @@ const ACCOUNTS: InventoryItem[] = [
   { key: "3309739044", name: "neko 一号机", meta: "3309739044" },
   { key: "2760015052", name: "neko 二号机", meta: "2760015052" },
   { key: "3278327679", name: "neko 三号机", meta: "3278327679" },
-  { key: "3267817105", name: "neko 四号机", meta: "3267817105" },
-  { key: "3760427140", name: "neko 五号机", meta: "3760427140" },
+  { key: "2854207094", name: "neko 官方机器人", meta: "2854207094" },
 ];
 
 const SERVICES: InventoryItem[] = [
-  { key: "redis", name: "Redis", meta: "缓存" },
-  { key: "meme", name: "memeapi", meta: ":2233" },
-  { key: "lhm", name: "LibreHardwareMonitor", meta: "硬件监控" },
-  { key: "haruki", name: "Haruki", meta: ":8111" },
-  { key: "yunzai", name: "TRSS-Yunzai", meta: ":9238" },
-  { key: "nonebot", name: "Nonebot", meta: ":11451" },
+  { key: "redis", name: "Redis" },
+  { key: "meme", name: "memeapi" },
+  { key: "lhm", name: "LibreHardwareMonitor" },
+  { key: "haruki", name: "Haruki" },
+  { key: "yunzai", name: "TRSS-Yunzai" },
+  { key: "nonebot", name: "Nonebot" },
 ];
 
 const status = ref<StatusResponse | null>(null);
@@ -140,7 +139,7 @@ function buildRows(
   }));
   const known = new Set(inventory.map((item) => item.key));
   Object.entries(reported).forEach(([key, online]) => {
-    if (!known.has(key)) rows.push({ key, name: key, meta: "", state: resolve(online) });
+    if (!known.has(key)) rows.push({ key, name: key, state: resolve(online) });
   });
   return rows;
 }
