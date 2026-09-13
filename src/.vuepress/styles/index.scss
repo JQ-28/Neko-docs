@@ -515,6 +515,15 @@ html.dark .v-notification__content {
 // ===== PWA 更新提示卡：实色描边风，不用渐变 =====
 html .sw-update-popup {
   display: flex;
+  // 从右下角挪到导航栏下方居中，避开底部按钮和右上角公告卡
+  position: fixed;
+  top: 4.75rem;
+  right: 0;
+  bottom: auto;
+  left: 0;
+  z-index: 1500;
+  width: fit-content;
+  margin-inline: auto;
   align-items: center;
   gap: 10px;
   padding: 16px 20px;
@@ -599,6 +608,7 @@ html.dark .sw-update-popup:hover {
 
 @media (max-width: 768px) {
   html .sw-update-popup {
+    top: 4.25rem;
     max-width: calc(100vw - 2rem);
     padding: 14px 16px;
     font-size: 15px;
