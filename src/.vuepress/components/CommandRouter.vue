@@ -100,6 +100,13 @@
                   >
                     去指令速查页看看
                   </a>
+                  <img
+                    v-if="message.emote"
+                    class="neko-emote"
+                    :src="`/assets/emote/${message.emote}.gif`"
+                    alt=""
+                    loading="lazy"
+                  />
                 </div>
               </template>
             </div>
@@ -223,6 +230,7 @@ interface ChatMessage {
   time: string;
   results?: RouteResult[];
   fallback?: boolean;
+  emote?: string;
 }
 
 const OPEN_EVENT = "neko-open-router";
@@ -245,6 +253,42 @@ const STICK_THRESHOLD = 40;
 const LEAVE_STEP = 26;
 const LEAVE_DURATION = 220;
 const LEAVE_MAX = 12;
+
+// 情绪 → 表情包规则，顺序即优先级，命中首个即停
+const EMOTE_RULES: Array<[RegExp, string]> = [
+  [/(没听懂|没找到|没搜到|不明白|不懂|不清楚|抱歉|对不起|失败|出错|错误|没法|不行|没办法|想念|舍不得|难过|伤心|呜呜)/, "cry1"],
+  [/(你好|您好|hello|hi|嗨|早上好|下午好|晚上好|打招呼)/, "greet1"],
+  [/(成功|完成|搞定|找到|收藏|恭喜|祝贺|太好了|好耶|厉害|真棒|干得漂亮|做得好)/, "celebrate"],
+  [/(稍等|等一下|稍后|慢一点|别急|有点忙)/, "sweat"],
+  [/(加油|坚持|努力|冲鸭|冲冲冲)/, "cheer"],
+  [/(魔法|施法|解析|处理中|抽取|翻找|召唤|变出来)/, "magic"],
+  [/(吃瓜|看戏|围观|旁观|笑话)/, "popcorn"],
+  [/(生气|气死|哼|恼火|讨厌|可恶)/, "angry"],
+  [/(开心|哈哈|笑死|笑|嘻|♪)/, "laugh"],
+  [/(惊讶|天哪|哇|吓|震惊|居然|竟然)/, "exclaim"],
+  [/(笨蛋|傻|呆|懵)/, "daze1"],
+  [/(摸摸|摸头|rua|拍拍)/, "pat"],
+  [/(喜欢|爱你|亲亲|么么|抱抱|表白)/, "love1"],
+  [/(害羞|不好意思|脸红)/, "shy1"],
+  [/(晚安|睡觉|睡了|困了|好梦)/, "sleep"],
+  [/(累了|疲倦|疲惫|心累|叹气)/, "work-tired"],
+  [/(害怕|可怕|吓人|恐怖)/, "fear1"],
+  [/(紧张|忐忑)/, "nervous1"],
+  [/(头晕|晕了|绕晕)/, "dizzy"],
+  [/(问号|不确定|存疑|疑惑|不知道|随便|都可以)/, "question"],
+  [/(思考|想想|琢磨|研究一下)/, "think"],
+  [/(点头|收到|没问题)/, "nod"],
+  [/(摇头|拒绝|不要啦)/, "shake"],
+  [/(红包|充值|赞助|打赏|付费|钱)/, "money"],
+  [/(礼物|送你|赠送)/, "gift1"],
+  [/(蛋糕|生日)/, "cake"],
+  [/(玫瑰|花花|鲜花)/, "rose"],
+  [/(干杯|喝酒|敬你|碰杯)/, "cheers"],
+  [/(唱歌|来一首|唱首|唱个)/, "sing"],
+  [/(好饿|想吃|好吃|馋|恰饭)/, "hungry-fork"],
+  [/(跳舞|蹦迪|舞蹈)/, "dance1"],
+  [/(六六七七|六七)/, "sixseven"],
+];
 
 const open = ref(false);
 const query = ref("");
@@ -312,6 +356,10 @@ function pick(list: string[]): string {
   return list[Math.floor(Math.random() * list.length)] ?? list[0] ?? "";
 }
 
+function emoteForText(text: string): string | undefined {
+  return EMOTE_RULES.find(([pattern]) => pattern.test(text))?.[1];
+}
+
 function historyPayload(): Array<{ role: string; text: string }> {
   return messages.value.slice(-6).map((message) => ({
     role: message.role === "neko" ? "assistant" : "user",
@@ -371,7 +419,8 @@ function restoreMessages(): void {
 
 function pushMessage(payload: Omit<ChatMessage, "id" | "time">): void {
   const stick = isNearBottom();
-  messages.value.push({ ...payload, id: ++messageId, time: fmtTime(new Date()) });
+  const emote = payload.emote ?? (payload.role === "neko" ? emoteForText(payload.text) : undefined);
+  messages.value.push({ ...payload, emote, id: ++messageId, time: fmtTime(new Date()) });
   saveMessages();
   nextTick(() => {
     if (stick) scrollToBottom();
@@ -781,6 +830,14 @@ onBeforeUnmount(() => {
 
 .neko-text {
   white-space: pre-wrap;
+}
+
+.neko-emote {
+  display: block;
+  width: 120px;
+  height: auto;
+  margin-top: 8px;
+  border-radius: 8px;
 }
 
 .neko-msg.neko .neko-bubble::before {
