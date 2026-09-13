@@ -1,5 +1,5 @@
 <template>
-  <section class="home-intro">
+  <section class="home-intro" :class="{ entered }">
     <h2 class="home-intro-title">
       <span class="home-intro-bar" aria-hidden="true"></span>
       Neko 能做什么？
@@ -7,7 +7,7 @@
     </h2>
 
     <div class="home-feats">
-      <div v-for="feat in feats" :key="feat.link" class="home-feat">
+      <div v-for="(feat, index) in feats" :key="feat.link" class="home-feat" :style="{ '--i': index }">
         <span class="home-feat-glass" aria-hidden="true"></span>
         <RouterLink :to="feat.link" class="home-feat-name">
           {{ feat.name }}
@@ -125,8 +125,11 @@ function copy(command: string): void {
 }
 
 const recents = ref<RecentItem[]>([]);
+const entered = ref(false);
 
 onMounted(() => {
+  // 同步标记 entered：Vue 会在浏览器首绘前 flush 更新，首帧即动画起点，不会先闪一帧原样内容
+  entered.value = true;
   void (async () => {
     try {
       const response = await fetch("/recent-updates.json", {
@@ -145,6 +148,42 @@ onMounted(() => {
 .home-intro {
   --accent: var(--vp-c-accent, #096dd9);
   margin: 36px 0 8px;
+}
+
+/* ===== 首屏入场：各区块依次淡入上浮，只动 transform/opacity ===== */
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-intro.entered .home-intro-title {
+  animation: home-rise 0.5s var(--ease-out) backwards;
+}
+
+.home-intro.entered .home-feat {
+  animation: home-rise 0.5s var(--ease-out) backwards;
+  animation-delay: calc(0.08s + var(--i) * 0.07s);
+}
+
+.home-intro.entered .home-recent {
+  animation: home-rise 0.5s var(--ease-out) backwards;
+  animation-delay: 0.4s;
+}
+
+.home-intro.entered .home-cta {
+  animation: home-rise 0.5s var(--ease-out) backwards;
+  animation-delay: 0.46s;
+}
+
+.home-intro.entered .home-more {
+  animation: home-rise 0.5s var(--ease-out) backwards;
+  animation-delay: 0.52s;
 }
 
 .home-intro-title {
@@ -474,6 +513,14 @@ html.dark .home-recent-time {
   .home-feat-cmd,
   .home-cta-ghost {
     transition: none;
+  }
+
+  .home-intro.entered .home-intro-title,
+  .home-intro.entered .home-feat,
+  .home-intro.entered .home-recent,
+  .home-intro.entered .home-cta,
+  .home-intro.entered .home-more {
+    animation: none;
   }
 
   .home-feat {
