@@ -512,6 +512,113 @@ html.dark .v-notification__content {
   }
 }
 
+// ===== PWA 更新提示卡：实色描边风，不用渐变 =====
+html .sw-update-popup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--vp-c-accent, #096dd9) 24%, transparent);
+  border-radius: 16px;
+  background: var(--vp-c-bg, #fff);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--vp-c-accent, #096dd9) 18%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.04);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--vp-c-text, #2b2b2b);
+  // 覆盖插件自带的入场过渡，保留 opacity/transform 让弹出动画依旧顺滑
+  transition: opacity 0.3s var(--ease-out), transform 0.25s var(--ease-out),
+    border-color 0.25s var(--ease-out), background-color 0.25s var(--ease-out);
+}
+
+// 左侧小圆点：呼应「有新的东西」的状态感，纯实色
+html .sw-update-popup::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vp-c-accent, #096dd9);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--vp-c-accent, #096dd9) 16%, transparent);
+}
+
+html .sw-update-popup .icon-wrapper {
+  display: grid;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin: 0 0 0 2px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--vp-c-accent, #096dd9) 12%, transparent);
+  transition: background-color 0.25s var(--ease-out);
+}
+
+html .sw-update-popup .icon-wrapper svg {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  color: var(--vp-c-accent, #096dd9);
+  animation: pwa-update-spin 3.6s linear infinite;
+}
+
+html .sw-update-popup:hover {
+  border-color: color-mix(in srgb, var(--vp-c-accent, #096dd9) 46%, transparent);
+  background: color-mix(in srgb, var(--vp-c-accent, #096dd9) 6%, var(--vp-c-bg));
+  transform: translateY(-3px);
+}
+
+html .sw-update-popup:hover .icon-wrapper {
+  background: color-mix(in srgb, var(--vp-c-accent, #096dd9) 24%, transparent);
+}
+
+html .sw-update-popup:focus-visible {
+  outline: 2px solid var(--vp-c-accent, #096dd9);
+  outline-offset: 2px;
+}
+
+html.dark .sw-update-popup {
+  background: #26262a;
+  border-color: color-mix(in srgb, var(--vp-c-accent, #096dd9) 34%, transparent);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5);
+}
+
+html.dark .sw-update-popup:hover {
+  background: color-mix(in srgb, var(--vp-c-accent, #096dd9) 14%, #26262a);
+}
+
+@keyframes pwa-update-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  html .sw-update-popup {
+    max-width: calc(100vw - 2rem);
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html .sw-update-popup {
+    transition: opacity 0.3s linear, transform 0.3s linear;
+  }
+
+  html .sw-update-popup:hover {
+    transform: none;
+  }
+
+  html .sw-update-popup .icon-wrapper svg {
+    animation: none;
+  }
+}
+
 // 主题色选择器：hope 会把 $theme-colors 按明度归一化后再应用，浅色样本需展示真实生效色
 // nth-child(2)/(3) 对应 $theme-colors 的第 1/2 项：#fcdfff、#e6f8ff
 .vp-theme-color-picker li:nth-child(2) span {
