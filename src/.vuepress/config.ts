@@ -13,7 +13,7 @@ const RECENT_COUNT = 8;
 const GITHUB_REPO_URL = "https://github.com/JQ-28/Neko-docs";
 
 interface RecentCommit {
-  date: string;
+  time: string;
   message: string;
   link: string;
 }
@@ -22,17 +22,24 @@ interface RecentCommit {
 async function generateRecentUpdates(): Promise<void> {
   try {
     // 用 execFileSync 传参数组，避免 Windows shell 把 format 里的 %占位符 当作变量展开
+    // --date=format 按提交自带的时区渲染，不受构建机时区影响
     const output = execFileSync(
       "git",
-      ["log", `--pretty=format:%h%x1f%ad%x1f%s`, "--date=short", "-n", String(RECENT_COUNT)],
+      [
+        "log",
+        `--pretty=format:%h%x1f%ad%x1f%s`,
+        "--date=format:%Y-%m-%d %H:%M",
+        "-n",
+        String(RECENT_COUNT),
+      ],
       { cwd: process.cwd(), encoding: "utf-8", maxBuffer: 16 * 1024 * 1024 }
     );
-    // 每行格式：短哈希 \x1f 日期 \x1f 提交说明
+    // 每行格式：短哈希 \x1f 提交时间 \x1f 提交说明
     const items: RecentCommit[] = [];
     for (const rawLine of output.split(/\r?\n/)) {
-      const [hash, date, message] = rawLine.trim().split("\u001f");
-      if (!hash || !/^[0-9a-f]+$/i.test(hash) || !date || !message) continue;
-      items.push({ date, message, link: `${GITHUB_REPO_URL}/commit/${hash}` });
+      const [hash, time, message] = rawLine.trim().split("\u001f");
+      if (!hash || !/^[0-9a-f]+$/i.test(hash) || !time || !message) continue;
+      items.push({ time, message, link: `${GITHUB_REPO_URL}/commit/${hash}` });
     }
     const publicDir = path.resolve(__dirname, "public");
     mkdirSync(publicDir, { recursive: true });

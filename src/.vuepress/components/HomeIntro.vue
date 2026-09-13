@@ -43,7 +43,7 @@
           target="_blank"
           rel="noopener noreferrer"
         >
-          <span class="home-recent-date">{{ item.date }}</span>
+          <span class="home-recent-time">{{ item.time }}</span>
           <span class="home-recent-message">{{ item.message }}</span>
         </a>
       </div>
@@ -90,7 +90,7 @@ interface HomeFeat {
 }
 
 interface RecentItem {
-  date: string;
+  time: string;
   message: string;
   link: string;
 }
@@ -424,7 +424,7 @@ html.dark .home-more {
     border-color 0.22s ease;
 }
 
-.home-recent-date {
+.home-recent-time {
   flex: none;
   font-size: 12px;
   color: #a397b2;
@@ -458,7 +458,7 @@ html.dark .home-recent-item {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-html.dark .home-recent-date {
+html.dark .home-recent-time {
   color: #8b8398;
 }
 
