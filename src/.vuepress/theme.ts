@@ -73,24 +73,7 @@ export default hopeTheme({
     //   showInMobile: true,
     // },
 
-    // 通知插件
-    notice: [
-      {
-        path: '/',
-        title: '您有一个群聊邀请！',
-        content: '✦小猫窝地下室✩邀请您加入游玩',
-        showOnce: false,
-        actions: [
-          {
-            text: '接受邀请',
-            link: 'https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info',
-            type: 'primary',
-          },
-          { text: 'TD' },
-        ],
-      }
-    ],
-
+    // 通知公告由 AnnouncementPopup 组件实现（notice 插件仅支持同时展示一条）
     // 搜索
     searchPro: {
       locales: {

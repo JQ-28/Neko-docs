@@ -12,6 +12,7 @@ import ApplyForm from "./components/ApplyForm.vue";
 import CopyCommand from "./components/CopyCommand.vue";
 import CommandCheatsheet from "./components/CommandCheatsheet.vue";
 import CommandRouter from "./components/CommandRouter.vue";
+import AnnouncementPopup from "./components/AnnouncementPopup.vue";
 
 const COPY_TEXT = "复制代码";
 const TIP_CONTENT = "复制成功";
@@ -47,9 +48,10 @@ export default defineClientConfig({
     app.component("CopyCommand", CopyCommand);
     app.component("CommandCheatsheet", CommandCheatsheet);
     app.component("CommandRouter", CommandRouter);
+    app.component("AnnouncementPopup", AnnouncementPopup);
   },
 
-  rootComponents: [CommandRouter],
+  rootComponents: [CommandRouter, AnnouncementPopup],
 
   setup() {
     let popper: Popper | null = null;
