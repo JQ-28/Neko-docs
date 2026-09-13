@@ -101,4 +101,25 @@ function openRouter(): void {
     transform: translateY(-1px);
   }
 }
+
+/* 窄屏收敛：缩小图标与间距，避免与 Repo/Outlook/Search 挤爆导航栏 */
+@media (max-width: 768px) {
+  .vp-nav-item.vp-action {
+    gap: 0;
+  }
+
+  .vp-nav-item.vp-action .vp-action-link {
+    padding: 4px;
+  }
+
+  .vp-action-link svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  .vp-action-neko {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+}
 </style>

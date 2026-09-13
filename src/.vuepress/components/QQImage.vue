@@ -6,7 +6,6 @@
         :src="src" 
         :alt="alt" 
         class="qq-chat-image"
-        @click="handleImageClick"
       />
     </div>
     <div v-if="align === 'right'" class="qq-avatar" :style="{ backgroundImage: `url(${avatar})` }"></div>
@@ -33,10 +32,6 @@ defineProps({
     default: '图片'
   }
 })
-
-const handleImageClick = (e) => {
-  // 图片点击会自动触发 photo-swipe
-}
 </script>
 
 <style scoped>

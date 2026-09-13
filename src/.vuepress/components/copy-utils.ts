@@ -23,7 +23,7 @@ export function copyText(text: string): Promise<string> {
   });
 }
 
-export function showTip(content: string): void {
+export function showTip(contentText: string): void {
   let list = document.querySelector<HTMLElement>(".alert-list");
   if (!list) {
     list = document.createElement("div");
@@ -32,7 +32,15 @@ export function showTip(content: string): void {
   }
   const tip = document.createElement("div");
   tip.className = "v-notification__group";
-  tip.innerHTML = `<h2 class="v-notification__title">${TIP_TITLE}</h2><div class="v-notification__content"><p>${content}</p></div>`;
+  const title = document.createElement("h2");
+  title.className = "v-notification__title";
+  title.textContent = TIP_TITLE;
+  const content = document.createElement("div");
+  content.className = "v-notification__content";
+  const paragraph = document.createElement("p");
+  paragraph.textContent = contentText;
+  content.appendChild(paragraph);
+  tip.append(title, content);
   list.appendChild(tip);
   setTimeout(() => {
     tip.classList.add("v-notification__leave");

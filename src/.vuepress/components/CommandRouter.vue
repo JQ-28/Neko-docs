@@ -345,6 +345,7 @@ const router = useRouter();
 
 let messageId = 0;
 let clearTimer: number | undefined;
+let greetingTimer: number | undefined;
 
 function fmtTime(date: Date): string {
   const pad = (value: number): string => String(value).padStart(2, "0");
@@ -546,7 +547,8 @@ function clearChat(): void {
   messages.value = [];
   saveMessages();
 
-  window.setTimeout(() => {
+  window.clearTimeout(greetingTimer);
+  greetingTimer = window.setTimeout(() => {
     messageId = 0;
     pushMessage({ role: "neko", text: GREETING });
   }, Math.min(removed - 1, LEAVE_MAX) * LEAVE_STEP + LEAVE_DURATION);
@@ -588,6 +590,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKeydown);
   window.removeEventListener(OPEN_EVENT, openRouter);
   window.clearTimeout(clearTimer);
+  window.clearTimeout(greetingTimer);
 });
 </script>
 

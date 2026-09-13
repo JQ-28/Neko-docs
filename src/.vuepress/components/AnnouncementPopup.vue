@@ -3,7 +3,14 @@
     <div v-if="currentAnnouncement" class="announcement" role="dialog" aria-live="polite">
       <header class="announcement-head">
         <span class="announcement-title">{{ currentAnnouncement.title }}</span>
-        <button class="announcement-close" type="button" aria-label="关闭公告" @click="dismiss">×</button>
+        <button class="announcement-close" type="button" aria-label="关闭公告" @click="dismiss">
+          <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"
+            />
+          </svg>
+        </button>
       </header>
       <p class="announcement-body">{{ currentAnnouncement.content }}</p>
       <div v-if="currentAnnouncement.actions?.length" class="announcement-actions">
@@ -148,18 +155,24 @@ onMounted(() => {
 }
 
 .announcement-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.7);
   color: #8a6fa8;
-  font-size: 14px;
-  line-height: 1;
   cursor: pointer;
   transition: background 0.2s var(--ease-out);
+}
+
+.announcement-close svg {
+  width: 12px;
+  height: 12px;
 }
 
 .announcement-close:hover {

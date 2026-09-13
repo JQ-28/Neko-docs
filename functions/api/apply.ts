@@ -38,27 +38,31 @@ export const onRequestPost = async (context) => {
       });
     }
 
-    // Cloudflare Turnstile 验证
-    if (captchaToken) {
-      const turnstileResponse = await fetch(
-        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            secret: env.TURNSTILE_SECRET_KEY,
-            response: captchaToken,
-          }),
-        }
-      );
-
-      const turnstileResult = await turnstileResponse.json();
-      if (!turnstileResult.success) {
-        return new Response(JSON.stringify({ error: '人机验证失败，请重试' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
+    // Cloudflare Turnstile 验证（强制，防止直接调接口绕过人机验证）
+    if (!captchaToken) {
+      return new Response(JSON.stringify({ error: '请完成人机验证' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    const turnstileResponse = await fetch(
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: env.TURNSTILE_SECRET_KEY,
+          response: captchaToken,
+        }),
       }
+    );
+
+    const turnstileResult = await turnstileResponse.json();
+    if (!turnstileResult.success) {
+      return new Response(JSON.stringify({ error: '人机验证失败，请重试' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     // 存入 D1 数据库

@@ -47,13 +47,23 @@ const isPlaying = ref(false)
 
 const togglePlay = () => {
   if (!audioPlayer.value) return
-  
+
   if (isPlaying.value) {
     audioPlayer.value.pause()
     isPlaying.value = false
   } else {
-    audioPlayer.value.play()
-    isPlaying.value = true
+    const playPromise = audioPlayer.value.play()
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          isPlaying.value = true
+        })
+        .catch(() => {
+          isPlaying.value = false
+        })
+    } else {
+      isPlaying.value = true
+    }
   }
 }
 

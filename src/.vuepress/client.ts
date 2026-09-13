@@ -111,14 +111,20 @@ export default defineClientConfig({
     );
 
     onMounted(() => {
-      canvas = document.createElement("canvas");
-      canvas.id = "vuepress-canvas-cursor";
-      document.body.appendChild(canvas);
-      popper = new Popper(
-        { shape: "star", size: 2 },
-        { opacity: 1, zIndex: 999999999 }
-      );
-      popper.mount(canvas);
+      // 星星光标只在支持悬停的设备上挂载（触屏无 mousemove，纯白费性能）
+      if (
+        typeof window !== "undefined" &&
+        window.matchMedia("(hover: hover) and (pointer: fine)").matches
+      ) {
+        canvas = document.createElement("canvas");
+        canvas.id = "vuepress-canvas-cursor";
+        document.body.appendChild(canvas);
+        popper = new Popper(
+          { shape: "star", size: 2 },
+          { opacity: 1, zIndex: 999999999 }
+        );
+        popper.mount(canvas);
+      }
 
       injectCopyButtons();
       observer = new MutationObserver(() => injectCopyButtons());
