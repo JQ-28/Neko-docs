@@ -3,8 +3,26 @@
     <div class="bot-status-head" :class="`is-${viewState}`">
       <span class="bot-status-head-dot" aria-hidden="true"></span>
       <span class="bot-status-head-text">{{ summaryText }}</span>
-      <span v-if="updatedText && !failed" class="bot-status-head-time">{{ updatedText }}</span>
-      <button v-if="failed" class="bot-status-retry" type="button" @click="load()">重试</button>
+      <span class="bot-status-actions">
+        <span v-if="updatedText && !failed" class="bot-status-head-time">{{ updatedText }}</span>
+        <button v-if="failed" class="bot-status-retry" type="button" @click="load()">重试</button>
+        <button
+          v-else
+          class="bot-status-refresh"
+          type="button"
+          :class="{ 'is-busy': refreshing }"
+          :disabled="refreshing"
+          :title="`立即刷新（每 ${REFRESH_INTERVAL / 1000} 秒自动刷新）`"
+          aria-label="立即刷新状态"
+          @click="load()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 5.5V2.6a.6.6 0 0 1 1.02-.42l4.2 4.2a.6.6 0 0 1 0 .85l-4.2 4.2A.6.6 0 0 1 12 11v-2.9a4.4 4.4 0 1 0 4.4 4.4.9.9 0 0 1 1.8 0 6.2 6.2 0 1 1-6.2-6.2z"
+            />
+          </svg>
+        </button>
+      </span>
     </div>
 
     <section v-for="section in sections" :key="section.key" class="bot-status-block">
@@ -62,7 +80,28 @@
             <span class="bot-status-light-ring"></span>
             <span class="bot-status-light-core"></span>
           </span>
-          <span class="bot-status-state">{{ STATE_TEXT[row.state] }}</span>
+          <span class="bot-status-state">{{ row.stateText }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section v-if="hardwareTiles.length" class="bot-status-block">
+      <h3 class="bot-status-title">
+        <span class="bot-status-bar" aria-hidden="true"></span>
+        本机硬件
+        <span class="bot-status-count">看门狗每 60 秒采集一次</span>
+      </h3>
+      <div class="bot-status-hardware">
+        <div
+          v-for="(tile, index) in hardwareTiles"
+          :key="tile.key"
+          class="bot-status-tile"
+          :style="{ '--row-index': index }"
+        >
+          <span class="bot-status-tile-label">{{ tile.label }}</span>
+          <span class="bot-status-tile-value">
+            {{ tile.value }}<span v-if="tile.unit" class="bot-status-tile-unit">{{ tile.unit }}</span>
+          </span>
         </div>
       </div>
     </section>
@@ -72,14 +111,30 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
+interface StatusEntry {
+  online: boolean;
+  since: number;
+  received: number;
+  sent: number;
+}
+
+type HardwareKey = "cpuTemp" | "cpuLoad" | "cpuPower" | "gpuTemp" | "uptime" | "processes";
+
+// 与看门狗上报字段一一对应的硬件读数
+type HardwareMetrics = Partial<Record<HardwareKey, number>>;
+
 interface StatusResponse {
   updatedAt: number | null;
-  accounts: Record<string, boolean>;
+  accounts: Record<string, StatusEntry>;
   accountsUpdatedAt: number | null;
   accountsStale: boolean;
-  services: Record<string, boolean>;
+  services: Record<string, StatusEntry>;
   servicesUpdatedAt: number | null;
   servicesStale: boolean;
+  hardware: HardwareMetrics | null;
+  hardwareUpdatedAt: number | null;
+  hardwareStale: boolean;
+  serverTime: number;
 }
 
 interface InventoryItem {
@@ -93,6 +148,7 @@ type RowState = "online" | "offline" | "unknown";
 
 interface StatusRow extends InventoryItem {
   state: RowState;
+  stateText: string;
 }
 
 interface StatusSection {
@@ -106,6 +162,13 @@ interface StatusSection {
   offset: number;
 }
 
+interface HardwareTile {
+  key: HardwareKey;
+  label: string;
+  value: string;
+  unit: string;
+}
+
 type ViewState = "loading" | "error" | "empty" | "stale" | "partial" | "ready";
 
 const STATE_TEXT: Record<RowState, string> = {
@@ -113,6 +176,16 @@ const STATE_TEXT: Record<RowState, string> = {
   offline: "离线",
   unknown: "未知",
 };
+
+// 硬件面板的展示顺序与单位，小数位为 0 表示取整
+const HARDWARE_TILES: { key: HardwareKey; label: string; unit: string; digits: number }[] = [
+  { key: "cpuTemp", label: "CPU 温度", unit: "°C", digits: 0 },
+  { key: "cpuLoad", label: "CPU 负载", unit: "%", digits: 0 },
+  { key: "cpuPower", label: "CPU 功耗", unit: "W", digits: 1 },
+  { key: "gpuTemp", label: "GPU 温度", unit: "°C", digits: 0 },
+  { key: "uptime", label: "系统运行", unit: "", digits: 0 },
+  { key: "processes", label: "活跃进程", unit: "个", digits: 0 },
+];
 
 const REFRESH_INTERVAL = 30_000;
 const ENDPOINT = "/api/bot-status";
@@ -140,10 +213,17 @@ const SERVICES: InventoryItem[] = [
 
 const status = ref<StatusResponse | null>(null);
 const failed = ref(false);
+const refreshing = ref(false);
 const brokenAvatars = ref<Set<string>>(new Set());
 
 const accountStale = computed(() => !status.value || status.value.accountsStale);
 const serviceStale = computed(() => !status.value || status.value.servicesStale);
+const hardwareStale = computed(() => !status.value || status.value.hardwareStale);
+
+// 以服务端时间为基准算运行时长，避免浏览器时钟偏差带来的误导
+const nowSeconds = computed(
+  () => status.value?.serverTime ?? Math.floor(Date.now() / 1000)
+);
 
 const viewState = computed<ViewState>(() => {
   if (failed.value) return "error";
@@ -154,31 +234,61 @@ const viewState = computed<ViewState>(() => {
   return "ready";
 });
 
+function formatDuration(seconds: number): string {
+  const total = Math.max(Math.floor(seconds), 0);
+  const days = Math.floor(total / 86_400);
+  const hours = Math.floor((total % 86_400) / 3_600);
+  const minutes = Math.floor((total % 3_600) / 60);
+  if (days > 0) return hours > 0 ? `${days} 天 ${hours} 小时` : `${days} 天`;
+  if (hours > 0) return minutes > 0 ? `${hours} 小时 ${minutes} 分钟` : `${hours} 小时`;
+  if (minutes > 0) return `${minutes} 分钟`;
+  return "不到 1 分钟";
+}
+
+// 卡片右侧空间有限，运行时长只保留最大单位
+function formatDurationShort(seconds: number): string {
+  const total = Math.max(Math.floor(seconds), 0);
+  if (total >= 86_400) return `${Math.floor(total / 86_400)} 天`;
+  if (total >= 3_600) return `${Math.floor(total / 3_600)} 小时`;
+  return `${Math.floor(total / 60)} 分钟`;
+}
+
+function formatStateText(state: RowState, since: number): string {
+  if (state !== "online" || since <= 0) return STATE_TEXT[state];
+  const seconds = nowSeconds.value - since;
+  return seconds < 60 ? "刚上线" : `已运行 ${formatDurationShort(seconds)}`;
+}
+
 function buildRows(
   inventory: InventoryItem[],
-  reported: Record<string, boolean>,
-  stale: boolean
+  reported: Record<string, StatusEntry>,
+  stale: boolean,
+  showActivity: boolean
 ): StatusRow[] {
-  const resolve = (online: boolean): RowState => {
-    if (stale) return "unknown";
-    return online ? "online" : "offline";
+  const build = (item: InventoryItem, entry: StatusEntry | undefined): StatusRow => {
+    const state: RowState = stale ? "unknown" : entry?.online ? "online" : "offline";
+    const activity =
+      showActivity && entry ? `今日 ${entry.received + entry.sent} 条` : "";
+    return {
+      ...item,
+      state,
+      stateText: formatStateText(state, entry?.since ?? 0),
+      meta: [item.meta, activity].filter(Boolean).join(" · ") || undefined,
+    };
   };
-  const rows = inventory.map<StatusRow>((item) => ({
-    ...item,
-    state: resolve(reported[item.key] === true),
-  }));
+  const rows = inventory.map((item) => build(item, reported[item.key]));
   const known = new Set(inventory.map((item) => item.key));
-  Object.entries(reported).forEach(([key, online]) => {
-    if (!known.has(key)) rows.push({ key, name: key, state: resolve(online) });
+  Object.entries(reported).forEach(([key, entry]) => {
+    if (!known.has(key)) rows.push(build({ key, name: key }, entry));
   });
   return rows;
 }
 
 const accountRows = computed(() =>
-  buildRows(ACCOUNTS, status.value?.accounts ?? {}, accountStale.value)
+  buildRows(ACCOUNTS, status.value?.accounts ?? {}, accountStale.value, true)
 );
 const serviceRows = computed(() =>
-  buildRows(SERVICES, status.value?.services ?? {}, serviceStale.value)
+  buildRows(SERVICES, status.value?.services ?? {}, serviceStale.value, false)
 );
 const accountOnline = computed(
   () => accountRows.value.filter((row) => row.state === "online").length
@@ -186,6 +296,23 @@ const accountOnline = computed(
 const serviceOnline = computed(
   () => serviceRows.value.filter((row) => row.state === "online").length
 );
+
+const hardwareTiles = computed<HardwareTile[]>(() => {
+  const metrics = status.value?.hardware;
+  if (!metrics || hardwareStale.value) return [];
+  return HARDWARE_TILES.flatMap((tile) => {
+    const metric = metrics[tile.key];
+    if (typeof metric !== "number") return [];
+    return [
+      {
+        key: tile.key,
+        label: tile.label,
+        value: tile.key === "uptime" ? formatDuration(metric) : metric.toFixed(tile.digits),
+        unit: tile.key === "uptime" ? "" : tile.unit,
+      },
+    ];
+  });
+});
 
 const sections = computed<StatusSection[]>(() => {
   const accounts: StatusSection = {
@@ -249,6 +376,7 @@ function stopPolling(): void {
 }
 
 async function load(): Promise<void> {
+  refreshing.value = true;
   try {
     const response = await fetch(ENDPOINT, { headers: { Accept: "application/json" } });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -256,6 +384,8 @@ async function load(): Promise<void> {
     failed.value = false;
   } catch {
     failed.value = true;
+  } finally {
+    refreshing.value = false;
   }
 }
 
@@ -322,16 +452,56 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--state-unknown) 20%, transparent);
 }
 
-.bot-status-head-time {
+.bot-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+}
+
+.bot-status-head-time {
   font-size: 12px;
   font-weight: 400;
   color: #a397b2;
   font-variant-numeric: tabular-nums;
 }
 
+.bot-status-refresh {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 50%;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  cursor: pointer;
+  transition: background-color 0.25s ease-out, border-color 0.25s ease-out,
+    color 0.25s ease-out;
+}
+
+.bot-status-refresh svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.bot-status-refresh:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.bot-status-refresh:disabled {
+  cursor: progress;
+}
+
+.bot-status-refresh.is-busy svg {
+  animation: bot-status-spin 0.9s linear infinite;
+}
+
 .bot-status-retry {
-  margin-left: auto;
   padding: 4px 12px;
   border: 1px solid color-mix(in srgb, var(--state-unknown) 40%, transparent);
   border-radius: 999px;
@@ -612,6 +782,51 @@ onBeforeUnmount(() => {
   color: var(--state-unknown);
 }
 
+.bot-status-hardware {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.bot-status-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+  animation: bot-status-enter 0.44s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--row-index, 0) * 45ms);
+  transition: background-color 0.25s ease-out, border-color 0.25s ease-out;
+}
+
+.bot-status-tile:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.bot-status-tile-label {
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  color: #a397b2;
+}
+
+.bot-status-tile-value {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+
+.bot-status-tile-unit {
+  margin-left: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a397b2;
+}
+
 @keyframes bot-status-enter {
   from {
     opacity: 0;
@@ -620,6 +835,15 @@ onBeforeUnmount(() => {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bot-status-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
