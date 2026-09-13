@@ -103,7 +103,7 @@
                   <img
                     v-if="message.emote"
                     class="neko-emote"
-                    :src="`/assets/emote/${message.emote}.gif`"
+                    :src="emoteUrl(message.emote)"
                     alt=""
                     loading="lazy"
                   />
@@ -289,6 +289,49 @@ const EMOTE_RULES: Array<[RegExp, string]> = [
   [/(跳舞|蹦迪|舞蹈)/, "dance1"],
   [/(六六七七|六七)/, "sixseven"],
 ];
+
+// 情绪 id → R2 图床原始文件名，未登记的 id 不渲染图片
+const EMOTE_FILES: Record<string, string> = {
+  cry1: "neko_哭 1.gif",
+  greet1: "neko_打招呼 1.gif",
+  celebrate: "neko_庆祝.gif",
+  sweat: "neko_汗.gif",
+  cheer: "neko_加油.gif",
+  magic: "neko_魔法.gif",
+  popcorn: "neko_吃(爆米花).gif",
+  angry: "neko_生气.gif",
+  laugh: "neko_笑.gif",
+  exclaim: "neko_叹号.gif",
+  daze1: "neko_呆 1.gif",
+  pat: "neko_摸头.gif",
+  love1: "neko_爱心 1.gif",
+  shy1: "neko_害羞 1.gif",
+  sleep: "neko_睡觉(普通).gif",
+  "work-tired": "neko_工作(疲倦).gif",
+  fear1: "neko_害怕 1.gif",
+  nervous1: "neko_紧张 1.gif",
+  dizzy: "neko_头晕.gif",
+  question: "neko_问号.gif",
+  think: "neko_思考（认真地）.gif",
+  nod: "neko_点头.gif",
+  shake: "neko_摇头.gif",
+  money: "neko_钱.gif",
+  gift1: "neko_礼物 1.gif",
+  cake: "neko_蛋糕.gif",
+  rose: "neko_玫瑰.gif",
+  cheers: "neko_干杯.gif",
+  sing: "neko_唱歌.gif",
+  "hungry-fork": "neko_馋(刀叉).gif",
+  dance1: "neko_跳舞 1.gif",
+  sixseven: "neko_六七.gif",
+};
+
+const EMOTE_BASE = "https://drive.nekodayo.top/raw/assets/nekodocs/neko%E8%A1%A8%E6%83%85%E5%8C%85/";
+
+function emoteUrl(id: string): string {
+  const file = EMOTE_FILES[id];
+  return file ? EMOTE_BASE + encodeURI(file) : "";
+}
 
 const open = ref(false);
 const query = ref("");
