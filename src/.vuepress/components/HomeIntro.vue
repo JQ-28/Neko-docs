@@ -45,9 +45,6 @@
         >
           <span class="home-recent-date">{{ item.date }}</span>
           <span class="home-recent-message">{{ item.message }}</span>
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path fill="currentColor" d="M9.4 6.4 15 12l-5.6 5.6-1.4-1.4L12.2 12 8 7.8z" />
-          </svg>
         </a>
       </div>
     </section>
@@ -427,15 +424,6 @@ html.dark .home-more {
     border-color 0.22s ease;
 }
 
-.home-recent-item svg {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  margin-left: auto;
-  color: #a397b2;
-  transition: color 0.22s ease, transform 0.22s var(--ease-out);
-}
-
 .home-recent-date {
   flex: none;
   font-size: 12px;
@@ -461,11 +449,6 @@ html.dark .home-more {
     box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 14%, transparent),
       inset 0 1px 0 rgba(255, 255, 255, 0.85);
     border-color: rgba(255, 255, 255, 0.9);
-  }
-
-  .home-recent-item:hover svg {
-    color: var(--accent);
-    transform: translateX(2px);
   }
 }
 
@@ -512,8 +495,7 @@ html.dark .home-recent-date {
   .home-feat-name,
   .home-feat-cmd,
   .home-cta-ghost,
-  .home-recent-item,
-  .home-recent-item svg {
+  .home-recent-item {
     transition: none;
   }
 
