@@ -18,7 +18,7 @@
         </div>
       </div>
       <button type="button" class="cheatsheet-ask" title="不知道用哪条指令？问问neko" @click="openRouter">
-        <img class="cheatsheet-ask-ico" src="/assets/image/neko.webp" alt="" aria-hidden="true" />
+        <span class="cheatsheet-ask-ico" aria-hidden="true"></span>
         <span>问问neko</span>
       </button>
     </div>
@@ -447,10 +447,12 @@ html.dark .hero-stat b {
 
 .cheatsheet-ask-ico {
   flex: none;
+  display: block;
   width: 1.35rem;
   height: 1.35rem;
   border-radius: 50%;
-  object-fit: cover;
+  /* 用背景图而非 <img>：正文内的 img 会被 photo-swipe 接管，点图标会误触图片预览 */
+  background: url("/assets/image/neko.webp") center / cover no-repeat;
   box-shadow: 0 0 0 1px rgba(255, 158, 213, 0.6);
 }
 
@@ -472,7 +474,7 @@ html.dark .cheatsheet-ask {
 }
 
 @media (max-width: 480px) {
-  .cheatsheet-ask span {
+  .cheatsheet-ask span:not(.cheatsheet-ask-ico) {
     display: none;
   }
 
