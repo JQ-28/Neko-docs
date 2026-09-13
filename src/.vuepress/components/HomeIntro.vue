@@ -91,7 +91,10 @@ interface RecentItem {
   message: string;
 }
 
-const feats: HomeFeat[] = [
+const FEAT_COUNT = 4;
+
+// 候选功能池：每次进入首页随机挑 FEAT_COUNT 个展示，避免永远都是那四张
+const FEAT_POOL: HomeFeat[] = [
   {
     name: "每日签到",
     desc: "攒好感度、赚喵喵币",
@@ -116,7 +119,60 @@ const feats: HomeFeat[] = [
     link: "/zhiling/yule/bqbmaker",
     commands: ["表情包制作"],
   },
+  {
+    name: "今天吃什么",
+    desc: "选择困难症救星",
+    link: "/zhiling/yule/whateat",
+    commands: ["今天早上吃什么"],
+  },
+  {
+    name: "Roll 随机",
+    desc: "摇个数字或选项定输赢",
+    link: "/zhiling/yule/roll",
+    commands: ["/roll", "/roll 100"],
+  },
+  {
+    name: "一言",
+    desc: "随机一句句子收藏起来",
+    link: "/zhiling/yule/yiyan",
+    commands: ["/一言"],
+  },
+  {
+    name: "趣味占卜",
+    desc: "人设、称号、老婆全靠抽",
+    link: "/zhiling/yule/zhanbu",
+    commands: ["人设生成", "中二称号"],
+  },
+  {
+    name: "音乐点歌",
+    desc: "报歌名，音乐直接送进群",
+    link: "/zhiling/shiyong/music",
+    commands: ["点歌"],
+  },
+  {
+    name: "去图片背景",
+    desc: "发张图，背景一键扣掉",
+    link: "/zhiling/shiyong/imga",
+    commands: ["/去背景"],
+  },
+  {
+    name: "群聊词云",
+    desc: "看看群里都在聊啥",
+    link: "/zhiling/yule/ciyun",
+    commands: ["/今日词云"],
+  },
+  {
+    name: "每日小猪",
+    desc: "今日份烤猪与猪圈图鉴",
+    link: "/zhiling/yule/pig",
+    commands: ["今日小猪"],
+  },
 ];
+
+function pickRandomFeats(): HomeFeat[] {
+  const shuffled = [...FEAT_POOL].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, FEAT_COUNT);
+}
 
 function copy(command: string): void {
   copyText(command)
@@ -124,12 +180,15 @@ function copy(command: string): void {
     .catch(() => showTip("复制失败"));
 }
 
+// SSR 首帧与无 JS 时展示固定前 4 张，水合后由 onMounted 随机换新
+const feats = ref<HomeFeat[]>(FEAT_POOL.slice(0, FEAT_COUNT));
 const recents = ref<RecentItem[]>([]);
 const entered = ref(false);
 
 onMounted(() => {
   // 同步标记 entered：Vue 会在浏览器首绘前 flush 更新，首帧即动画起点，不会先闪一帧原样内容
   entered.value = true;
+  feats.value = pickRandomFeats();
   void (async () => {
     try {
       const response = await fetch("/recent-updates.json", {
@@ -503,6 +562,18 @@ html.dark .home-recent-time {
 
   .home-feat {
     padding: 13px 14px;
+  }
+
+  .home-recent-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 10px 14px;
+  }
+
+  .home-recent-message {
+    white-space: normal;
+    line-height: 1.6;
   }
 }
 

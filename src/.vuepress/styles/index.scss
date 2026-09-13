@@ -608,7 +608,8 @@ html.dark .sw-update-popup:hover {
 
 @media (max-width: 768px) {
   html .sw-update-popup {
-    top: 4.25rem;
+    top: auto;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     max-width: calc(100vw - 2rem);
     padding: 14px 16px;
     font-size: 15px;

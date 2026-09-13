@@ -242,10 +242,28 @@ html.dark .announcement-close:hover {
 
 @media (max-width: 768px) {
   .announcement {
-    top: 62px;
+    top: 66px;
     right: 12px;
-    left: 12px;
-    width: auto;
+    left: auto;
+    width: min(280px, calc(100vw - 24px));
+    padding: 12px 14px 10px;
+  }
+
+  .announcement-title {
+    font-size: 13px;
+  }
+
+  .announcement-body {
+    font-size: 12px;
+  }
+
+  .announcement-actions {
+    margin-top: 10px;
+  }
+
+  .announcement-action {
+    padding: 5px 12px;
+    font-size: 12px;
   }
 }
 
