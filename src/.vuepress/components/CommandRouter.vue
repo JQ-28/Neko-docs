@@ -221,6 +221,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { commandCategories, hintFor, routeAliases } from "./commands-data";
 import { copyText, showTip } from "./copy-utils";
+import { markEgg } from "../eggs";
 
 interface RouteResult {
   title: string;
@@ -513,6 +514,7 @@ async function submit(): Promise<void> {
     typing.value = false;
     if (results.length > 0) pushMessage({ role: "neko", text: reply || pick(HIT_REPLIES), results });
     else pushMessage({ role: "neko", text: reply || pick(MISS_REPLIES), fallback: true });
+    markEgg("docAskNeko");
   } catch {
     typing.value = false;
     // 后端不可用时退回本地匹配，至少还能给出指令卡片
@@ -572,6 +574,7 @@ function startVoice(): void {
     stopVoice();
     if (text) {
       query.value = text;
+      markEgg("docVoice");
       void submit();
     }
   };
