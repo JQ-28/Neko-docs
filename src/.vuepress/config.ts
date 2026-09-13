@@ -61,20 +61,33 @@ function formatTime(isoTime: string): string {
   return `${pick("year")}-${pick("month")}-${pick("day")} ${pick("hour")}:${pick("minute")}`;
 }
 
-// 浅克隆时向 GitHub 补齐完整提交列表
-async function readFromGitHub(): Promise<RecentCommit[]> {
-  const response = await fetch(
-    `https://api.github.com/repos/${REPO_SLUG}/commits?per_page=${RECENT_COUNT}`,
-    { headers: { accept: "application/vnd.github+json", "user-agent": "neko-docs-build" } }
-  );
-  if (!response.ok) throw new Error(`GitHub API ${response.status}`);
-  const commits = (await response.json()) as {
-    commit: { message: string; author: { date: string } };
-  }[];
-  return commits.map((item) => ({
-    time: formatTime(item.commit.author.date),
-    message: item.commit.message.split("\n")[0],
-  }));
+function decodeXmlText(value: string): string {
+  return value
+    .replace(/<[^>]+>/g, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// 浅克隆时从 commits 页的 Atom 订阅补齐；它不需 token，也不吃 API 的频率限制
+async function readFromAtomFeed(): Promise<RecentCommit[]> {
+  const response = await fetch(`https://github.com/${REPO_SLUG}/commits.atom`);
+  if (!response.ok) throw new Error(`GitHub Atom ${response.status}`);
+  const xml = await response.text();
+  const items: RecentCommit[] = [];
+  for (const entry of xml.split("<entry>").slice(1)) {
+    const title = entry.match(/<title>([\s\S]*?)<\/title>/)?.[1];
+    const updated = entry.match(/<updated>([\s\S]*?)<\/updated>/)?.[1];
+    if (!title || !updated) continue;
+    items.push({ time: formatTime(updated.trim()), message: decodeXmlText(title) });
+    if (items.length >= RECENT_COUNT) break;
+  }
+  if (!items.length) throw new Error("Atom 订阅里没解析出提交");
+  return items;
 }
 
 // 构建期读取 git 提交历史（与 GitHub commits 页一致），写入 public/recent-updates.json 供首页展示
@@ -82,12 +95,17 @@ async function generateRecentUpdates(): Promise<void> {
   let items = readFromGit();
   if (items.length < RECENT_COUNT) {
     try {
-      items = await readFromGitHub();
-    } catch {
-      // 无网络时保留 git 结果；两者都拿不到则前端自动隐藏「最近更新」区块
+      const remote = await readFromAtomFeed();
+      if (remote.length > items.length) items = remote;
+    } catch (error) {
+      console.warn(`[recent-updates] 远端提交列表没取到，沿用 git 的 ${items.length} 条：`, error);
     }
   }
-  if (!items.length) return;
+  if (!items.length) {
+    console.warn("[recent-updates] 提交历史为空，首页会隐藏「最近更新」区块");
+    return;
+  }
+  console.log(`[recent-updates] 写入 ${items.length} 条提交记录`);
   const publicDir = path.resolve(__dirname, "public");
   mkdirSync(publicDir, { recursive: true });
   writeFileSync(path.resolve(publicDir, "recent-updates.json"), JSON.stringify(items), "utf-8");
