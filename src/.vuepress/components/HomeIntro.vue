@@ -35,17 +35,14 @@
         最近更新
       </h2>
       <div class="home-recent-list">
-        <a
+        <div
           v-for="item in recents"
-          :key="item.link"
-          :href="item.link"
+          :key="item.time + item.message"
           class="home-recent-item"
-          target="_blank"
-          rel="noopener noreferrer"
         >
           <span class="home-recent-time">{{ item.time }}</span>
           <span class="home-recent-message">{{ item.message }}</span>
-        </a>
+        </div>
       </div>
     </section>
 
@@ -92,7 +89,6 @@ interface HomeFeat {
 interface RecentItem {
   time: string;
   message: string;
-  link: string;
 }
 
 const feats: HomeFeat[] = [
@@ -419,9 +415,6 @@ html.dark .home-more {
   border: 1px solid rgba(255, 255, 255, 0.75);
   box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 8%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-  transition: transform 0.22s var(--ease-out), box-shadow 0.22s ease,
-    border-color 0.22s ease;
 }
 
 .home-recent-time {
@@ -443,15 +436,6 @@ html.dark .home-more {
   text-overflow: ellipsis;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .home-recent-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 14%, transparent),
-      inset 0 1px 0 rgba(255, 255, 255, 0.85);
-    border-color: rgba(255, 255, 255, 0.9);
-  }
-}
-
 html.dark .home-recent-item {
   background: rgba(44, 44, 44, 0.6);
   border-color: rgba(255, 255, 255, 0.12);
@@ -460,12 +444,6 @@ html.dark .home-recent-item {
 
 html.dark .home-recent-time {
   color: #8b8398;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  html.dark .home-recent-item:hover {
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
 }
 
 @media (max-width: 768px) {
@@ -494,8 +472,7 @@ html.dark .home-recent-time {
   .home-feat-glass,
   .home-feat-name,
   .home-feat-cmd,
-  .home-cta-ghost,
-  .home-recent-item {
+  .home-cta-ghost {
     transition: none;
   }
 

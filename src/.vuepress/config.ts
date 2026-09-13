@@ -10,12 +10,10 @@ import { removeHtmlExtensionPlugin } from 'vuepress-plugin-remove-html-extension
 const __dirname = getDirname(import.meta.url);
 
 const RECENT_COUNT = 8;
-const GITHUB_REPO_URL = "https://github.com/JQ-28/Neko-docs";
 
 interface RecentCommit {
   time: string;
   message: string;
-  link: string;
 }
 
 // 构建期读取 git 提交历史（与 GitHub commits 页一致），写入 public/recent-updates.json 供首页展示
@@ -39,7 +37,7 @@ async function generateRecentUpdates(): Promise<void> {
     for (const rawLine of output.split(/\r?\n/)) {
       const [hash, time, message] = rawLine.trim().split("\u001f");
       if (!hash || !/^[0-9a-f]+$/i.test(hash) || !time || !message) continue;
-      items.push({ time, message, link: `${GITHUB_REPO_URL}/commit/${hash}` });
+      items.push({ time, message });
     }
     const publicDir = path.resolve(__dirname, "public");
     mkdirSync(publicDir, { recursive: true });
