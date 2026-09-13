@@ -105,7 +105,7 @@ const SERVICES: InventoryItem[] = [
   { key: "redis", name: "Redis", meta: "缓存" },
   { key: "meme", name: "memeapi", meta: ":2233" },
   { key: "lhm", name: "LibreHardwareMonitor", meta: "硬件监控" },
-  { key: "haruki", name: "Haruki", meta: ":8653" },
+  { key: "haruki", name: "Haruki", meta: ":8111" },
   { key: "yunzai", name: "TRSS-Yunzai", meta: ":9238" },
   { key: "nonebot", name: "Nonebot", meta: ":11451" },
 ];
