@@ -1,6 +1,6 @@
 import { defineUserConfig } from "vuepress";
 import { getDirname, path } from "vuepress/utils";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 
 import theme from "./theme.js";
@@ -11,32 +11,54 @@ const __dirname = getDirname(import.meta.url);
 
 const RECENT_COUNT = 8;
 
-// 构建期从 git 历史提取最近改动的文档页，写入 public/recent-updates.json 供首页展示
+interface RecentFileEntry {
+  date: string;
+  message: string;
+}
+
+// 构建期从 git 历史提取最近改动的文档页及其提交说明，写入 public/recent-updates.json 供首页展示
 async function generateRecentUpdates(app: any): Promise<void> {
   try {
-    const output = execSync(
-      'git log --pretty=format:"%ad" --date=short --name-only -- src',
+    // 用 execFileSync 传参数组，避免 Windows shell 把 format 里的 %占位符 当作变量展开
+    const output = execFileSync(
+      "git",
+      [
+        "log",
+        `--pretty=format:%x01%ad%x1f%s`,
+        "--date=short",
+        "--name-only",
+        "--",
+        "src",
+      ],
       { cwd: process.cwd(), encoding: "utf-8", maxBuffer: 16 * 1024 * 1024 }
     );
-    // git log 输出格式：每个提交先是一行日期，随后是该提交改动的文件列表
-    const latestByFile = new Map<string, string>();
-    let currentDate = "";
+    // 输出格式：每个提交先是一行 \x01日期\x1f提交说明，随后是该提交改动的文件列表
+    const latestByFile = new Map<string, RecentFileEntry>();
+    let current: RecentFileEntry | null = null;
     for (const rawLine of output.split(/\r?\n/)) {
       const line = rawLine.trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(line)) {
-        currentDate = line;
+      if (line.startsWith("\u0001")) {
+        const [date, message = ""] = line.slice(1).split("\u001f");
+        current = { date, message };
         continue;
       }
-      if (!currentDate || !line.startsWith("src/") || !line.endsWith(".md")) continue;
+      if (!current || !line.startsWith("src/") || !line.endsWith(".md")) continue;
       const base = line.slice(line.lastIndexOf("/") + 1);
       if (base === "README.md" || base === "index.md" || line.startsWith("src/.vuepress/")) continue;
-      if (!latestByFile.has(line)) latestByFile.set(line, currentDate);
+      if (!latestByFile.has(line)) latestByFile.set(line, current);
     }
-    const items = [...latestByFile.entries()].slice(0, RECENT_COUNT).flatMap(([file, date]) => {
+    const items = [...latestByFile.entries()].slice(0, RECENT_COUNT).flatMap(([file, entry]) => {
       const relative = file.replace(/^src\//, "");
       const page = app.pages.find((p: any) => p.filePathRelative === relative);
       if (!page) return [];
-      return [{ title: page.title || relative, link: page.path, date }];
+      return [
+        {
+          title: page.title || relative,
+          link: page.path,
+          date: entry.date,
+          message: entry.message,
+        },
+      ];
     });
     const publicDir = path.resolve(app.dir.source(), ".vuepress", "public");
     mkdirSync(publicDir, { recursive: true });

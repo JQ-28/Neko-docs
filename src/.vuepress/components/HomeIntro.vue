@@ -43,7 +43,10 @@
           class="home-recent-item"
         >
           <span class="home-recent-date">{{ item.date }}</span>
-          <span class="home-recent-title">{{ item.title }}</span>
+          <span class="home-recent-text">
+            <span class="home-recent-title">{{ item.title }}</span>
+            <span v-if="item.message" class="home-recent-message">{{ item.message }}</span>
+          </span>
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path fill="currentColor" d="M9.4 6.4 15 12l-5.6 5.6-1.4-1.4L12.2 12 8 7.8z" />
           </svg>
@@ -95,6 +98,7 @@ interface RecentItem {
   title: string;
   link: string;
   date: string;
+  message: string;
 }
 
 const feats: HomeFeat[] = [
@@ -443,11 +447,26 @@ html.dark .home-more {
   letter-spacing: 0.5px;
 }
 
-.home-recent-title {
+.home-recent-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
   min-width: 0;
+}
+
+.home-recent-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-recent-message {
+  font-size: 12px;
+  color: #8d829c;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -475,6 +494,10 @@ html.dark .home-recent-item {
 
 html.dark .home-recent-date {
   color: #8b8398;
+}
+
+html.dark .home-recent-message {
+  color: #9a92a8;
 }
 
 @media (hover: hover) and (pointer: fine) {
