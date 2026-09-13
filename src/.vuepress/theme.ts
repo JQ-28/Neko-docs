@@ -166,7 +166,7 @@ export default hopeTheme({
       cacheHTML: false,
       cacheImage: true,
       appendBase: true,
-      update: "force",
+      update: "available",
       apple: {
         icon: "/assets/image/neko.webp",
         statusBarColor: "black",
