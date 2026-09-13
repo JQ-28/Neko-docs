@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS applications (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 机器人状态快照表（仅保留最新一条，id 固定为 latest）
+CREATE TABLE IF NOT EXISTS bot_status (
+    id TEXT PRIMARY KEY,
+    payload TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
 -- 创建索引提升查询性能
 CREATE INDEX IF NOT EXISTS idx_status ON applications(status);
 CREATE INDEX IF NOT EXISTS idx_created_at ON applications(created_at);

@@ -5,6 +5,7 @@ export default sidebar({
     "",
     "/qianyan",
     "/start",
+    "/zhuangtai",
     {
       text: "介绍",
       icon: "/assets/icon/sheet-plastic.svg",

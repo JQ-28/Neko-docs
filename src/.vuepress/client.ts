@@ -14,6 +14,7 @@ import CopyCommand from "./components/CopyCommand.vue";
 import CommandCheatsheet from "./components/CommandCheatsheet.vue";
 import CommandRouter from "./components/CommandRouter.vue";
 import AnnouncementPopup from "./components/AnnouncementPopup.vue";
+import BotStatus from "./components/BotStatus.vue";
 
 const COPY_TEXT = "复制代码";
 const TIP_CONTENT = "复制成功";
@@ -51,6 +52,7 @@ export default defineClientConfig({
     app.component("CommandCheatsheet", CommandCheatsheet);
     app.component("CommandRouter", CommandRouter);
     app.component("AnnouncementPopup", AnnouncementPopup);
+    app.component("BotStatus", BotStatus);
   },
 
   rootComponents: [CommandRouter, AnnouncementPopup],
