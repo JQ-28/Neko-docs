@@ -1,4 +1,4 @@
-import { defineUserConfig } from "vuepress";
+import { defineUserConfig, type App } from "vuepress";
 import { getDirname, path } from "vuepress/utils";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -12,6 +12,11 @@ const __dirname = getDirname(import.meta.url);
 const RECENT_COUNT = 8;
 const REPO_SLUG = "JQ-28/Neko-docs";
 const TIME_ZONE = "Asia/Shanghai";
+
+const SITE_URL = "https://docs.nekodayo.top";
+const SITE_NAME = "Neko docs";
+const SITE_DESC = "一个可爱的超多功能QQ群机器人";
+const OG_IMAGE = `${SITE_URL}/assets/image/neko.jpg`;
 
 interface RecentCommit {
   time: string;
@@ -111,6 +116,27 @@ async function generateRecentUpdates(): Promise<void> {
   writeFileSync(path.resolve(publicDir, "recent-updates.json"), JSON.stringify(items), "utf-8");
 }
 
+// 给每页注入 OG/Twitter 社交卡片与 canonical，搜索引擎和聊天分享都能拿到正确的标题
+function injectSEO(app: App): void {
+  for (const page of app.pages) {
+    if (page.path === "/404.html") continue;
+    const canonical = `${SITE_URL}${page.path}`;
+    const title = page.title || SITE_NAME;
+    const description = (page.frontmatter.description as string | undefined) || SITE_DESC;
+    const head: [string, Record<string, string>][] = [
+      ["meta", { property: "og:title", content: title }],
+      ["meta", { property: "og:description", content: description }],
+      ["meta", { property: "og:url", content: canonical }],
+      ["meta", { property: "og:image", content: OG_IMAGE }],
+      ["meta", { property: "og:type", content: "website" }],
+      ["meta", { property: "og:site_name", content: SITE_NAME }],
+      ["meta", { name: "twitter:card", content: "summary" }],
+      ["link", { rel: "canonical", href: canonical }],
+    ];
+    page.frontmatter.head = [...(page.frontmatter.head ?? []), ...head];
+  }
+}
+
 export default defineUserConfig({
   base: "/",
 
@@ -122,7 +148,10 @@ export default defineUserConfig({
 
   clientConfigFile: path.resolve(__dirname, './client.ts'),
 
-  onInitialized: generateRecentUpdates,
+  onInitialized: async (app) => {
+    await generateRecentUpdates();
+    injectSEO(app);
+  },
 
   plugins: [
     removeHtmlExtensionPlugin()
