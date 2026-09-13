@@ -160,7 +160,8 @@ function toEntries(
     const last = previous[key];
     map[key] = {
       online,
-      since: online ? (last?.online ? last.since : now) : 0,
+      // 上一轮在线且带有效起点才沿用；since 为 0（旧布尔格式或从未在线）时以当前时间重新起算
+      since: online ? (last?.online && last.since > 0 ? last.since : now) : 0,
       received: toCount(record.received) ?? last?.received ?? 0,
       sent: toCount(record.sent) ?? last?.sent ?? 0,
     };
