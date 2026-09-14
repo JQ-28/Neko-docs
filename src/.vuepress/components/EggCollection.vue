@@ -78,8 +78,8 @@ import {
   eggFound,
   eggHintOf,
   eggPanelOpen,
+  showEggTip,
 } from "./egg-utils";
-import { showTip } from "./copy-utils";
 
 interface EggItem {
   id: string;
@@ -126,11 +126,11 @@ function reveal(id: string): void {
   const pokes = (pokeCounts.get(id) ?? 0) + 1;
   pokeCounts.set(id, pokes);
   shaking.value = { id, token: ++shakeToken };
-  if (pokes === 2) showTip(pick(EGG_POKE_QUIPS));
-  else if (pokes === 3) showTip(pick(EGG_POKE_HINTS));
+  if (pokes === 2) showEggTip(pick(EGG_POKE_QUIPS));
+  else if (pokes === 3) showEggTip(pick(EGG_POKE_HINTS));
   else if (pokes >= 4) {
     revealed.value = new Set([...revealed.value, id]);
-    showTip(EGG_REVEAL_TIP);
+    showEggTip(EGG_REVEAL_TIP);
   }
 }
 

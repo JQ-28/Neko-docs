@@ -26,6 +26,7 @@ import {
   markEgg,
   onEggUnlocked,
   openEggPanel,
+  showEggTip,
 } from "./components/egg-utils";
 
 const COPY_TEXT = "复制代码";
@@ -184,7 +185,7 @@ export default defineClientConfig({
 
       onEggUnlocked((id) => {
         const name = EGG_NAMES[id];
-        if (name) showTip(`彩蛋发现：${name}（${eggFound.value.size}/${EGG_TOTAL}）`);
+        if (name) showEggTip(`彩蛋发现：${name}（${eggFound.value.size}/${EGG_TOTAL}）`);
       });
       initEggs();
 
