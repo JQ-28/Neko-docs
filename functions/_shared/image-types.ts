@@ -6,9 +6,10 @@ export const MIME_BY_EXT: Record<string, string> = {
   webp: "image/webp",
 };
 
-export const ALLOWED_MIME_TYPES = new Set(Object.values(MIME_BY_EXT));
+export function extOf(fileName: string): string {
+  return fileName.split(".").pop()?.toLowerCase() ?? "";
+}
 
 export function contentTypeOf(fileName: string): string | null {
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  return MIME_BY_EXT[ext] ?? null;
+  return MIME_BY_EXT[extOf(fileName)] ?? null;
 }

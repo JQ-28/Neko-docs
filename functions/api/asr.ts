@@ -2,6 +2,7 @@
 // 移动端浏览器普遍不支持 Web Speech API，这条通道是手机端语音输入的唯一出路
 
 import { CORS_HEADERS, handlePreflight, originRejected } from "../_shared/origin";
+import { createRateLimiter } from "../_shared/rate-limit";
 
 const ASR_MODEL = "@cf/openai/whisper-large-v3-turbo";
 
@@ -10,29 +11,11 @@ const MAX_AUDIO_LENGTH = 4_000_000;
 const MAX_TEXT_LENGTH = 300;
 
 // 简易限流：单实例内按 IP 每分钟 30 次（移动端边录边转每 2.5 秒一次，上限留足余量）
-const RATE_LIMIT: Record<string, { count: number; resetAt: number }> = {};
-const RATE_MAX = 30;
-const RATE_WINDOW = 60_000;
-const RATE_ENTRIES_MAX = 1_000;
+const rateLimited = createRateLimiter({ max: 30, windowMs: 60_000, entriesMax: 1_000 });
 
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const ips = Object.keys(RATE_LIMIT);
-  if (ips.length >= RATE_ENTRIES_MAX) {
-    for (const key of ips) {
-      if (now > RATE_LIMIT[key].resetAt) delete RATE_LIMIT[key];
-    }
-  }
-  const rec = RATE_LIMIT[ip];
-  if (!rec || now > rec.resetAt) {
-    RATE_LIMIT[ip] = { count: 1, resetAt: now + RATE_WINDOW };
-    return false;
-  }
-  rec.count += 1;
-  return rec.count > RATE_MAX;
-}
-
-type AiBinding = { run: (model: string, opts: Record<string, unknown>) => Promise<{ text?: string }> };
+type AiBinding = {
+  run: (model: string, options: Record<string, unknown>) => Promise<{ text?: string }>;
+};
 
 function json(payload: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(payload), {
@@ -45,16 +28,15 @@ export const onRequestOptions = async (context: { request: Request }) => handleP
 
 export const onRequestPost = async (context: {
   request: Request;
-  env: Record<string, unknown>;
+  env: { AI?: AiBinding };
 }) => {
   const { request, env } = context;
 
-  if (originRejected(request)) {
-    return new Response(JSON.stringify({ ok: false, error: "来源不被允许" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+  if (originRejected(request)) return json({ ok: false, error: "来源不被允许" }, 403);
+
+  // 限流先于 body 解析：超额请求不必为 4MB 的 base64 白付一次解析成本
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  if (rateLimited(ip)) return json({ ok: false, error: "请求过于频繁，请稍后再试" }, 429);
 
   try {
     const body = (await request.json()) as { audio?: string };
@@ -62,10 +44,7 @@ export const onRequestPost = async (context: {
     if (!audio) return json({ ok: false, error: "audio 不能为空" }, 400);
     if (audio.length > MAX_AUDIO_LENGTH) return json({ ok: false, error: "录音太长了" }, 413);
 
-    const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
-    if (rateLimited(ip)) return json({ ok: false, error: "请求过于频繁，请稍后再试" }, 429);
-
-    const ai = (env as { AI?: AiBinding }).AI;
+    const ai = env.AI;
     if (!ai) return json({ ok: false, error: "语音识别服务未绑定" }, 503);
 
     const result = await ai.run(ASR_MODEL, {

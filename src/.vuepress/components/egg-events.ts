@@ -284,15 +284,20 @@ function listenLongPress(): Cleanup {
 /* 清空撒娇：第一次点垃圾桶就算数 */
 function listenClearTwice(): Cleanup {
   let armed = false;
-  return onDocumentEvent("click", (event) => {
+  let timer = 0;
+  const cleanup = onDocumentEvent("click", (event) => {
     const target = event.target;
     if (!(target instanceof Element) || !target.closest(CLEAR_BUTTON_SELECTOR) || armed) return;
     armed = true;
     markEgg("clearTwice");
-    window.setTimeout(() => {
+    timer = window.setTimeout(() => {
       armed = false;
     }, CLEAR_ARM_MS);
   });
+  return () => {
+    window.clearTimeout(timer);
+    cleanup();
+  };
 }
 
 /* 偷学台词：选中 neko 的消息复制，或点消息上的复制按钮，累计 3 次 */

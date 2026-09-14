@@ -5,6 +5,9 @@
 //   nonebot —— 上报账号在线情况与当日收发消息数（只有它能从 get_bots() 拿到真实连接状态）
 //   watchdog —— 独立进程，上报 TCP/进程探测结果（含 nonebot 自身端口）与硬件读数，不依赖 nonebot
 
+import { tokenMatches } from "../_shared/auth";
+import type { D1Database } from "../_shared/d1";
+
 // 上报间隔 60 秒，容 2 次丢包；超过该时长未收到上报即视为「状态未知」
 const STALE_SECONDS = 120;
 
@@ -59,14 +62,8 @@ interface StatusSnapshot {
   updatedAt: number;
 }
 
-interface D1Statement {
-  bind(...values: unknown[]): D1Statement;
-  run(): Promise<unknown>;
-  all<T>(): Promise<{ results?: T[] }>;
-}
-
 interface StatusEnv {
-  DB: { prepare(query: string): D1Statement };
+  DB: D1Database;
   API_TOKEN: string;
 }
 
@@ -223,8 +220,7 @@ function resolveHardware(
 
 export const onRequestPost = async (context: StatusContext) => {
   const { request, env } = context;
-  const token = request.headers.get("Authorization")?.replace("Bearer ", "").trim();
-  if (!token || token !== env.API_TOKEN) return new Response("Unauthorized", { status: 401 });
+  if (!tokenMatches(request, env.API_TOKEN)) return new Response("Unauthorized", { status: 401 });
 
   let body: Record<string, unknown>;
   try {

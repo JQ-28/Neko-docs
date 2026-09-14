@@ -68,7 +68,7 @@ export default hopeTheme({
         ],
       },
 
-    // 代码复制（由 nuggets-style-copy 的掘金风按钮替代）
+    // 代码复制按钮由 client.ts 自行注入，主题自带的 copyCode 保持关闭
     // copyCode: {
     //   showInMobile: true,
     // },

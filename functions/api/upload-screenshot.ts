@@ -1,6 +1,7 @@
-// Cloudflare Pages Function for uploading screenshots to R2
-import { contentTypeOf } from "../_shared/image-types";
+// 截图上传：落 R2，扩展名走白名单校验
+import { contentTypeOf, extOf } from "../_shared/image-types";
 import { CORS_HEADERS, handlePreflight, originRejected } from "../_shared/origin";
+import { createRateLimiter } from "../_shared/rate-limit";
 
 type R2Bucket = {
   put: (
@@ -10,13 +11,12 @@ type R2Bucket = {
   ) => Promise<unknown>;
 };
 
-// 单 IP 每分钟 10 张，同时卡全局日总量：前者防脚本连续灌，后者防换 IP 轮询
-const IP_QUOTA_MAX = 10;
-const IP_QUOTA_WINDOW = 60_000;
-const DAILY_QUOTA_MAX = 500;
-const IP_ENTRIES_MAX = 1_000;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-const ipQuota = new Map<string, { count: number; resetAt: number }>();
+const ipRateLimited = createRateLimiter({ max: 10, windowMs: 60_000, entriesMax: 1_000 });
+
+// 单 IP 每分钟 10 张之外再卡一道全局日总量：前者防脚本连续灌，后者防换 IP 轮询
+const DAILY_QUOTA_MAX = 500;
 let quotaDay = "";
 let dailyUsed = 0;
 
@@ -27,30 +27,13 @@ function json(payload: Record<string, unknown>, status = 200): Response {
   });
 }
 
-function quotaExceeded(ip: string): boolean {
-  const now = Date.now();
-
-  if (ipQuota.size >= IP_ENTRIES_MAX) {
-    for (const [key, rec] of ipQuota) {
-      if (now > rec.resetAt) ipQuota.delete(key);
-    }
-  }
-
-  const today = new Date(now).toISOString().slice(0, 10);
+function overDailyQuota(): boolean {
+  const today = new Date().toISOString().slice(0, 10);
   if (today !== quotaDay) {
     quotaDay = today;
     dailyUsed = 0;
   }
   if (dailyUsed >= DAILY_QUOTA_MAX) return true;
-
-  const rec = ipQuota.get(ip);
-  if (!rec || now > rec.resetAt) {
-    ipQuota.set(ip, { count: 1, resetAt: now + IP_QUOTA_WINDOW });
-  } else {
-    rec.count += 1;
-    if (rec.count > IP_QUOTA_MAX) return true;
-  }
-
   dailyUsed += 1;
   return false;
 }
@@ -68,14 +51,20 @@ export const onRequestPost = async (context: {
     return json({ error: "来源不被允许" }, 403);
   }
 
-  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-  if (quotaExceeded(ip)) {
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  if (ipRateLimited(ip) || overDailyQuota()) {
     return json({ error: "上传太频繁了，请稍后再试" }, 429);
   }
 
   const bucket = env.SCREENSHOTS;
   if (!bucket) {
     return json({ error: "存储服务未绑定" }, 503);
+  }
+
+  // 非 multipart 时 request.formData() 会直接抛异常，先判类型给它一个正经的 400
+  const contentTypeHeader = request.headers.get("Content-Type") ?? "";
+  if (!contentTypeHeader.includes("multipart/form-data")) {
+    return json({ error: "请上传截图文件" }, 400);
   }
 
   try {
@@ -92,17 +81,14 @@ export const onRequestPost = async (context: {
       return json({ error: "仅支持 JPG、PNG、WebP 格式图片" }, 400);
     }
 
-    // 验证文件大小 (最大 5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
+    if (file.size > MAX_FILE_SIZE) {
       return json({ error: "图片大小不能超过 5MB" }, 400);
     }
 
     // 生成唯一文件名（扩展名已通过白名单校验，杜绝双扩展名注入）
     const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 15);
-    const ext = file.name.split(".").pop()!.toLowerCase();
-    const fileName = `${timestamp}-${randomStr}.${ext}`;
+    const randomStr = Math.random().toString(36).slice(2, 15);
+    const fileName = `${timestamp}-${randomStr}.${extOf(file.name)}`;
 
     // 上传到 R2（contentType 由服务端映射，忽略客户端声明）
     const arrayBuffer = await file.arrayBuffer();
@@ -114,7 +100,7 @@ export const onRequestPost = async (context: {
 
     return json({
       success: true,
-      fileName: fileName,
+      fileName,
       url: `/api/screenshot/${fileName}`,
     });
   } catch (error) {

@@ -252,7 +252,7 @@ export default sidebar({
         },
          {
            text: "AI",
-           icon: "robot",
+           icon: "/assets/icon/robot.svg",
            prefix: "AI/",
            link: "AI/",
            collapsible: true,

@@ -1,11 +1,14 @@
 // 申请记录读写（供机器人使用，必须携带 API_TOKEN）
+import { tokenMatches } from "../_shared/auth";
+import type { D1Database } from "../_shared/d1";
+
 const ALLOWED_STATUSES = new Set(["pending", "approved", "rejected"]);
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-function isAuthorized(env: { API_TOKEN?: string }, request: Request): boolean {
-  const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-  return Boolean(env.API_TOKEN) && token === env.API_TOKEN;
+interface ApplicationsContext {
+  request: Request;
+  env: { DB: D1Database; API_TOKEN?: string };
 }
 
 function json(payload: unknown, status = 200): Response {
@@ -15,10 +18,10 @@ function json(payload: unknown, status = 200): Response {
   });
 }
 
-export const onRequestGet = async (context) => {
+export const onRequestGet = async (context: ApplicationsContext) => {
   const { request, env } = context;
 
-  if (!isAuthorized(env, request)) return new Response("Unauthorized", { status: 401 });
+  if (!tokenMatches(request, env.API_TOKEN)) return new Response("Unauthorized", { status: 401 });
 
   const url = new URL(request.url);
   const status = url.searchParams.get("status") || "pending";
@@ -43,10 +46,10 @@ export const onRequestGet = async (context) => {
   }
 };
 
-export const onRequestPatch = async (context) => {
+export const onRequestPatch = async (context: ApplicationsContext) => {
   const { request, env } = context;
 
-  if (!isAuthorized(env, request)) return new Response("Unauthorized", { status: 401 });
+  if (!tokenMatches(request, env.API_TOKEN)) return new Response("Unauthorized", { status: 401 });
 
   try {
     const data = await request.json();
@@ -56,7 +59,7 @@ export const onRequestPatch = async (context) => {
     if (!ALLOWED_STATUSES.has(status)) return json({ error: "状态参数不合法" }, 400);
 
     await env.DB.prepare(
-      `UPDATE applications 
+      `UPDATE applications
        SET status = ?, admin_reply = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
     )

@@ -86,6 +86,17 @@ export default defineClientConfig({
     let themeFlips = 0;
     let lastDark = false;
     let cleanupEggEvents: (() => void) | null = null;
+    let copyInjectScheduled = false;
+
+    // DOM 每次变动都全量重扫一遍太费，合并到下一帧统一处理
+    function scheduleInjectCopyButtons(): void {
+      if (copyInjectScheduled) return;
+      copyInjectScheduled = true;
+      requestAnimationFrame(() => {
+        copyInjectScheduled = false;
+        injectCopyButtons();
+      });
+    }
 
     function mountCommandCard(command: string): void {
       if (typeof document === "undefined") return;
@@ -177,7 +188,7 @@ export default defineClientConfig({
       }
 
       injectCopyButtons();
-      observer = new MutationObserver(() => injectCopyButtons());
+      observer = new MutationObserver(scheduleInjectCopyButtons);
       observer.observe(document.body, { childList: true, subtree: true });
 
       onEggUnlocked((id) => {

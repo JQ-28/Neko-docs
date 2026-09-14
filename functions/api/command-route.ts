@@ -6,6 +6,7 @@ import { MEMES_AUTO } from "../_shared/memes-auto";
 
 import { ROUTE_INDEX, type RouteEntry } from "../_shared/command-catalog";
 import { CORS_HEADERS, handlePreflight, originRejected } from "../_shared/origin";
+import { createRateLimiter } from "../_shared/rate-limit";
 
 // 文档站知识库页面（AI 回答知识类问题时允许返回的链接白名单）
 const KB_PAGES = [
@@ -29,26 +30,13 @@ const KNOWLEDGE_BASE = [
 ];
 
 // 简易限流：单实例内按 IP 每分钟 15 次（指令命中也会走 AI 生成回复，额度需一并放宽）
-const RATE_LIMIT: Record<string, { count: number; resetAt: number }> = {};
-const RATE_MAX = 15;
-const RATE_WINDOW = 60_000;
-const RATE_ENTRIES_MAX = 1_000;
+const rateLimited = createRateLimiter({ max: 15, windowMs: 60_000, entriesMax: 1_000 });
 
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const ips = Object.keys(RATE_LIMIT);
-  if (ips.length >= RATE_ENTRIES_MAX) {
-    for (const key of ips) {
-      if (now > RATE_LIMIT[key].resetAt) delete RATE_LIMIT[key];
-    }
-  }
-  const rec = RATE_LIMIT[ip];
-  if (!rec || now > rec.resetAt) {
-    RATE_LIMIT[ip] = { count: 1, resetAt: now + RATE_WINDOW };
-    return false;
-  }
-  rec.count += 1;
-  return rec.count > RATE_MAX;
+function json(payload: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
 }
 
 function normalize(text: string): string {
@@ -142,7 +130,21 @@ async function fetchTrending(): Promise<string> {
 
 const MEME_MAX = 3;
 const MEME_MIN_KEY = 2;
-const MEME_INDEX: MemeEntry[] = [...MEMES, ...MEMES_AUTO];
+
+// 自动抓取库可能和手写库撞词，按关键词去重且手写库优先，避免同一条梗被回复两遍
+function mergeMemes(): MemeEntry[] {
+  const seen = new Set<string>();
+  const merged: MemeEntry[] = [];
+  for (const entry of [...MEMES, ...MEMES_AUTO]) {
+    const keys = entry.keys.filter((key) => !seen.has(key));
+    if (keys.length === 0) continue;
+    for (const key of keys) seen.add(key);
+    merged.push(keys.length === entry.keys.length ? entry : { ...entry, keys });
+  }
+  return merged;
+}
+
+const MEME_INDEX: MemeEntry[] = mergeMemes();
 
 // 梗检索：命中字数越多的关键词越精确；同权重时手写库优先于自动抓取库
 function findMemes(query: string): MemeEntry[] {
@@ -462,15 +464,12 @@ export const onRequestOptions = async (context: { request: Request }) => handleP
 
 export const onRequestPost = async (context: {
   request: Request;
-  env: Record<string, unknown>;
+  env: { AI?: AiBinding };
 }) => {
   const { request, env } = context;
 
   if (originRejected(request)) {
-    return new Response(JSON.stringify({ ok: false, error: "来源不被允许" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ ok: false, error: "来源不被允许" }, 403);
   }
 
   try {
@@ -479,50 +478,31 @@ export const onRequestPost = async (context: {
       history?: Array<{ role?: string; text?: string }>;
     };
     const query = (body.query ?? "").trim();
-    if (!query) {
-      return new Response(JSON.stringify({ ok: false, error: "query 不能为空" }), {
-        status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
-    }
-    if (query.length > 50) {
-      return new Response(JSON.stringify({ ok: false, error: "query 过长" }), {
-        status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
-    }
+    if (!query) return json({ ok: false, error: "query 不能为空" }, 400);
+    if (query.length > 50) return json({ ok: false, error: "query 过长" }, 400);
 
     const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
     if (rateLimited(ip)) {
-      return new Response(JSON.stringify({ ok: false, error: "请求过于频繁，请稍后再试" }), {
-        status: 429,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
+      return json({ ok: false, error: "请求过于频繁，请稍后再试" }, 429);
     }
 
     // 1. 注入拦截：命中直接以固定文案回绝，不消耗 AI
     if (isInjection(query)) {
-      return new Response(
-        JSON.stringify({ ok: true, source: "guard", reply: DEFLECT_REPLY, matches: [] }),
-        { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-      );
+      return json({ ok: true, source: "guard", reply: DEFLECT_REPLY, matches: [] });
     }
 
     // 2. 规则引擎：命中不再直接短路，命中项作为上下文交给 AI，回复与卡片一并返回
     const ruleHits = ruleMatch(query);
 
     // 3. LLM 兜底（无 AI binding 时只返回命中的卡片）
-    const ai = (env as { AI?: AiBinding }).AI;
+    const ai = env.AI;
     if (!ai) {
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          source: ruleHits.length > 0 ? "rule" : "none",
-          reply: "",
-          matches: ruleHits,
-        }),
-        { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-      );
+      return json({
+        ok: true,
+        source: ruleHits.length > 0 ? "rule" : "none",
+        reply: "",
+        matches: ruleHits,
+      });
     }
 
     // 历史里被注入过的轮次直接丢弃，避免多轮渐进式洗脑
@@ -546,10 +526,7 @@ export const onRequestPost = async (context: {
     if (hijacked) {
       history.length = 0;
       if (driftScore(query) > 0) {
-        return new Response(
-          JSON.stringify({ ok: true, source: "guard", reply: DEFLECT_REPLY, matches: [] }),
-          { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-        );
+        return json({ ok: true, source: "guard", reply: DEFLECT_REPLY, matches: [] });
       }
     }
 
@@ -569,7 +546,7 @@ export const onRequestPost = async (context: {
     const output = result.response ?? result.choices?.[0]?.message?.content ?? "";
     const parsed = extractJson(output);
     const raw = output.replace(/```json|```/gi, "").trim();
-    const fallback = parsed || !raw || raw.startsWith("{") ? "" : raw;
+    const fallback = !parsed && !raw.startsWith("{") ? raw : "";
     const replyText = typeof parsed?.reply === "string" ? parsed.reply : fallback;
     const reply = guardReply(replyText.replace(/\s+/g, " ").trim());
     // 规则命中项优先，其次用模型返回的 link 回填真实条目，防止编造路径
@@ -584,20 +561,14 @@ export const onRequestPost = async (context: {
             ? [{ title: kbHit.title, command: "", link: kbHit.link, keywords: [] }]
             : [];
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        source: ruleHits.length > 0 ? "rule" : matches.length > 0 ? "ai" : "none",
-        reply,
-        matches,
-      }),
-      { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-    );
+    return json({
+      ok: true,
+      source: ruleHits.length > 0 ? "rule" : matches.length > 0 ? "ai" : "none",
+      reply,
+      matches,
+    });
   } catch (error) {
     console.error("Command route error:", error);
-    return new Response(
-      JSON.stringify({ ok: false, error: "服务器开小差了，请稍后再试" }),
-      { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-    );
+    return json({ ok: false, error: "服务器开小差了，请稍后再试" }, 500);
   }
 };
