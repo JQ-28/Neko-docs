@@ -1,0 +1,296 @@
+// 指令目录的唯一真源：前端速查页/本地匹配与后端意图路由都读这一个文件
+// keywords 是问问neko 用来听懂口语说法的匹配词，速查页不展示
+
+export interface CommandEntry {
+  title: string;
+  command: string;
+  commands: string[];
+  link: string;
+  keywords: string[];
+}
+
+export interface CommandCategory {
+  name: string;
+  items: CommandEntry[];
+}
+
+export interface RouteEntry {
+  title: string;
+  command: string;
+  link: string;
+  keywords: string[];
+}
+
+const featureHints: Record<string, string> = {
+  WordCloud: "群聊消息词云统计",
+  "Poke-Plugin": "戳一戳次数统计榜",
+};
+
+const commandHints: Record<string, string> = {
+  jrrp: "今日人品值",
+  zrrp: "昨日人品值",
+  weekjrrp: "本周人品概览",
+  monthjrrp: "本月人品概览",
+  alljrrp: "历史人品总览",
+  运势趋势: "近期人品走势",
+  "/roll": "1-100 中随机取数",
+  "/roll 100": "1-100 中随机取数",
+  "/roll 吃饭 睡觉": "从给定选项中随机选一个",
+  hzys: "生成 otto 语录",
+  "hzys -h": "查看 otto 语录指令帮助",
+  "hzys 哇袄": "生成 otto 语录",
+  "#查询戳戳": "查询指定用户的戳戳次数",
+  "#被戳戳总榜": "被戳戳次数总榜",
+  "今日烤猪": "今天烤猪结果",
+  "小猪图鉴": "查看小猪图鉴",
+  "好感度排行": "好感度排行榜",
+  "猫币排行": "喵喵币排行榜",
+  "离婚": "解除群友婚约",
+  "涩涩记录": "查看涩涩记录",
+  "删除菜单": "删除已有菜单",
+  "寄漂流瓶": "向指定用户寄漂流瓶",
+  "评论漂流瓶": "评论漂流瓶",
+  "/一言帮助": "查看一言指令帮助",
+  homonumber: "恶臭数字论证",
+  lag: "寻找数列规律",
+  "中二称号": "生成中二称号",
+  "魔法人生": "生成魔法人生",
+  "古文码": "生成古文码",
+  "拼音码": "生成拼音码",
+  "符号码": "生成符号码",
+  "/词云": "查看词云指令帮助",
+  "/设置词云形状": "自定义词云形状",
+  "[emoji]+[emoji]": "把两个 emoji 合成为一张图",
+  "[emoji][emoji]": "把两个 emoji 合成为一张图",
+  motalk: "生成蔚蓝档案风格对话图",
+
+  bm: "解析并发送视频链接信息",
+  train: "按车次查询 12306 时刻表",
+  code: "在线运行代码片段",
+  "#状态": "查看 Bot 运行状态",
+  "/status": "查看 Bot 运行状态",
+  "#搜图": "以图搜图，查找图片来源",
+  "/rm_bg": "去除图片背景",
+  "/自定义去背景": "自定义去背景的提示词",
+  网易声音: "点播网易云声音",
+  网易电台: "点播网易云电台节目",
+  解析: "解析歌曲直链",
+  直链: "获取歌曲直链",
+  必应壁纸: "获取必应每日壁纸",
+  查天气: "查询指定城市天气",
+  miragetank: "合成幻影坦克",
+  "油价推送+状态": "查看油价推送状态",
+  "油价推送+取消": "取消油价推送",
+  上传: "上传自定义语音",
+  歌词: "获取歌曲歌词",
+  "#取消微博推送": "取消微博订阅推送",
+  "#微博订阅列表": "查看微博订阅列表",
+  取消: "取消幻影坦克合成",
+  "/掉线测试": "测试掉线通知是否生效",
+  "https://github.com/用户名/仓库名": "发送 GitHub 链接生成仓库卡片",
+
+  "bf help": "查看战地指令帮助",
+  "bf init": "初始化战地账号绑定",
+  "[game] [玩家id]": "查询指定游戏与玩家的战绩",
+  "bf1 senpai": "查询 bf1 玩家 senpai 的战绩（示例）",
+  skland: "森空岛每日签到",
+  "skland bind": "绑定森空岛账号",
+  "skland rogue": "查询集成战略战绩",
+  "skland gacha": "查询抽卡记录",
+  arkstart: "明日方舟抽卡开局",
+  方舟抽卡: "模拟抽取卡池",
+  "~卡片": "生成鸣潮角色卡片",
+  "~体力": "查询当前体力",
+  "~帮助": "查看鸣潮指令帮助",
+  "~面板": "查询角色面板",
+  "~十连": "模拟十连抽卡",
+  "#cs 帮助": "查看 CSGO 指令帮助",
+  "#雷神面板": "查询雷神角色面板",
+  "#更新抽卡记录": "更新原神抽卡记录",
+  "skland qrcode": "扫码登录森空岛",
+  "skland unbind": "解绑森空岛账号",
+  "^帮助": "查看三角洲指令帮助",
+  "l4 图片关闭": "关闭图片发送",
+  connect: "生成服务器连接指令",
+
+  "#p rks": "查询 Phigros RKS 值",
+  "#p b30": "查询 Phigros 最佳 30 首成绩",
+  "#p 绑定 <token>": "绑定 Phigros 存档数据",
+  "#p 更新存档": "刷新本地存档数据",
+  "#p 单曲成绩 <曲名>": "查询指定曲目的成绩",
+  "#p 曲 <曲名>": "查询曲目信息",
+  "#p帮助": "查看 Phigros 指令帮助",
+  "#p 推分": "查询推分建议",
+  "/osu info": "查询 osu! 玩家信息",
+  "/osu bind": "绑定 osu! 账号",
+  "/osu bp": "查询最佳成绩（BP）",
+  "/osu bl": "查询最佳成绩列表",
+  "/osu re": "查询最近成绩",
+  "/osu sc": "查询指定谱面成绩",
+  更新b50: "更新 maimai b50 成绩",
+  mai2_pcount_help: "查看局数统计帮助",
+  "pcount off": "关闭局数统计",
+  "/dc myrtall": "查询全部模式 RT 值",
+  BS帮助: "查看 Beat Saber 指令帮助",
+  BS查歌: "搜索 Beat Saber 曲目",
+  "arc <角色> <文字>": "生成指定角色的 Arcaea 表情包",
+  "/绑定": "绑定 Haruki Bot 账号",
+  "/个人信息": "查询 pjsk 个人信息",
+  "/sk": "查询歌曲信息",
+  "/活动组卡": "查询活动组卡推荐",
+  "/查卡": "查询卡牌信息",
+  水鱼绑定: "绑定水鱼查分账号",
+  添加机厅: "添加常去的机厅",
+  "pcount on": "开启局数统计",
+  "/dc login": "登录 dancecube 账号",
+  "/dc myrt": "查询我的 RT 值",
+  "/dc ap30": "查询 AP 30 首成绩",
+  "/dc song": "查询曲目信息",
+  BS绑定: "绑定 Beat Saber 成绩账号",
+  SS查分: "查询 ScoreSaber 成绩",
+  BL查分: "查询 BeatLeader 成绩",
+  BS查分: "查询 Beat Saber 成绩",
+  "BS search": "搜索 Beat Saber 曲目",
+  arc: "制作 Arcaea 表情包",
+  "arc -h": "查看表情包指令帮助",
+  pjsk: "制作 pjsk 表情包",
+  "pjsk -h": "查看表情包指令帮助",
+
+  "#群聊报告": "生成群聊活跃度报告",
+  "#强制生成报告": "立即强制执行一次群聊报告",
+  "#词云": "生成群聊词云",
+  "#群聊词云": "生成群聊消息词云",
+  "#个人词云": "生成个人消息词云",
+  谁艾特我: "查询谁艾特过我",
+  "#清除艾特数据": "清除艾特记录",
+};
+
+export function hintFor(title: string, command: string): string {
+  return commandHints[command] ?? featureHints[title] ?? "";
+}
+
+const folderEntry =
+  (folder: string) =>
+  (name: string, title: string, command: string, commands: string[], keywords: string[]): CommandEntry => ({
+    title,
+    command,
+    commands,
+    link: `/zhiling/${folder}/${name}`,
+    keywords,
+  });
+
+const yule = folderEntry("yule");
+const shiyong = folderEntry("shiyong");
+const acg = folderEntry("acg");
+const yinyou = folderEntry("yinyou");
+
+export const commandCategories: CommandCategory[] = [
+  {
+    name: "娱乐",
+    items: [
+      yule("jrrp", "JRRP", "jrrp", ["jrrp", "zrrp", "weekjrrp", "monthjrrp", "alljrrp", "运势趋势"], ["运势", "人品", "今日人品", "测", "运"]),
+      yule("pig", "今日小猪", "今日小猪", ["今日小猪", "昨日小猪", "明日小猪", "我的猪圈", "本周小猪", "小猪图鉴", "今日烤猪"], ["猪", "小猪", "烤猪", "猪圈"]),
+      yule("miaoyan", "喵言喵语", "喵言喵语", ["喵言喵语"], ["喵", "猫语"]),
+      yule("doro", "今日doro结局", "今日doro结局", ["今日doro结局", "列出doro结局", "添加doro结局", "删除doro结局"], ["doro", "多罗", "结局"]),
+      yule("qiandao", "签到", "签到", ["签到", "签到帮助", "好感度", "好感度排行", "喵喵币", "猫币排行", "收集册"], ["签到", "好感度", "喵喵币", "猫币", "排行", "收集"]),
+      yule("groupmate_waifu", "娶群友", "娶群友", ["娶群友", "强娶", "分手", "离婚", "本群cp", "透群友", "涩涩记录"], ["娶", "老婆", "结婚", "cp", "婚约", "离婚", "涩涩"]),
+      yule("whateat", "今天吃什么", "今天早上吃什么", ["今天早上吃什么", "今天早上喝什么", "查看菜单", "查看全部菜单", "添加菜单", "删除菜单"], ["吃", "菜单", "今天吃什么", "喝什么"]),
+      yule("roll", "Roll 随机选择", "/roll", ["/roll", "/roll 100", "/roll 吃饭 睡觉"], ["随机", "roll", "抽", "选择", "选项"]),
+      yule("ciyun", "WordCloud", "/今日词云", ["/词云", "/今日词云", "/昨日词云", "/本周词云", "/年度词云", "/历史词云", "/设置词云形状"], ["词云", "消息统计", "云"]),
+      yule("bottle", "漂流瓶插件", "扔漂流瓶", ["扔漂流瓶", "寄漂流瓶", "捡漂流瓶", "查看漂流瓶", "点赞漂流瓶", "评论漂流瓶", "我的漂流瓶"], ["漂流瓶", "瓶子", "寄"]),
+      yule("mypower", "我的超能力", "我的超能力", ["我的超能力"], ["超能力", "能力"]),
+      yule("megumin", "为美好群聊献上爆炎", "爆裂魔法", ["爆裂魔法", "补魔", "补魔帮助"], ["爆裂", "魔法", "爆炎", "补魔"]),
+      yule("fabing", "发病语录", "发病", ["发病"], ["发病", "语录"]),
+      yule("jitang", "心灵鸡汤", "鸡汤", ["鸡汤", "毒鸡汤"], ["鸡汤", "毒鸡汤", "励志"]),
+      yule("yiyan", "一言", "/一言", ["/一言", "/一言收藏", "/一言收藏列表", "/一言查看收藏", "/一言删除收藏", "/一言帮助"], ["一言", "语录", "收藏"]),
+      yule("KFCcrazythursdayvme50", "疯狂星期四", "疯狂星期四", ["疯狂星期四", "疯狂星期一", "疯狂星期天", "狂乱X曜日"], ["疯狂", "星期四", "KFC", "肯德基", "v我50"]),
+      yule("bqbmaker", "表情包制作", "表情包制作", ["表情包制作"], ["表情包", "制作表情"]),
+      yule("abook", "答案之书", "答案之书", ["答案之书"], ["答案", "答案之书", "占卜"]),
+      yule("image_collection", "综合搜图", "鉴赏帮助", ["鉴赏帮助", "鉴赏菜单", "我的鉴赏次数", "鉴赏一下"], ["搜图", "找图", "图片", "鉴赏"]),
+      yule("otto", "ottohzys", "hzys", ["hzys", "hzys -h", "hzys 哇袄"], ["otto", "语录", "哇袄", "动物园"]),
+      yule("Poke-Plugin", "Poke-Plugin", "#戳戳榜", ["#戳戳榜", "#今日戳戳榜", "#戳戳总榜", "#被戳戳榜", "#被戳戳总榜", "#查询戳戳"], ["戳戳", "戳一戳", "poke", "被戳"]),
+      yule("homo", "恶臭数字论证器", "臭数字", ["臭数字", "homonumber", "找规律", "lag"], ["恶臭", "臭数字", "homo", "数字论证", "找规律", "lag"]),
+      yule("zhanbu", "趣味占卜", "占卜列表", ["占卜列表", "人设生成", "今天是什么少女", "中二称号", "魔法人生", "抽老婆", "异世界转生"], ["占卜", "人设", "少女", "中二", "魔法人生", "抽老婆", "转生"]),
+      yule("todaywife", "今日老婆", "今日老婆", ["今日老婆", "换老婆", "今日老婆帮助", "今日老婆信息"], ["老婆", "今日老婆", "换老婆"]),
+      yule("todaycatgirl", "今日猫娘", "今日猫娘", ["今日猫娘", "今日猫娘帮助", "今日猫娘信息"], ["猫娘", "今日猫娘"]),
+      yule("bqb", "表情包仓库", "表情包仓库", ["表情包仓库"], ["表情包", "仓库"]),
+      yule("cxh", "抽象话等文本生成", "抽象话", ["抽象话", "火星文", "蚂蚁文", "翻转文字", "故障文字", "古文码", "拼音码", "符号码"], ["抽象", "火星文", "蚂蚁文", "文字", "古文码", "拼音码", "符号码"]),
+      yule("bamotalk", "蔚蓝档案对话图", "motalk", ["motalk"], ["蔚蓝档案", "ba", "对话图", "motalk"]),
+      yule("Atri", "ATRI语音包", "Atri真可爱", ["Atri真可爱"], ["atri", "语音包", "语音"]),
+      yule("jq", "视奸jq", "jq在干什么", ["jq在干什么", "jq在听什么"], ["jq", "视奸", "在干什么"]),
+      yule("oooo", "齁语加密/解密", "齁语加密", ["齁语加密", "齁语解密"], ["齁语", "加密", "解密"]),
+      yule("emoji", "emoji 合成器", "[emoji]+[emoji]", ["[emoji]+[emoji]", "[emoji][emoji]"], ["emoji", "合成", "表情合成"]),
+    ],
+  },
+  {
+    name: "实用",
+    items: [
+      shiyong("steam", "Steam 功能", "#steam帮助", ["#steam帮助"], ["steam", "蒸汽", "游戏库存"]),
+      shiyong("parser", "视频链接解析", "bm", ["bm", "开启解析", "关闭解析"], ["解析", "视频", "链接", "b站", "bm"]),
+      shiyong("60sapi", "60s API 查询", "天气", ["天气", "查天气", "天气预报", "健康分析", "必应壁纸"], ["天气", "健康", "壁纸", "必应", "60s"]),
+      shiyong("Multi-Source Daily", "多源日报", "日报", ["日报", "日报详情", "日报列表", "定时日报"], ["日报", "新闻", "每日"]),
+      shiyong("miragetank", "幻影坦克", "幻影坦克", ["幻影坦克", "miragetank", "分离幻影坦克", "取消"], ["幻影坦克", "图片", "miragetank"]),
+      shiyong("price", "金/油价查询", "金价", ["金价", "今日油价", "油价推送+设置", "油价推送+状态", "油价推送+取消"], ["金价", "油价", "黄金", "价格"]),
+      shiyong("withdraw", "撤回插件", "撤回", ["撤回"], ["撤回", "撤"]),
+      shiyong("train", "12306 列车时刻表查询", "train", ["train", "列车信息", "查询列车"], ["火车", "列车", "12306", "车次", "时刻表"]),
+      shiyong("disconnect", "断连通知", "/掉线测试", ["/掉线测试"], ["掉线", "断连", "通知", "上线"]),
+      shiyong("wsk", "谁问你了？", "谁问我了", ["谁问我了"], ["谁问", "谁问我", "wsk"]),
+      shiyong("imga", "图片背景消除", "/去背景", ["/去背景", "/rm_bg", "/自定义去背景", "自定义去背景帮助"], ["去背景", "抠图", "去底", "rm_bg", "透明"]),
+      shiyong("music", "音乐点歌", "点歌", ["点歌", "网易声音", "网易电台", "解析", "直链", "上传", "歌词"], ["点歌", "音乐", "网易云", "歌", "歌词", "电台", "语音"]),
+      shiyong("bw", "B站动态和微博动态订阅推送", "#订阅B站推送", ["#订阅B站推送", "#取消B站推送", "#B站订阅列表", "#订阅微博推送", "#取消微博推送", "#微博订阅列表", "#优纪帮助"], ["订阅", "推送", "b站", "微博", "动态", "优纪"]),
+      shiyong("english", "不背单词", "不背单词", ["不背单词"], ["单词", "英语", "背单词"]),
+      shiyong("code", "在线运行代码", "code", ["code"], ["代码", "运行", "code", "编程", "执行"]),
+      shiyong("status", "系统状态查询", "#状态", ["#状态", "/status"], ["状态", "运行状态", "bot状态", "status"]),
+      shiyong("imgS", "以图搜源", "#搜图", ["#搜图", "#imgS帮助"], ["搜图", "以图搜", "图片来源", "找图"]),
+      shiyong("imgts", "图片/漫画翻译插件", "图片翻译", ["图片翻译", "多图片翻译", "切换翻译api"], ["翻译", "图片翻译", "漫画翻译"]),
+      shiyong("githubcard", "GitHub卡片", "https://github.com/用户名/仓库名", ["https://github.com/用户名/仓库名"], ["github", "仓库", "卡片"]),
+    ],
+  },
+  {
+    name: "游戏",
+    items: [
+      acg("CSGO", "CSGO", "#cs 开箱", ["#cs 帮助", "#cs 开箱", "#cs 签到", "#cs 商城", "#cs 仓库", "#cs 记录"], ["csgo", "cs", "开箱", "反恐"]),
+      acg("genshin", "原神", "#面板帮助", ["#面板帮助", "#雷神面板", "#更新面板", "#更新抽卡记录", "#扫码登录", "#图鉴帮助", "#原神黄历"], ["原神", "genshin", "面板", "抽卡", "雷神", "黄历"]),
+      acg("sr", "崩坏：星穹铁道", "#星铁帮助", ["#星铁帮助"], ["星铁", "星穹", "崩坏"]),
+      acg("juequ0", "绝区零", "%绑定设备帮助", ["%绑定设备帮助", "%更新展柜面板"], ["绝区零", "zzz"]),
+      acg("ba", "蔚蓝档案", "ba帮助", ["ba帮助"], ["蔚蓝档案", "ba", "blue archive"]),
+      acg("ark", "明日方舟/终末地", "skland", ["skland", "skland bind", "skland qrcode", "skland unbind", "skland rogue", "skland gacha", "arkstart", "方舟抽卡"], ["明日方舟", "方舟", "终末地", "抽卡", "森空岛", "skland"]),
+      acg("mingchao", "鸣潮", "~登录", ["~登录", "~签到", "~卡片", "~体力", "~面板", "~抽卡记录", "~十连", "~帮助"], ["鸣潮", "体力", "卡片", "抽卡", "面板"]),
+      acg("guangyu", "光遇", "光遇菜单", ["光遇菜单", "光遇娱乐菜单"], ["光遇", "sky"]),
+      acg("DeltaForce", "三角洲行动", "#三角洲帮助", ["#三角洲帮助", "^帮助", "开始跑刀", "还要吃"], ["三角洲", "三角洲行动", "跑刀"]),
+      acg("bf", "战地", "bf help", ["bf help", "bf init", "[game] [玩家id]", "bf1 senpai"], ["战地", "bf", "战绩"]),
+      acg("l4d2", "求生之路2", "l4d2帮助", ["l4d2帮助", "l4 图片开启", "l4 图片关闭", "l4 查找用户", "l4 工坊下载", "connect"], ["求生之路", "l4d2", "联机", "工坊"]),
+      acg("wot", "坦克世界", "wot帮助", ["wot帮助"], ["坦克世界", "wot", "坦克"]),
+      acg("wws", "战舰世界", "wws help", ["wws help"], ["战舰世界", "wws", "战舰"]),
+    ],
+  },
+  {
+    name: "音游",
+    items: [
+      yinyou("pgr", "Phigros", "#p rks", ["#p帮助", "#p rks", "#p b30", "#p 绑定 <token>", "#p 更新存档", "#p 单曲成绩 <曲名>", "#p 曲 <曲名>", "#p 推分"], ["phigros", "rks", "b30", "推分"]),
+      yinyou("osu", "osu!", "/osu info", ["/osu info", "/osu bind", "/osu bp", "/osu bl", "/osu re", "/osu sc"], ["osu", "查分", "音游", "bp"]),
+      yinyou("maimai", "maimaiDX", "更新b50", ["更新b50", "水鱼绑定", "mai2_pcount_help", "pcount on", "pcount off", "添加机厅"], ["maimai", "b50", "水鱼", "机厅"]),
+      yinyou("dancecube", "dancecube", "/dc", ["/dc login", "/dc myrt", "/dc myrtall", "/dc ap30", "/dc song"], ["dancecube", "dc", "rt", "ap30"]),
+      yinyou("bs", "Beat Saber", "BS绑定", ["BS帮助", "BS绑定", "SS查分", "BL查分", "BS查分", "BS search", "BS查歌"], ["beat saber", "bs", "查分", "ss", "bl"]),
+      yinyou("arc/arc", "Arcaea表情包制作", "arc", ["arc", "arc -h", "arc <角色> <文字>"], ["arcaea", "arc", "表情包"]),
+      yinyou("pjsk/pjsk", "pjsk表情包制作", "pjsk", ["pjsk", "pjsk -h"], ["pjsk", "表情包", "project sekai"]),
+      yinyou("pjsk/haruki", "Haruki Bot", "/绑定", ["/绑定", "/个人信息", "/sk", "/活动组卡", "/查卡"], ["haruki", "pjsk", "查卡", "绑定", "组卡"]),
+    ],
+  },
+  {
+    name: "AI",
+    items: [
+      {
+        title: "Group Insight",
+        command: "#群聊报告",
+        commands: ["#群聊报告", "#强制生成报告", "#词云", "#群聊词云", "#个人词云", "谁艾特我", "#清除艾特数据"],
+        link: "/zhiling/AI/GroupInsight",
+        keywords: ["群聊报告", "报告", "词云", "艾特", "活跃度"],
+      },
+    ],
+  },
+];
+
+export const ROUTE_INDEX: RouteEntry[] = commandCategories.flatMap((category) =>
+  category.items.map(({ title, command, link, keywords }) => ({ title, command, link, keywords }))
+);

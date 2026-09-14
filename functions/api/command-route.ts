@@ -1,10 +1,10 @@
 // 指令意图路由：规则引擎先行 + Workers AI 兜底
-// 前端从 /api/command-index 预取索引做本地匹配，未命中才请求本接口
+// 前端用同一份指令目录做本地匹配，未命中才请求本接口
 
 import { MEMES, type MemeEntry } from "../_shared/memes";
 import { MEMES_AUTO } from "../_shared/memes-auto";
 
-import { ROUTE_INDEX, type RouteEntry } from "../_shared/route-index";
+import { ROUTE_INDEX, type RouteEntry } from "../_shared/command-catalog";
 
 // 文档站知识库页面（AI 回答知识类问题时允许返回的链接白名单）
 const KB_PAGES = [
