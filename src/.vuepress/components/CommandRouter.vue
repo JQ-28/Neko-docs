@@ -221,20 +221,32 @@
       </div>
 
       <Transition name="neko-voice-hint">
-        <div v-if="listening" class="neko-voice-hint" aria-hidden="true">
-          <div class="neko-voice-orb">
+        <div v-if="listening" class="neko-voice-hint">
+          <button
+            type="button"
+            class="neko-voice-orb"
+            title="点一下结束语音"
+            aria-label="正在聆听，点按结束"
+            @click="stopVoice(true)"
+          >
             <span class="neko-voice-ring"></span>
             <span class="neko-voice-ring neko-voice-ring--slow"></span>
-            <div class="neko-voice-ico">
-              <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+            <span class="neko-voice-ico">
+              <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <defs>
+                  <linearGradient id="neko-voice-gradient" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#ff9ec8" />
+                    <stop offset="1" stop-color="#7cc4ff" />
+                  </linearGradient>
+                </defs>
                 <path
-                  fill="currentColor"
+                  fill="url(#neko-voice-gradient)"
                   d="M192 0C139 0 96 43 96 96V256c0 53 43 96 96 96s96-43 96-96V96c0-53-43-96-96-96zM64 216c0-13.3-10.7-24-24-24s-24 10.7-24 24v40c0 89.1 66.2 162.7 152 174.4V464H120c-13.3 0-24 10.7-24 24s10.7 24 24 24h72 72c13.3 0 24-10.7 24-24s-10.7-24-24-24H216V430.4c85.8-11.7 152-85.3 152-174.4V216c0-13.3-10.7-24-24-24s-24 10.7-24 24v40c0 70.7-57.3 128-128 128s-128-57.3-128-128V216z"
                 />
               </svg>
-            </div>
-          </div>
-          <p class="neko-voice-text">正在聆听…</p>
+            </span>
+          </button>
+          <p class="neko-voice-text"><span>正在聆听…</span></p>
         </div>
       </Transition>
     </div>
@@ -1525,7 +1537,6 @@ onBeforeUnmount(() => {
   gap: 12px;
   transform: translateX(-50%);
   pointer-events: none;
-  color: #ff5f8f;
 }
 
 .neko-voice-orb {
@@ -1533,14 +1544,23 @@ onBeforeUnmount(() => {
   position: relative;
   width: 104px;
   height: 104px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
   place-items: center;
+  pointer-events: auto;
+  cursor: pointer;
+  animation: neko-voice-breathe 1.4s var(--ease-out) infinite;
 }
 
 .neko-voice-ring {
   position: absolute;
   inset: 0;
-  border: 2px solid rgba(255, 95, 143, 0.7);
   border-radius: 50%;
+  background: linear-gradient(135deg, #ff9ec8, #7cc4ff);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
   animation: neko-voice-ripple 2s var(--ease-out) infinite;
 }
 
@@ -1550,7 +1570,7 @@ onBeforeUnmount(() => {
 
 @keyframes neko-voice-ripple {
   0% {
-    opacity: 0.75;
+    opacity: 0.8;
     transform: scale(1);
   }
   100% {
@@ -1565,13 +1585,11 @@ onBeforeUnmount(() => {
   z-index: 1;
   align-items: center;
   justify-content: center;
-  width: 104px;
-  height: 104px;
-  border: 2px solid rgba(255, 95, 143, 0.45);
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   background: var(--card);
-  box-shadow: 0 12px 32px rgba(255, 95, 143, 0.28);
-  animation: neko-voice-breathe 1.4s var(--ease-out) infinite;
+  box-shadow: 0 12px 32px rgba(255, 158, 200, 0.32);
 }
 
 @keyframes neko-voice-breathe {
@@ -1595,11 +1613,17 @@ onBeforeUnmount(() => {
   padding: 5px 16px;
   border-radius: 999px;
   background: var(--card);
-  box-shadow: 0 4px 14px rgba(255, 95, 143, 0.22);
-  color: #ff5f8f;
+  box-shadow: 0 4px 14px rgba(255, 158, 200, 0.24);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.08em;
+}
+
+.neko-voice-text span {
+  background-image: linear-gradient(135deg, #ff9ec8, #7cc4ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .neko-voice-hint-enter-active,
@@ -1614,12 +1638,7 @@ onBeforeUnmount(() => {
 }
 
 :global(html.dark) .neko-voice-ico {
-  border-color: rgba(255, 143, 180, 0.5);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-}
-
-:global(html.dark) .neko-voice-text {
-  color: #ff8fb4;
 }
 
 :global(html.dark) .neko-modal {
@@ -1728,7 +1747,7 @@ onBeforeUnmount(() => {
     animation: none;
   }
 
-  .neko-voice-ico {
+  .neko-voice-orb {
     animation: none;
   }
 
