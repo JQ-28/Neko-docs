@@ -341,8 +341,12 @@ let recorder: MediaRecorder | null = null;
 let recordStream: MediaStream | null = null;
 let recordChunks: Blob[] = [];
 let recordTimer: number | undefined;
-let voiceStreamTimer: number | undefined;
-let voiceStreamBusy = false;
+let recordSegmentTimer: number | undefined;
+let recordDrain: Promise<void> = Promise.resolve();
+let recordQueue: Blob[] = [];
+let recordText = "";
+let recordActive = false;
+let recordFailed = false;
 let pendingRecordSubmit = false;
 
 function fmtTime(date: Date): string {
@@ -586,7 +590,7 @@ function openTools(): void {
 // 语音输入：电脑走 Web Speech 边说边出字，手机走录音上传转写
 const VOICE_SILENCE_MS = 1600;
 const VOICE_RECORD_MAX_MS = 30_000;
-const VOICE_STREAM_MS = 2500;
+const VOICE_SEGMENT_MS = 4000;
 const ASR_ENDPOINT = "/api/asr";
 const RECORD_MIME_TYPES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
 
@@ -719,21 +723,26 @@ function stopVoice(submitText = false): void {
   window.clearTimeout(voiceTimeout);
   window.clearTimeout(voiceSilenceTimer);
   window.clearTimeout(recordTimer);
-  window.clearInterval(voiceStreamTimer);
+  window.clearTimeout(recordSegmentTimer);
   voiceTimeout = undefined;
   voiceSilenceTimer = undefined;
   recordTimer = undefined;
-  voiceStreamTimer = undefined;
+  recordSegmentTimer = undefined;
   listening.value = false;
-  voiceMode = null;
 
-  // 录音模式：交给 onstop 收尾，转写完再决定发不发
-  const currentRecorder = recorder;
-  if (currentRecorder && currentRecorder.state !== "inactive") {
+  // 录音模式：交给 onstop 收尾，把最后一段也转写完再决定发不发
+  if (voiceMode === "record") {
+    voiceMode = null;
     pendingRecordSubmit = submitText;
-    currentRecorder.stop();
+    const currentRecorder = recorder;
+    if (currentRecorder && currentRecorder.state !== "inactive") {
+      currentRecorder.stop();
+      return;
+    }
+    void finishRecording();
     return;
   }
+  voiceMode = null;
   releaseRecordStream();
 
   const text = voiceTranscript();
@@ -768,29 +777,69 @@ function releaseRecordStream(): void {
   recordStream = null;
 }
 
-function snapshotRecording(): Blob | null {
-  if (recordChunks.length === 0) return null;
-  return new Blob(recordChunks, { type: recordChunks[0]?.type || "audio/webm" });
+function takeSegment(): Blob {
+  const chunks = recordChunks;
+  recordChunks = [];
+  return new Blob(chunks, { type: chunks[0]?.type || "audio/webm" });
 }
 
-// 边录边转：定时把这段录到的音频整段重转一次，聊天框里就能随说随出字
-async function streamRecording(): Promise<void> {
-  if (voiceStreamBusy || voiceMode !== "record") return;
-  const blob = snapshotRecording();
-  if (!blob?.size) return;
-  voiceStreamBusy = true;
-  try {
-    const text = await transcribe(blob);
-    // 片段可能不完整、也可能已经停止录音，只在仍处于录音态时回填
-    if (text && voiceMode === "record") query.value = text;
-  } catch {
-    // 单次片段转写失败不影响整体，等下一轮音频更长时再试
-  } finally {
-    voiceStreamBusy = false;
+// 每段封口后进队列，串行转写并按顺序拼起来，聊天框里就能随说随出字
+async function transcribeQueuedSegments(): Promise<void> {
+  while (recordQueue.length > 0) {
+    const blob = recordQueue.shift();
+    if (!blob) continue;
+    try {
+      const text = await transcribe(blob);
+      if (!text) continue;
+      recordText = `${recordText}${text}`;
+      if (recordActive) query.value = recordText;
+    } catch {
+      // 单段转写失败不影响整句，记下来方便最后给个准确提示
+      recordFailed = true;
+    }
   }
 }
 
-// 录音模式：点一下开始录，再点一下停止并上传转写（移动端唯一能出字的通道）
+// 转写串成一条链，await 它就能等到队里最后一段也拼完
+function drainRecordQueue(): Promise<void> {
+  recordDrain = recordDrain.then(transcribeQueuedSegments);
+  return recordDrain;
+}
+
+// 一段录满就 stop() 封口成完整音频：半截的 webm/mp4 容器 Whisper 认不出来，只有整段才转得出字
+function startSegment(): void {
+  const stream = recordStream;
+  if (!stream || voiceMode !== "record") return;
+  recordChunks = [];
+  const mimeType = pickRecordMime();
+  const current = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+  recorder = current;
+  current.ondataavailable = (event) => {
+    if (event.data.size > 0) recordChunks.push(event.data);
+  };
+  current.onstop = () => {
+    const blob = takeSegment();
+    if (blob.size > 0) {
+      recordQueue.push(blob);
+      void drainRecordQueue();
+    }
+    // 用户还没喊停就接着录下一段；喊停了就把最后一段转完再收尾
+    if (voiceMode === "record") startSegment();
+    else void finishRecording();
+  };
+  try {
+    current.start();
+  } catch {
+    stopVoice(true);
+    return;
+  }
+  window.clearTimeout(recordSegmentTimer);
+  recordSegmentTimer = window.setTimeout(() => {
+    if (voiceMode === "record" && current.state === "recording") current.stop();
+  }, VOICE_SEGMENT_MS);
+}
+
+// 录音模式：点一下开始录，再点一下停止并提交（移动端唯一能出字的通道）
 function startRecording(): void {
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
     pushMessage({
@@ -809,21 +858,11 @@ function startRecording(): void {
         return;
       }
       recordStream = stream;
-      recordChunks = [];
-      const mimeType = pickRecordMime();
-      const current = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-      recorder = current;
-      current.ondataavailable = (event) => {
-        if (event.data.size > 0) recordChunks.push(event.data);
-      };
-      current.onstop = () => {
-        void finishRecording();
-      };
-      // 传 timeslice 让 MediaRecorder 分片回调，配合定时重转实现边说边出字
-      current.start(VOICE_STREAM_MS);
+      recordText = "";
+      recordFailed = false;
+      recordActive = true;
       listening.value = true;
-      window.clearInterval(voiceStreamTimer);
-      voiceStreamTimer = window.setInterval(() => void streamRecording(), VOICE_STREAM_MS);
+      startSegment();
       window.clearTimeout(recordTimer);
       recordTimer = window.setTimeout(() => {
         if (listening.value) stopVoice(true);
@@ -831,6 +870,7 @@ function startRecording(): void {
     })
     .catch(() => {
       voiceMode = null;
+      recordActive = false;
       releaseRecordStream();
       pushMessage({ role: "neko", text: "麦克风权限被拒绝了喵，去浏览器设置里允许一下~" });
     });
@@ -862,29 +902,31 @@ async function finishRecording(): Promise<void> {
   pendingRecordSubmit = false;
   recorder = null;
   releaseRecordStream();
-  window.clearInterval(voiceStreamTimer);
-  voiceStreamTimer = undefined;
-  voiceStreamBusy = false;
-  const blob = new Blob(recordChunks, { type: recordChunks[0]?.type || "audio/webm" });
-  recordChunks = [];
-  if (!shouldSubmit || blob.size === 0) return;
+  window.clearTimeout(recordSegmentTimer);
+  recordSegmentTimer = undefined;
 
   transcribing.value = true;
   listening.value = true;
-  try {
-    const text = await transcribe(blob);
-    if (!text) {
-      pushMessage({ role: "neko", text: "没听清喵，再说一次试试？" });
-      return;
-    }
-    query.value = text;
-    void submit();
-  } catch {
-    pushMessage({ role: "neko", text: "语音识别服务连不上喵，稍后再试，或者用键盘打字吧~" });
-  } finally {
-    transcribing.value = false;
-    listening.value = false;
+  // 录音期间已经边转边拼，这里只等最后一段也转完再决定发不发
+  await drainRecordQueue();
+  transcribing.value = false;
+  listening.value = false;
+  recordActive = false;
+
+  const text = recordText.trim();
+  const failed = recordFailed;
+  recordText = "";
+  recordFailed = false;
+  if (!shouldSubmit) return;
+  if (!text) {
+    pushMessage({
+      role: "neko",
+      text: failed ? "语音识别服务连不上喵，稍后再试，或者用键盘打字吧~" : "没听清喵，再说一次试试？",
+    });
+    return;
   }
+  query.value = text;
+  void submit();
 }
 
 function clearChat(): void {
