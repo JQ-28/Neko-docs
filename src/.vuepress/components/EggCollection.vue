@@ -84,10 +84,18 @@ function toItems(eggs: Record<string, string>): EggItem[] {
   return Object.entries(eggs).map(([id, name]) => ({ id, name }));
 }
 
-const groups = [
-  { title: "功能站", note: "tools.nekodayo.top", items: toItems(TOOLS_EGGS) },
-  { title: "文档站", note: "docs.nekodayo.top", items: toItems(DOCS_EGGS) },
-];
+const groups = computed(() =>
+  [
+    { title: "功能站", note: "tools.nekodayo.top", items: toItems(TOOLS_EGGS) },
+    { title: "文档站", note: "docs.nekodayo.top", items: toItems(DOCS_EGGS) },
+  ].map((group) => ({
+    ...group,
+    items: [...group.items].sort(
+      (itemA, itemB) =>
+        Number(eggFound.value.has(itemA.id)) - Number(eggFound.value.has(itemB.id)),
+    ),
+  })),
+);
 
 const revealed = ref<Set<string>>(new Set());
 const total = EGG_TOTAL;
