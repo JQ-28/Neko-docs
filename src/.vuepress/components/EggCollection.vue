@@ -47,7 +47,12 @@
                 </svg>
               </span>
               <span class="egg-info">
-                <span class="egg-name">{{ item.name }}</span>
+                <span
+                  :key="shaking?.id === item.id ? shaking.token : 0"
+                  class="egg-name"
+                  :class="{ 'egg-poke': shaking?.id === item.id }"
+                  >{{ item.name }}</span
+                >
                 <span v-if="eggFound.has(item.id) || revealed.has(item.id)" class="egg-hint">
                   {{ eggHintOf(item.id) }}
                 </span>
@@ -74,10 +79,19 @@ import {
   eggHintOf,
   eggPanelOpen,
 } from "./egg-utils";
+import { showTip } from "./copy-utils";
 
 interface EggItem {
   id: string;
   name: string;
+}
+
+const EGG_POKE_QUIPS = ["嗯？戳我干嘛喵？", "喵？被你戳中了", "戳戳…这名字很好戳吗喵？"];
+const EGG_POKE_HINTS = ["诶~真的要告诉你吗喵…", "都这么想知道呀喵…", "诶~真的要告诉你呀……好吧喵"];
+const EGG_REVEAL_TIP = "好啦好啦，悄悄告诉你喵…";
+
+function pick(lines: string[]): string {
+  return lines[Math.floor(Math.random() * lines.length)] ?? "";
 }
 
 function toItems(eggs: Record<string, string>): EggItem[] {
@@ -98,14 +112,26 @@ const groups = computed(() =>
 );
 
 const revealed = ref<Set<string>>(new Set());
+const shaking = ref<{ id: string; token: number } | null>(null);
+const pokeCounts = new Map<string, number>();
+let shakeToken = 0;
 const total = EGG_TOTAL;
 const foundCount = computed(() => eggFound.value.size);
 const allDone = computed(() => foundCount.value >= total);
 const progressWidth = computed(() => `${Math.round((foundCount.value / total) * 100)}%`);
 
+/* 未收集的彩蛋可以戳：1 次抖一下，2 次 neko 吐槽，3 次欲言又止，4 次揭晓答案 */
 function reveal(id: string): void {
   if (eggFound.value.has(id) || revealed.value.has(id)) return;
-  revealed.value = new Set([...revealed.value, id]);
+  const pokes = (pokeCounts.get(id) ?? 0) + 1;
+  pokeCounts.set(id, pokes);
+  shaking.value = { id, token: ++shakeToken };
+  if (pokes === 2) showTip(pick(EGG_POKE_QUIPS));
+  else if (pokes === 3) showTip(pick(EGG_POKE_HINTS));
+  else if (pokes >= 4) {
+    revealed.value = new Set([...revealed.value, id]);
+    showTip(EGG_REVEAL_TIP);
+  }
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -310,6 +336,33 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
   color: var(--vp-c-text-mute, #6b7280);
 }
 
+.egg-poke {
+  animation: egg-poke-shake 0.36s var(--ease-out, ease-out);
+}
+
+@keyframes egg-poke-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-4px);
+  }
+
+  40% {
+    transform: translateX(4px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(3px);
+  }
+}
+
 .egg-hint {
   color: var(--vp-c-text-mute, #8b93a5);
   font-size: 12px;
@@ -403,6 +456,10 @@ html.dark .egg-close {
   .egg-item:hover,
   .egg-item:active {
     transform: none;
+  }
+
+  .egg-poke {
+    animation: none;
   }
 }
 </style>
