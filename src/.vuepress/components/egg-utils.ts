@@ -71,6 +71,9 @@ const DOCS_EGG_HINTS: Record<string, string> = {
   docsCopyTen: "在文档站连续复制指令 10 次",
 };
 
+/* 彩蛋已两端统一，收集册共用这一份名单，不再分站点 */
+export const EGGS: Record<string, string> = { ...TOOLS_EGGS, ...DOCS_EGGS };
+
 // 这些原本只在功能站存在的彩蛋已经能在文档站本地触发，提示改成两端通用的说法
 const LOCAL_TOOL_HINTS: Record<string, string> = {
   nekoSearch: "在任意一端的搜索框里输入 neko 或 猫",
@@ -99,9 +102,9 @@ const LOCAL_TOOL_HINTS: Record<string, string> = {
   festival: "元旦、春节、中秋等节日当天访问网站",
 };
 
-export const TOOLS_EGG_TIP = "去功能站逛逛就能找到它喵";
+export const TOOLS_EGG_TIP = "在任意一端多逛逛就能找到它喵";
 
-export const EGG_TOTAL = Object.keys(TOOLS_EGGS).length + Object.keys(DOCS_EGGS).length;
+export const EGG_TOTAL = Object.keys(EGGS).length;
 
 export const eggPanelOpen = ref(false);
 
@@ -125,10 +128,6 @@ export function closeEggPanel(): void {
 
 export function eggHintOf(id: string): string {
   return DOCS_EGG_HINTS[id] ?? LOCAL_TOOL_HINTS[id] ?? TOOLS_EGG_TIP;
-}
-
-export function isDocsEgg(id: string): boolean {
-  return Object.prototype.hasOwnProperty.call(DOCS_EGGS, id);
 }
 
 const EGG_TIP_ROOT_ID = "neko-egg-tips";
@@ -213,7 +212,7 @@ export function initEggs(): void {
   if (typeof window === "undefined") return;
   const shared = [...new Set([...readLocalIds(), ...readCookieIds()])];
   allEggIds = shared;
-  eggFound.value = new Set(shared.filter((id) => id in TOOLS_EGGS || id in DOCS_EGGS));
+  eggFound.value = new Set(shared.filter((id) => id in EGGS));
   persist();
   if (eggFound.value.size >= EGG_TOTAL) markEgg("eggAll");
   // 深夜来访两个站点都能触发：文档站半夜打开同样点亮功能站那颗「深夜来访」
@@ -227,7 +226,7 @@ export function initEggs(): void {
 export function syncEggs(): void {
   if (typeof window === "undefined") return;
   const shared = [...new Set([...readLocalIds(), ...readCookieIds()])];
-  const added = shared.filter((id) => (id in TOOLS_EGGS || id in DOCS_EGGS) && !eggFound.value.has(id));
+  const added = shared.filter((id) => id in EGGS && !eggFound.value.has(id));
   if (added.length === 0) return;
   eggFound.value = new Set([...eggFound.value, ...added]);
   persist();

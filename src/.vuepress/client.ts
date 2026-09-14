@@ -17,9 +17,8 @@ import AnnouncementPopup from "./components/AnnouncementPopup.vue";
 import BotStatus from "./components/BotStatus.vue";
 import EggCollection from "./components/EggCollection.vue";
 import {
-  DOCS_EGGS,
+  EGGS,
   EGG_TOTAL,
-  TOOLS_EGGS,
   countEggCopy,
   eggFound,
   initEggs,
@@ -47,7 +46,6 @@ const SEARCH_EGG_WORDS: Array<[string[], string]> = [
 const SEARCH_MIRROR_EGGS: Record<string, string[]> = {
   docsSearchNeko: ["nekoSearch"],
 };
-const EGG_NAMES: Record<string, string> = { ...TOOLS_EGGS, ...DOCS_EGGS };
 
 function injectCopyButtons(): void {
   document
@@ -200,7 +198,7 @@ export default defineClientConfig({
       observer.observe(document.body, { childList: true, subtree: true });
 
       onEggUnlocked((id) => {
-        const name = EGG_NAMES[id];
+        const name = EGGS[id];
         if (name) showEggTip(`彩蛋发现：${name}（${eggFound.value.size}/${EGG_TOTAL}）`);
       });
       initEggs();

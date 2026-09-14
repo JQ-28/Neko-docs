@@ -27,38 +27,32 @@
         <div v-if="allDone" class="egg-done">彩蛋全收集达成，你是 neko 认证的资深铲屎官</div>
 
         <div class="egg-body">
-          <template v-for="group in groups" :key="group.title">
-            <p class="egg-group">
-              <span class="egg-group-name">{{ group.title }}</span>
-              <span class="egg-group-note">{{ group.note }}</span>
-            </p>
-            <button
-              v-for="item in group.items"
-              :key="item.id"
-              type="button"
-              class="egg-item"
-              :class="{ locked: !eggFound.has(item.id), 'show-hint': revealed.has(item.id) }"
-              @click="reveal(item.id)"
-            >
-              <span class="egg-mark" :class="eggFound.has(item.id) ? 'ok' : 'lock'">
-                <svg viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path v-if="eggFound.has(item.id)" fill="currentColor" d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z" />
-                  <path v-else fill="currentColor" d="M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H80z" />
-                </svg>
+          <button
+            v-for="item in items"
+            :key="item.id"
+            type="button"
+            class="egg-item"
+            :class="{ locked: !eggFound.has(item.id), 'show-hint': revealed.has(item.id) }"
+            @click="reveal(item.id)"
+          >
+            <span class="egg-mark" :class="eggFound.has(item.id) ? 'ok' : 'lock'">
+              <svg viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path v-if="eggFound.has(item.id)" fill="currentColor" d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z" />
+                <path v-else fill="currentColor" d="M144 144v48H304V144c0-44.2-35.8-80-80-80s-80 35.8-80 80zM80 192V144C80 64.5 144.5 0 224 0s144 64.5 144 144v48h16c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H80z" />
+              </svg>
+            </span>
+            <span class="egg-info">
+              <span
+                :key="shaking?.id === item.id ? shaking.token : 0"
+                class="egg-name"
+                :class="{ 'egg-poke': shaking?.id === item.id }"
+                >{{ item.name }}</span
+              >
+              <span v-if="eggFound.has(item.id) || revealed.has(item.id)" class="egg-hint">
+                {{ eggHintOf(item.id) }}
               </span>
-              <span class="egg-info">
-                <span
-                  :key="shaking?.id === item.id ? shaking.token : 0"
-                  class="egg-name"
-                  :class="{ 'egg-poke': shaking?.id === item.id }"
-                  >{{ item.name }}</span
-                >
-                <span v-if="eggFound.has(item.id) || revealed.has(item.id)" class="egg-hint">
-                  {{ eggHintOf(item.id) }}
-                </span>
-              </span>
-            </button>
-          </template>
+            </span>
+          </button>
         </div>
 
         <p class="egg-foot">在任意一端的搜索框里输入「彩蛋」，都能翻开这本册子</p>
@@ -71,9 +65,8 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import {
-  DOCS_EGGS,
+  EGGS,
   EGG_TOTAL,
-  TOOLS_EGGS,
   closeEggPanel,
   eggFound,
   eggHintOf,
@@ -98,17 +91,11 @@ function toItems(eggs: Record<string, string>): EggItem[] {
   return Object.entries(eggs).map(([id, name]) => ({ id, name }));
 }
 
-const groups = computed(() =>
-  [
-    { title: "功能站", note: "tools.nekodayo.top", items: toItems(TOOLS_EGGS) },
-    { title: "文档站", note: "docs.nekodayo.top", items: toItems(DOCS_EGGS) },
-  ].map((group) => ({
-    ...group,
-    items: [...group.items].sort(
-      (itemA, itemB) =>
-        Number(eggFound.value.has(itemA.id)) - Number(eggFound.value.has(itemB.id)),
-    ),
-  })),
+const items = computed(() =>
+  toItems(EGGS).sort(
+    (itemA, itemB) =>
+      Number(eggFound.value.has(itemA.id)) - Number(eggFound.value.has(itemB.id)),
+  ),
 );
 
 const revealed = ref<Set<string>>(new Set());
@@ -246,24 +233,6 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
   margin-top: 12px;
   padding-right: 4px;
   overscroll-behavior: contain;
-}
-
-.egg-group {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 6px 0 8px;
-}
-
-.egg-group-name {
-  color: var(--vp-c-accent, #096dd9);
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.egg-group-note {
-  color: var(--vp-c-text-mute, #9aa3b2);
-  font-size: 11.5px;
 }
 
 .egg-item {
