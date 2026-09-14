@@ -136,10 +136,7 @@ export default defineClientConfig({
       const isDark = document.documentElement.classList.contains("dark");
       if (isDark === lastDark) return;
       lastDark = isDark;
-      if (++themeFlips >= EGG_THRESHOLDS.themeTen) {
-        markEgg("docsThemeTen");
-        markEgg("themeTen");
-      }
+      if (++themeFlips >= EGG_THRESHOLDS.themeTen) markEgg("themeTen");
     }
 
     const pageData = usePageData();

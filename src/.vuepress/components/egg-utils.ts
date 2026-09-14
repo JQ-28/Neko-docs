@@ -1,7 +1,7 @@
 import { ref } from "vue";
 
 import { isKnownEgg, readEggIdUnion, writeEggIds } from "./neko-shared-egg-sync";
-import { EGG_HINTS, EGG_TIP, EGGS } from "./neko-shared-eggs";
+import { EGG_HINTS, EGG_THRESHOLDS, EGG_TIP, EGGS } from "./neko-shared-eggs";
 
 export { EGGS };
 
@@ -104,6 +104,7 @@ export function syncEggs(): void {
 
 let copyCount = 0;
 
+/* 复制狂魔：与功能站的复制按钮共用同一颗彩蛋，任一端连复制 10 次都点亮 */
 export function countEggCopy(): void {
-  if (++copyCount >= 10) markEgg("docsCopyTen");
+  if (++copyCount >= EGG_THRESHOLDS.copyTen) markEgg("copyTen");
 }
