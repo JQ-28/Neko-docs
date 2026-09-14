@@ -256,7 +256,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { commandCategories, hintFor, routeAliases } from "./commands-data";
+import { commandCategories, hintFor } from "./commands-data";
 import { copyText, showTip } from "./copy-utils";
 import { markEgg } from "./egg-utils";
 import {
@@ -362,6 +362,24 @@ function normalize(text: string): string {
     .trim()
     .toLowerCase()
     .replace(/[\s,，。！？!?、;；:：'"“”‘’<>《》（）()\[\]{}]+/g, "");
+}
+
+// 意图路由别名表由后端 /api/command-index 下发，启动时预取；接口不可用时保持空表，仍可命中指令名与标题
+let routeAliases: Record<string, string[]> = {};
+
+async function prefetchRouteAliases(): Promise<void> {
+  try {
+    const resp = await fetch("/api/command-index");
+    if (!resp.ok) return;
+    const data = (await resp.json()) as { entries?: Array<{ link: string; keywords?: string[] }> };
+    const table: Record<string, string[]> = {};
+    for (const entry of data.entries ?? []) {
+      if (entry.link) table[entry.link] = entry.keywords ?? [];
+    }
+    routeAliases = table;
+  } catch {
+    // 静默降级
+  }
 }
 
 // 本地规则匹配：复用速查页数据，命中即展示，无需请求后端
@@ -1029,6 +1047,7 @@ function onKeydown(event: KeyboardEvent): void {
 
 onMounted(() => {
   restoreMessages();
+  void prefetchRouteAliases();
   window.addEventListener("keydown", onKeydown);
   window.addEventListener(OPEN_EVENT, openRouter);
   window.addEventListener("popstate", onPopState);
