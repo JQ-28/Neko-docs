@@ -219,6 +219,24 @@
           </div>
         </div>
       </div>
+
+      <Transition name="neko-voice-hint">
+        <div v-if="listening" class="neko-voice-hint" aria-hidden="true">
+          <div class="neko-voice-orb">
+            <span class="neko-voice-ring"></span>
+            <span class="neko-voice-ring neko-voice-ring--slow"></span>
+            <div class="neko-voice-ico">
+              <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  fill="currentColor"
+                  d="M192 0C139 0 96 43 96 96V256c0 53 43 96 96 96s96-43 96-96V96c0-53-43-96-96-96zM64 216c0-13.3-10.7-24-24-24s-24 10.7-24 24v40c0 89.1 66.2 162.7 152 174.4V464H120c-13.3 0-24 10.7-24 24s10.7 24 24 24h72 72c13.3 0 24-10.7 24-24s-10.7-24-24-24H216V430.4c85.8-11.7 152-85.3 152-174.4V216c0-13.3-10.7-24-24-24s-24 10.7-24 24v40c0 70.7-57.3 128-128 128s-128-57.3-128-128V216z"
+                />
+              </svg>
+            </div>
+          </div>
+          <p class="neko-voice-text">正在聆听…</p>
+        </div>
+      </Transition>
     </div>
   </ClientOnly>
 </template>
@@ -1496,6 +1514,114 @@ onBeforeUnmount(() => {
   margin: 0 auto;
 }
 
+.neko-voice-hint {
+  display: flex;
+  position: fixed;
+  bottom: clamp(96px, 18vh, 200px);
+  left: 50%;
+  z-index: 10000;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  color: #ff5f8f;
+}
+
+.neko-voice-orb {
+  display: grid;
+  position: relative;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+}
+
+.neko-voice-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(255, 95, 143, 0.7);
+  border-radius: 50%;
+  animation: neko-voice-ripple 2s var(--ease-out) infinite;
+}
+
+.neko-voice-ring--slow {
+  animation-delay: 1s;
+}
+
+@keyframes neko-voice-ripple {
+  0% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.neko-voice-ico {
+  display: flex;
+  position: relative;
+  z-index: 1;
+  align-items: center;
+  justify-content: center;
+  width: 104px;
+  height: 104px;
+  border: 2px solid rgba(255, 95, 143, 0.45);
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: 0 12px 32px rgba(255, 95, 143, 0.28);
+  animation: neko-voice-breathe 1.4s var(--ease-out) infinite;
+}
+
+@keyframes neko-voice-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.neko-voice-ico svg {
+  display: block;
+  width: 42px;
+  height: 42px;
+}
+
+.neko-voice-text {
+  margin: 0;
+  padding: 5px 16px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 4px 14px rgba(255, 95, 143, 0.22);
+  color: #ff5f8f;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.neko-voice-hint-enter-active,
+.neko-voice-hint-leave-active {
+  transition: opacity 0.24s var(--ease-out), transform 0.24s var(--ease-out);
+}
+
+.neko-voice-hint-enter-from,
+.neko-voice-hint-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(14px) scale(0.9);
+}
+
+:global(html.dark) .neko-voice-ico {
+  border-color: rgba(255, 143, 180, 0.5);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+:global(html.dark) .neko-voice-text {
+  color: #ff8fb4;
+}
+
 :global(html.dark) .neko-modal {
   border-color: #e8d5f8;
   box-shadow: 0 8px 24px rgba(232, 213, 248, 0.4);
@@ -1600,6 +1726,15 @@ onBeforeUnmount(() => {
   .neko-msg,
   .neko-avatar {
     animation: none;
+  }
+
+  .neko-voice-ico {
+    animation: none;
+  }
+
+  .neko-voice-ring {
+    animation: none;
+    opacity: 0.35;
   }
 
   .typing-bubble span {
