@@ -3,6 +3,7 @@ import { createApp, nextTick, onBeforeUnmount, onMounted, watch } from "vue";
 import { Popper } from "@moefy-canvas/theme-popper";
 import { copyText, showTip } from "./components/copy-utils";
 import NavbarToolsLink from "./components/NavbarToolsLink.vue";
+import MiaoToggle from "./components/MiaoToggle.vue";
 import HomeIntro from "./components/HomeIntro.vue";
 import QQChat from "./components/QQChat.vue";
 import QQMessage from "./components/QQMessage.vue";
@@ -29,10 +30,23 @@ import {
 import { initEggEvents, trackPageVisit } from "./components/egg-events";
 import { EGG_THRESHOLDS } from "./components/neko-shared-eggs";
 import { SEARCH_MIRROR_EGGS, matchSearchEgg } from "./components/neko-shared-search-eggs";
+import { miao, onMiaoChange } from "./components/miao";
 
-const COPY_TEXT = "复制代码";
-const TIP_CONTENT = "复制成功";
 const SEARCH_INPUT_CLASS = "search-pro-input";
+
+// 复制按钮文案跟随喵语模式切换
+function copyButtonText(): string {
+  return miao("复制代码", "复制喵");
+}
+
+function refreshCopyButtons(): void {
+  const text = copyButtonText();
+  document
+    .querySelectorAll<HTMLElement>(".v-copy-code-btn")
+    .forEach((btn) => {
+      btn.textContent = text;
+    });
+}
 
 function injectCopyButtons(): void {
   document
@@ -43,11 +57,11 @@ function injectCopyButtons(): void {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "v-copy-code-btn";
-      btn.textContent = COPY_TEXT;
+      btn.textContent = copyButtonText();
       btn.addEventListener("click", () => {
         copyText(el.textContent ?? "")
-          .then(() => showTip(TIP_CONTENT))
-          .catch(() => showTip("复制失败"));
+          .then(() => showTip(miao("复制成功", "复制成功喵~")))
+          .catch(() => showTip(miao("复制失败", "复制失败喵")));
       });
       el.parentElement?.appendChild(btn);
     });
@@ -56,6 +70,7 @@ function injectCopyButtons(): void {
 export default defineClientConfig({
   enhance: ({ app }) => {
     app.component("NavbarToolsLink", NavbarToolsLink);
+    app.component("MiaoToggle", MiaoToggle);
     app.component("HomeIntro", HomeIntro);
     app.component("QQChat", QQChat);
     app.component("QQMessage", QQMessage);
@@ -87,6 +102,7 @@ export default defineClientConfig({
     let lastDark = false;
     let cleanupEggEvents: (() => void) | null = null;
     let copyInjectScheduled = false;
+    let offMiao: (() => void) | null = null;
 
     // DOM 每次变动都全量重扫一遍太费，合并到下一帧统一处理
     function scheduleInjectCopyButtons(): void {
@@ -197,6 +213,7 @@ export default defineClientConfig({
       });
       initEggs();
       cleanupEggEvents = initEggEvents();
+      offMiao = onMiaoChange(refreshCopyButtons);
 
       document.addEventListener("input", onSearchInput, true);
       lastDark = document.documentElement.classList.contains("dark");
@@ -214,6 +231,7 @@ export default defineClientConfig({
       contentObserver?.disconnect();
       themeObserver?.disconnect();
       cleanupEggEvents?.();
+      offMiao?.();
       document.removeEventListener("input", onSearchInput, true);
       clearCommandCard();
     });

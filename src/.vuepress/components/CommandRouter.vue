@@ -1,17 +1,17 @@
 <template>
   <ClientOnly>
     <div class="neko-mask" :class="{ open }" @click.self="close">
-      <div class="neko-modal" role="dialog" aria-modal="true" aria-label="问问neko">
+      <div class="neko-modal" role="dialog" aria-modal="true" :aria-label="dialogLabel">
         <div class="neko-modal-head">
           <div class="neko-head-ico" aria-hidden="true">
             <img src="/assets/image/neko.webp" alt="" />
           </div>
-          <h2>问问neko</h2>
+          <h2>{{ dialogLabel }}</h2>
           <button
             v-if="messages.length > 1"
             type="button"
             class="neko-head-btn"
-            title="清空聊天记录"
+            :title="clearTitle"
             @click="clearChat"
           >
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -25,7 +25,7 @@
               />
             </svg>
           </button>
-          <button type="button" class="neko-head-btn" title="关闭" @click="close">
+          <button type="button" class="neko-head-btn" :title="closeTitle" @click="close">
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="none"
@@ -84,10 +84,10 @@
                               d="M832 64H296c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h496v688c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V96c0-17.7-14.3-32-32-32zM704 192H192c-17.7 0-32 14.3-32 32v530.7c0 8.5 3.4 16.6 9.4 22.6l173.3 173.3c2.2 2.2 4.7 4 7.4 5.3v.1h.1c5.1 2.5 10.6 3.9 16.4 3.9h.4H704c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32zM350 856.6L263.4 770H350v86.6zM672 864H414V746c0-22.1-17.9-40-40-40H256V256h416v608z"
                             />
                           </svg>
-                          复制
+                          {{ copyLabel }}
                         </button>
                         <a class="cp-btn" :href="item.link" @click.prevent="go(item.link)">
-                          查看文档
+                          {{ docLabel }}
                         </a>
                       </div>
                     </div>
@@ -98,7 +98,7 @@
                     href="/zhiling/cheatsheet"
                     @click.prevent="go('/zhiling/cheatsheet')"
                   >
-                    去指令速查页看看
+                    {{ fallbackLabel }}
                   </a>
                   <img
                     v-if="message.emote"
@@ -132,7 +132,7 @@
             type="button"
             class="neko-to-bottom"
             :class="{ show: showToBottom }"
-            title="回到底部"
+            :title="toBottomTitle"
             @click="scrollToBottom"
           >
             <svg
@@ -160,14 +160,16 @@
             @keydown.enter="submit"
             @keydown.esc="close"
           />
-          <button type="button" class="neko-act" :disabled="typing" @click="submit">发送</button>
+          <button type="button" class="neko-act" :disabled="typing" @click="submit">
+            {{ sendLabel }}
+          </button>
         </div>
 
         <div class="neko-qq-footer">
           <div
-            title="语音输入"
+            :title="voiceTitle"
             role="button"
-            :aria-label="listening ? '正在聆听，点按结束' : '语音输入'"
+            :aria-label="listening ? listeningLabel : voiceTitle"
             :class="{ 'is-listening': listening }"
             @click="startVoice"
           >
@@ -178,7 +180,7 @@
               />
             </svg>
           </div>
-          <div title="以图搜源" role="button" aria-label="以图搜源" @click="go('/zhiling/shiyong/imgS')">
+          <div :title="imgTitle" role="button" :aria-label="imgTitle" @click="go('/zhiling/shiyong/imgS')">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -186,7 +188,7 @@
               />
             </svg>
           </div>
-          <div title="图片背景消除" role="button" aria-label="图片背景消除" @click="go('/zhiling/shiyong/imga')">
+          <div :title="bgRemoveTitle" role="button" :aria-label="bgRemoveTitle" @click="go('/zhiling/shiyong/imga')">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -194,7 +196,7 @@
               />
             </svg>
           </div>
-          <div title="在线运行代码" role="button" aria-label="在线运行代码" @click="go('/zhiling/shiyong/code')">
+          <div :title="codeRunTitle" role="button" :aria-label="codeRunTitle" @click="go('/zhiling/shiyong/code')">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -202,7 +204,7 @@
               />
             </svg>
           </div>
-          <div title="表情包制作" role="button" aria-label="表情包制作" @click="go('/zhiling/yule/bqbmaker')">
+          <div :title="bqbTitle" role="button" :aria-label="bqbTitle" @click="go('/zhiling/yule/bqbmaker')">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -210,7 +212,7 @@
               />
             </svg>
           </div>
-          <div title="更多功能" role="button" aria-label="更多功能" @click="openTools">
+          <div :title="moreTitle" role="button" :aria-label="moreTitle" @click="openTools">
             <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
@@ -226,8 +228,8 @@
           <button
             type="button"
             class="neko-voice-orb"
-            title="点一下结束语音"
-            aria-label="正在聆听，点按结束"
+            :title="stopVoiceTitle"
+            :aria-label="listeningLabel"
             @click="stopVoice(true)"
           >
             <span class="neko-voice-ring"></span>
@@ -247,7 +249,7 @@
               </svg>
             </span>
           </button>
-          <p class="neko-voice-text"><span>正在聆听…</span></p>
+          <p class="neko-voice-text"><span>{{ listeningText }}</span></p>
         </div>
       </Transition>
     </div>
@@ -255,11 +257,12 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { commandCategories, hintFor } from "../../../functions/_shared/command-catalog";
 import { copyText, showTip } from "./copy-utils";
 import { markEgg } from "./egg-utils";
+import { miao } from "./miao";
 import {
   BABABOI_LINES,
   BABABOI_TEST,
@@ -298,6 +301,25 @@ interface ChatMessage {
 
 const OPEN_EVENT = "neko-open-router";
 const TOOLS_URL = "https://tools.nekodayo.top/";
+
+// 弹窗界面文案跟随喵语模式切换
+const dialogLabel = computed(() => miao("问问neko", "喵喵neko"));
+const clearTitle = computed(() => miao("清空聊天记录", "清空聊天记录喵"));
+const closeTitle = computed(() => miao("关闭", "关掉喵"));
+const copyLabel = computed(() => miao("复制", "复制喵"));
+const docLabel = computed(() => miao("查看文档", "看文档喵"));
+const fallbackLabel = computed(() => miao("去指令速查页看看", "去速查页看看喵"));
+const toBottomTitle = computed(() => miao("回到底部", "回到底部喵"));
+const sendLabel = computed(() => miao("发送", "喵发"));
+const voiceTitle = computed(() => miao("语音输入", "语音输入喵"));
+const listeningLabel = computed(() => miao("正在聆听，点按结束", "正在听喵，点按结束"));
+const imgTitle = computed(() => miao("以图搜源", "以图搜源喵"));
+const bgRemoveTitle = computed(() => miao("图片背景消除", "图片背景消除喵"));
+const codeRunTitle = computed(() => miao("在线运行代码", "在线运行代码喵"));
+const bqbTitle = computed(() => miao("表情包制作", "表情包制作喵"));
+const moreTitle = computed(() => miao("更多功能", "更多功能喵"));
+const stopVoiceTitle = computed(() => miao("点一下结束语音", "点一下结束语音喵"));
+const listeningText = computed(() => miao("正在聆听…", "正在听喵…"));
 const GREETING = "你好喵~ 我是 neko！说说你想做什么，我来帮你找到对应的指令。";
 const CLEAR_HINT = "真的要扔掉我们的聊天记录吗喵…neko 会想念它们的。再点一次垃圾桶就清空啦。";
 const STORAGE_KEY = "neko-chat-history";
