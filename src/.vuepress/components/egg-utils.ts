@@ -87,6 +87,7 @@ export function onEggUnlocked(listener: (id: string) => void): void {
 }
 
 export function openEggPanel(): void {
+  syncEggs();
   eggPanelOpen.value = true;
 }
 
@@ -187,7 +188,22 @@ export function initEggs(): void {
   eggFound.value = new Set(shared.filter((id) => id in TOOLS_EGGS || id in DOCS_EGGS));
   persist();
   if (eggFound.value.size >= EGG_TOTAL) markEgg("eggAll");
-  if (new Date().getHours() < 5) markEgg("docsNight");
+  // 深夜来访两个站点都能触发：文档站半夜打开同样点亮功能站那颗「深夜来访」
+  if (new Date().getHours() < 5) {
+    markEgg("docsNight");
+    markEgg("night");
+  }
+}
+
+/* 另一端（功能站）触发后只写进了父域 cookie，翻开册子前重新合一次并集，进度立刻对齐 */
+export function syncEggs(): void {
+  if (typeof window === "undefined") return;
+  const shared = [...new Set([...readLocalIds(), ...readCookieIds()])];
+  const added = shared.filter((id) => (id in TOOLS_EGGS || id in DOCS_EGGS) && !eggFound.value.has(id));
+  if (added.length === 0) return;
+  eggFound.value = new Set([...eggFound.value, ...added]);
+  persist();
+  if (eggFound.value.size >= EGG_TOTAL) markEgg("eggAll");
 }
 
 let copyCount = 0;

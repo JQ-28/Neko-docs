@@ -221,6 +221,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { commandCategories, hintFor, routeAliases } from "./commands-data";
 import { copyText, showTip } from "./copy-utils";
+import { markEgg } from "./egg-utils";
 
 interface RouteResult {
   title: string;
@@ -484,9 +485,60 @@ function pushMessage(payload: Omit<ChatMessage, "id" | "time">): void {
   });
 }
 
+interface DialogEgg {
+  egg?: string;
+  test: RegExp;
+  replies: string[];
+}
+
+// 对话彩蛋与功能站共用同一套 id：任一站点触发，进度都会通过父域 cookie 同步过去
+const DIALOG_EGGS: DialogEgg[] = [
+  { egg: "thanks", test: /(谢谢|感谢|thx|3q)/i, replies: ["不用谢喵～能帮上忙，尾巴都翘起来了！", "嘿嘿，被你道谢有点不好意思喵~"] },
+  { egg: "testOne", test: /^[1１]+$/, replies: ["信号满格喵！neko 的耳朵动了一下~", "收到一个「1」，连接很灵敏喵！"] },
+  { egg: "stillHere", test: /(在吗|在不在)/, replies: ["在的在的喵！neko 一直蹲在这儿等你呢~", "刚打了个哈欠就被你叫到了喵！"] },
+  { egg: "scolded", test: /(笨蛋|蠢猫|没用|垃圾|讨厌你)/, replies: ["呜…被骂了，neko 会把这句话记在小本本上的喵！", "凶什么凶喵！再凶就把指令悄悄藏起来~"] },
+  { egg: "sing", test: /(唱歌|来一首|唱首歌)/, replies: ["喵喵喵～（跑调版指令之歌）唱完啦，快夸我喵！", "neko 只会唱一首：喵喵喵喵喵~"] },
+  { egg: "joke", test: /(讲个笑话|说个笑话|来个笑话|冷笑话)/, replies: ["指令为什么不爱说话？因为它怕一开口就输出太多喵~", "neko 去搜指令，结果搜到了自己的尾巴，绕回来了喵~"] },
+  { egg: "soulAsk", test: /(neko是猫吗|你是ai吗|你是机器人吗|你是真人吗)/i, replies: ["neko 是住在服务器里的小猫喵，会翻指令那种~", "这个问题的答案藏在尾巴里，摸一下才知道喵~"] },
+  { egg: "jail996", test: /996/, replies: ["996 这两个数字，neko 看了都想给你递杯热水喵…", "打工魂共鸣了喵！去文档里偷会儿懒吧~"] },
+  { egg: "numberLove", test: /^(520|1314)$/, replies: ["数字表白收到了喵～可惜 neko 是小猫咪呀！", "1314…那你要陪 neko 一直翻指令哦喵~"] },
+  { egg: "hungry", test: /(饿了|好饿|肚子饿)/, replies: ["饿了的猫脾气不好喵！快去吃饭，回来 neko 还在~", "neko 也想吃小鱼干…可指令又不能吃喵~"] },
+  { egg: "fishFood", test: /^🐟+$/, replies: ["小鱼干收到喵！尾巴摇成螺旋桨了~", "这条鱼 neko 收下了，指令马上给你翻喵！"] },
+  { egg: "sixSeven", test: /^(67|六七)$/, replies: ["六七！接头暗号对上了喵~", "67 67 67…neko 跟着念了三遍喵！"] },
+  { egg: "bababoi", test: /^(bababoi|巴巴博弈|巴巴博一)$/i, replies: ["bababoi bababoi～文档站也能跳起来喵！"] },
+  { test: /(晚安|睡觉|困了|好梦)/, replies: ["晚安喵～记得盖好被子呀！", "困了就去休息嘛喵，neko 在这儿帮你看着文档~"] },
+];
+
+const LONG_TEXT_REPLIES = [
+  "呜哇，这么长一段…neko 的猫眼都要看花了喵！",
+  "这是把整篇论文丢过来了喵？neko 先装进小背包慢慢看~",
+];
+
+// 所有可输入文本的聊天框都能触发对话彩蛋：命中就地回复并返回 true，本轮不再走指令路由
+function tryDialogEgg(raw: string): boolean {
+  if (raw.length > 500) {
+    pushMessage({ role: "user", text: `${raw.slice(0, 120)}…（${raw.length} 字）` });
+    markEgg("longText");
+    pushMessage({ role: "neko", text: pick(LONG_TEXT_REPLIES) });
+    return true;
+  }
+  const hit = DIALOG_EGGS.find((item) => item.test.test(raw));
+  if (!hit) return false;
+  pushMessage({ role: "user", text: raw });
+  if (hit.egg) markEgg(hit.egg);
+  pushMessage({ role: "neko", text: pick(hit.replies) });
+  if (/(晚安|好梦)/.test(raw) && new Date().getHours() < 5) markEgg("nightGreet");
+  return true;
+}
+
 async function submit(): Promise<void> {
   const raw = query.value.trim();
   if (!raw || typing.value) return;
+
+  if (tryDialogEgg(raw)) {
+    query.value = "";
+    return;
+  }
 
   const history = historyPayload();
   pushMessage({ role: "user", text: raw });
