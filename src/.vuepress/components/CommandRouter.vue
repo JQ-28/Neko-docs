@@ -364,6 +364,7 @@ const showToBottom = ref(false);
 const chatEl = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLInputElement | null>(null);
 const listening = ref(false);
+const transcribing = ref(false);
 const router = useRouter();
 
 let messageId = 0;
@@ -374,6 +375,12 @@ let voiceSilenceTimer: number | undefined;
 let voiceFinal = "";
 let voiceInterim = "";
 let recognition: SpeechRecognition | null = null;
+let voiceMode: "speech" | "record" | null = null;
+let recorder: MediaRecorder | null = null;
+let recordStream: MediaStream | null = null;
+let recordChunks: Blob[] = [];
+let recordTimer: number | undefined;
+let pendingRecordSubmit = false;
 
 function fmtTime(date: Date): string {
   const pad = (value: number): string => String(value).padStart(2, "0");
@@ -696,8 +703,11 @@ function openTools(): void {
   window.open(TOOLS_URL, "_blank", "noopener");
 }
 
-// 语音输入：优先 Web Speech API，边说边出字，停顿后自动发送
+// 语音输入：电脑走 Web Speech 边说边出字，手机走录音上传转写
 const VOICE_SILENCE_MS = 1600;
+const VOICE_RECORD_MAX_MS = 30_000;
+const ASR_ENDPOINT = "/api/asr";
+const RECORD_MIME_TYPES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
 
 function voiceTranscript(): string {
   return `${voiceFinal}${voiceInterim}`.trim();
@@ -722,23 +732,26 @@ function startVoice(): void {
     stopVoice(true);
     return;
   }
-  if (typing.value) return;
+  // voiceMode 还是 record 说明正在等麦克风授权，别重复弹窗
+  if (typing.value || transcribing.value || voiceMode === "record") return;
 
   const SpeechCtor =
     window.SpeechRecognition ??
     (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition })
       .webkitSpeechRecognition;
-  if (!SpeechCtor) {
-    pushMessage({
-      role: "neko",
-      text: "这个浏览器不支持语音喵，试试 Chrome 或 Edge，或者直接用键盘打字吧~",
-    });
+  // 触屏设备（微信/QQ 内置浏览器、安卓 WebView、iOS Safari）里 Web Speech 基本不出字，直接走录音转写
+  if (!SpeechCtor || window.matchMedia("(pointer: coarse)").matches) {
+    startRecording();
     return;
   }
+  startSpeech(SpeechCtor);
+}
 
+function startSpeech(SpeechCtor: typeof SpeechRecognition): void {
   // SpeechRecognition 实例 start 后不可复用，每次重新创建，避免二次 start 抛 InvalidStateError
   const current = new SpeechCtor();
   recognition = current;
+  voiceMode = "speech";
   resetVoiceText();
   current.lang = "zh-CN";
   // 连续识别 + 显示中间结果：说话过程中就能看到字，而不是等到最后一片空白
@@ -780,12 +793,11 @@ function startVoice(): void {
       pushMessage({ role: "neko", text: "麦克风权限被拒绝了喵，去浏览器设置里允许一下~" });
       return;
     }
+    // 识别服务连不上（Chrome 走的是谷歌服务器）时，改走录音上传转写
     if (error === "network") {
       stopVoice(false);
-      pushMessage({
-        role: "neko",
-        text: "连不上语音识别服务喵（Chrome 走的是谷歌服务器），换 Edge 试试，或者直接用键盘打字吧~",
-      });
+      pushMessage({ role: "neko", text: "网络语音识别连不上喵，换成录音识别再试一次~" });
+      startRecording();
       return;
     }
     if (heard) {
@@ -809,27 +821,38 @@ function startVoice(): void {
     current.start();
   } catch {
     stopVoice(false);
-    pushMessage({ role: "neko", text: "语音好像没启动成功，检查一下麦克风权限喵~" });
+    startRecording();
+    return;
   }
 
-  // 3 秒内 onstart 未触发（安卓 WebView 常见：start 不报错但静默失败）→ 判定环境不可用
+  // 3 秒内 onstart 未触发（安卓 WebView 常见：start 不报错但静默失败）→ 判定 Web Speech 不可用，改走录音
   window.clearTimeout(voiceTimeout);
   voiceTimeout = window.setTimeout(() => {
     if (listening.value) return;
     stopVoice(false);
-    pushMessage({
-      role: "neko",
-      text: "麦克风好像没反应，检查一下权限，或者换 Chrome 试试喵~",
-    });
+    startRecording();
   }, 3000);
 }
 
 function stopVoice(submitText = false): void {
   window.clearTimeout(voiceTimeout);
   window.clearTimeout(voiceSilenceTimer);
+  window.clearTimeout(recordTimer);
   voiceTimeout = undefined;
   voiceSilenceTimer = undefined;
+  recordTimer = undefined;
   listening.value = false;
+  voiceMode = null;
+
+  // 录音模式：交给 onstop 收尾，转写完再决定发不发
+  const currentRecorder = recorder;
+  if (currentRecorder && currentRecorder.state !== "inactive") {
+    pendingRecordSubmit = submitText;
+    currentRecorder.stop();
+    return;
+  }
+  releaseRecordStream();
+
   const text = voiceTranscript();
   resetVoiceText();
   const current = recognition;
@@ -850,6 +873,106 @@ function stopVoice(submitText = false): void {
   if (submitText && text) {
     query.value = text;
     void submit();
+  }
+}
+
+function pickRecordMime(): string {
+  return RECORD_MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
+function releaseRecordStream(): void {
+  recordStream?.getTracks().forEach((track) => track.stop());
+  recordStream = null;
+}
+
+// 录音模式：点一下开始录，再点一下停止并上传转写（移动端唯一能出字的通道）
+function startRecording(): void {
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+    pushMessage({
+      role: "neko",
+      text: "这个浏览器录不了音喵，试试 Chrome 或 Edge，或者直接用键盘打字吧~",
+    });
+    return;
+  }
+  voiceMode = "record";
+  navigator.mediaDevices
+    .getUserMedia({ audio: true })
+    .then((stream) => {
+      // 等授权的工夫用户已经取消了，就别再录
+      if (voiceMode !== "record") {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      recordStream = stream;
+      recordChunks = [];
+      const mimeType = pickRecordMime();
+      const current = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recorder = current;
+      current.ondataavailable = (event) => {
+        if (event.data.size > 0) recordChunks.push(event.data);
+      };
+      current.onstop = () => {
+        void finishRecording();
+      };
+      current.start();
+      listening.value = true;
+      window.clearTimeout(recordTimer);
+      recordTimer = window.setTimeout(() => {
+        if (listening.value) stopVoice(true);
+      }, VOICE_RECORD_MAX_MS);
+    })
+    .catch(() => {
+      voiceMode = null;
+      releaseRecordStream();
+      pushMessage({ role: "neko", text: "麦克风权限被拒绝了喵，去浏览器设置里允许一下~" });
+    });
+}
+
+function toBase64(bytes: Uint8Array): string {
+  const CHUNK = 8192;
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + CHUNK));
+  }
+  return btoa(binary);
+}
+
+async function transcribe(blob: Blob): Promise<string> {
+  const audio = toBase64(new Uint8Array(await blob.arrayBuffer()));
+  const response = await fetch(ASR_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ audio }),
+  });
+  if (!response.ok) throw new Error(`语音识别接口返回 ${response.status}`);
+  const data = (await response.json()) as { text?: string };
+  return (data.text ?? "").trim();
+}
+
+async function finishRecording(): Promise<void> {
+  const shouldSubmit = pendingRecordSubmit;
+  pendingRecordSubmit = false;
+  recorder = null;
+  releaseRecordStream();
+  const blob = new Blob(recordChunks, { type: recordChunks[0]?.type || "audio/webm" });
+  recordChunks = [];
+  if (!shouldSubmit || blob.size === 0) return;
+
+  transcribing.value = true;
+  listening.value = true;
+  try {
+    const text = await transcribe(blob);
+    if (!text) {
+      pushMessage({ role: "neko", text: "没听清喵，再说一次试试？" });
+      return;
+    }
+    query.value = text;
+    void submit();
+  } catch {
+    pushMessage({ role: "neko", text: "语音识别服务连不上喵，稍后再试，或者用键盘打字吧~" });
+  } finally {
+    transcribing.value = false;
+    listening.value = false;
   }
 }
 
