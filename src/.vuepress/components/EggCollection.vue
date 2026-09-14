@@ -55,7 +55,7 @@
           </button>
         </div>
 
-        <p class="egg-foot">在任意一端的搜索框里输入「彩蛋」，都能翻开这本册子</p>
+        <p class="egg-foot">在搜索框里输入「彩蛋」，就能翻开这本册子</p>
       </div>
     </div>
   </Transition>

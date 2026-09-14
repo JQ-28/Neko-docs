@@ -19,31 +19,31 @@ export const DOCS_EGGS = {
 export const EGGS = { ...TOOLS_EGGS, ...DOCS_EGGS };
 
 export const EGG_HINTS = {
-  night: '凌晨 0 点到 5 点之间来逛任意一端（功能站、文档站都算喵）',
+  night: '凌晨 0 点到 5 点之间来逛逛就行',
   logoTap: '对着左上角的 neko 头像连戳 6 下，手速要快，停久了它会重新数喵',
-  nekoSearch: '在任意一端的搜索框里输入 neko 或 猫',
+  nekoSearch: '在搜索框里输入 neko 或 猫',
   clearTwice: '在聊天窗口里点一下垃圾桶按钮',
   thursday: '星期四那天打开功能站的疯狂星期四',
-  idleSleep: '打开任意一端以后别碰它，晾着 2 分钟 neko 就睡着了',
-  themeTen: '在任意一端来回切深色、浅色主题 10 次',
-  copyTen: '在任意一端连续复制内容 10 次',
+  idleSleep: '打开页面以后别碰它，晾着 2 分钟 neko 就睡着了',
+  themeTen: '来回切深色、浅色主题 10 次',
+  copyTen: '连续复制内容 10 次',
   dlTen: '在功能站成功下载 10 次文件（视频、图片、音乐都算）',
   logo22: '连点 logo 的手别停，一路戳到 22 次',
-  monday: '星期一随便打开一端逛逛',
-  onTime: '整点前后 1 分钟守在任意一端（11:44-11:46 有特别版喵）',
-  festival: '元旦、春节、中秋这类节日当天来任意一端看看',
-  s666: '在任意一端的搜索框里输入 666',
-  moyer: '在任意一端的搜索框里输入 摸鱼 或 上班',
+  monday: '星期一随便逛逛',
+  onTime: '整点前后 1 分钟守在页面上（11:44-11:46 有特别版喵）',
+  festival: '元旦、春节、中秋这类节日当天来看看',
+  s666: '在搜索框里输入 666',
+  moyer: '在搜索框里输入 摸鱼 或 上班',
   nightGreet: '凌晨 0-5 点在聊天框里跟 neko 说声 晚安',
-  visit3: '连着 3 天来任意一端报到，neko 会记得你喵',
+  visit3: '连着 3 天来报到，neko 会记得你喵',
   fabingNeko: '在功能站的发病语录里把名字填成 neko',
-  explorer: '一次不关网页，在任意一端逛满 3 个不同的页面或功能窗口',
+  explorer: '一次不关网页，逛满 3 个不同的页面或功能窗口',
   eggAll: '把别的彩蛋都集齐，再翻开这本册子看看',
   thanks: '在聊天框里跟 neko 说声 谢谢',
   testOne: '在聊天框里只发一个 1 或 111',
   stillHere: '在聊天框里问一句 在吗',
-  s404: '在任意一端的搜索框里输入 404',
-  sMiao: '在任意一端的搜索框里输入 miao 或 喵',
+  s404: '在搜索框里输入 404',
+  sMiao: '在搜索框里输入 miao 或 喵',
   healthPig: '在功能站的健康分析里填一组离谱身材数据（比如 1 1 24 或 300 500 150）',
   newsFan: '同一天里，在功能站把 10 种日报挨个看一遍',
   randPick: '在功能站侧栏对着「随机来一个」连点 8 次',
@@ -68,12 +68,12 @@ export const EGG_HINTS = {
   multiTab: '同时开两个 neko 的页面，两只猫会互相发现喵',
   printNeko: '在页面上按 Ctrl+P（或浏览器菜单里的打印）',
   cinema: '让页面进全屏（F11 或视频全屏都算喵）',
-  docsNight: '凌晨 0 点到 5 点之间打开任意一端',
-  docsSearchNeko: '在任意一端的搜索框里输入 neko 或 猫',
-  docsEggsSearch: '在任意一端的搜索框里输入 彩蛋 或 eggs，会直接翻开这本册子',
+  docsNight: '凌晨 0 点到 5 点之间打开页面',
+  docsSearchNeko: '在搜索框里输入 neko 或 猫',
+  docsEggsSearch: '在搜索框里输入 彩蛋 或 eggs，会直接翻开这本册子',
 };
 
-export const EGG_TIP = '在任意一端多逛逛就能找到它喵';
+export const EGG_TIP = '多逛逛就能找到它喵';
 
 export const EGG_POKE_1 = ['嗯？戳我干嘛喵？', '喵？被你戳中了', '戳戳…这名字很好戳吗喵？'];
 
