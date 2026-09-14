@@ -285,6 +285,13 @@ html.dark .qq-input-bar input {
   }
 }
 
+@media (max-width: 768px) {
+  // iOS Safari 聚焦时会自动放大 font-size < 16px 的输入框
+  .qq-input-bar input {
+    font-size: 16px;
+  }
+}
+
 html.dark .qq-footer {
   background-color: rgba(247, 228, 251, 0.1);
   border-top-color: rgba(249, 189, 235, 0.3);

@@ -922,6 +922,11 @@ html.dark .cheatsheet-empty {
 
 /* ===== 移动端 ===== */
 @media (max-width: 768px) {
+  /* iOS Safari 聚焦时会自动放大 font-size < 16px 的输入框 */
+  .cheatsheet-input {
+    font-size: 16px;
+  }
+
   .cheatsheet-grid {
     gap: 10px;
   }

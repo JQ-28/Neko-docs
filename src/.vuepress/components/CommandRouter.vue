@@ -155,6 +155,7 @@
             v-model="query"
             type="text"
             placeholder="例如：想查今天运势、怎么联机求生之路、帮我找首歌…"
+            :maxlength="QUERY_MAX_LENGTH"
             spellcheck="false"
             @keydown.enter="submit"
             @keydown.esc="close"
@@ -305,6 +306,8 @@ const STICK_THRESHOLD = 40;
 const LEAVE_STEP = 26;
 const LEAVE_DURATION = 220;
 const LEAVE_MAX = 12;
+const QUERY_MAX_LENGTH = 50;
+const ROUTE_TIMEOUT_MS = 10_000;
 
 const emoteRules = EMOTE_RULES as Array<[RegExp, string]>;
 const emoteFiles = EMOTE_FILES as Record<string, string>;
@@ -541,6 +544,10 @@ function tryDialogEgg(raw: string): boolean {
 async function submit(): Promise<void> {
   const raw = query.value.trim();
   if (!raw || typing.value) return;
+  if (raw.length > QUERY_MAX_LENGTH) {
+    pushMessage({ role: "neko", text: `说太长啦，${QUERY_MAX_LENGTH} 个字以内 neko 才听得明白喵~` });
+    return;
+  }
 
   if (tryDialogEgg(raw)) {
     query.value = "";
@@ -555,6 +562,12 @@ async function submit(): Promise<void> {
 
   const controller = new AbortController();
   routeAbort = controller;
+  // 后端长时间不回包时主动断开，否则 typing 卡住会让发送键一直禁用
+  let timedOut = false;
+  const timeoutTimer = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, ROUTE_TIMEOUT_MS);
 
   try {
     const resp = await fetch("/api/command-route", {
@@ -580,13 +593,14 @@ async function submit(): Promise<void> {
     if (results.length > 0) pushMessage({ role: "neko", text: reply || pick(NEKO_HIT_LINES), results });
     else pushMessage({ role: "neko", text: reply || pick(NEKO_MISS_LINES), fallback: true });
   } catch {
-    if (controller.signal.aborted) return;
+    if (controller.signal.aborted && !timedOut) return;
     typing.value = false;
     // 后端不可用时退回本地匹配，至少还能给出指令卡片
     const local = localMatch(raw);
     if (local.length > 0) pushMessage({ role: "neko", text: pick(NEKO_HIT_LINES), results: local });
     else pushMessage({ role: "neko", text: NEKO_BUSY_LINE, fallback: true });
   } finally {
+    window.clearTimeout(timeoutTimer);
     if (routeAbort === controller) routeAbort = undefined;
   }
 }
@@ -993,6 +1007,11 @@ function clearChat(): void {
 }
 
 function openRouter(): void {
+  if (open.value) {
+    inputEl.value?.focus();
+    return;
+  }
+
   open.value = true;
   query.value = "";
   typing.value = false;
@@ -1808,6 +1827,11 @@ onBeforeUnmount(() => {
 
   .neko-panel {
     flex: none;
+  }
+
+  /* iOS Safari 聚焦时会自动放大 font-size < 16px 的输入框，整页跟着被顶大 */
+  .neko-panel input {
+    font-size: 16px;
   }
 
   .neko-qq-footer {
