@@ -117,7 +117,10 @@ const isDark = ref(false);
 function applyScheme(status: string): void {
   const preferred = window.matchMedia("(prefers-color-scheme: dark)").matches;
   isDark.value = status === "dark" || (status === "auto" && preferred);
+  // class 与 data-theme 必须同步：主题的 CSS 变量（--vp-c-bg 等）跟随 data-theme，
+  // 项目组件样式跟随 html.dark，只改一边会出现「暗色内容 + 浅色背景」的白罩错乱
   document.documentElement.classList.toggle("dark", isDark.value);
+  document.documentElement.dataset.theme = isDark.value ? "dark" : "light";
 }
 
 function toggleDark(): void {
