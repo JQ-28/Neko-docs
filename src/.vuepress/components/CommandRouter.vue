@@ -107,6 +107,13 @@
                     alt=""
                     loading="lazy"
                   />
+                  <img
+                    v-if="message.image"
+                    class="bababoi-img"
+                    :src="message.image"
+                    alt=""
+                    loading="lazy"
+                  />
                 </div>
               </template>
             </div>
@@ -237,7 +244,8 @@ interface ChatMessage {
   time: string;
   results?: RouteResult[];
   fallback?: boolean;
-  emote?: string;
+  emote?: string | null;
+  image?: string;
 }
 
 const OPEN_EVENT = "neko-open-router";
@@ -335,9 +343,16 @@ const EMOTE_FILES: Record<string, string> = {
 
 const EMOTE_BASE = "https://drive.nekodayo.top/raw/assets/nekodocs/neko%E8%A1%A8%E6%83%85%E5%8C%85/";
 
+// 图床里没有、只在功能站表情目录里的情绪 id
+const EMOTE_REMOTE: Record<string, string> = {
+  jail: "https://tools.nekodayo.top/emotes/jail.gif",
+  spray: "https://tools.nekodayo.top/emotes/spray.gif",
+};
+
 function emoteUrl(id: string): string {
   const file = EMOTE_FILES[id];
-  return file ? EMOTE_BASE + encodeURI(file) : "";
+  if (file) return EMOTE_BASE + encodeURI(file);
+  return EMOTE_REMOTE[id] ?? "";
 }
 
 const open = ref(false);
@@ -409,8 +424,8 @@ function localMatch(raw: string): RouteResult[] {
     .map((entry) => entry.result);
 }
 
-function pick(list: string[]): string {
-  return list[Math.floor(Math.random() * list.length)] ?? list[0] ?? "";
+function pick<T>(list: readonly T[]): T {
+  return list[Math.floor(Math.random() * list.length)] ?? list[0];
 }
 
 function emoteForText(text: string): string | undefined {
@@ -476,7 +491,11 @@ function restoreMessages(): void {
 
 function pushMessage(payload: Omit<ChatMessage, "id" | "time">): void {
   const stick = isNearBottom();
-  const emote = payload.emote ?? (payload.role === "neko" ? emoteForText(payload.text) : undefined);
+  const emote = payload.emote !== undefined
+    ? payload.emote
+    : payload.role === "neko"
+      ? emoteForText(payload.text)
+      : undefined;
   messages.value.push({ ...payload, emote, id: ++messageId, time: fmtTime(new Date()) });
   saveMessages();
   nextTick(() => {
@@ -489,29 +508,95 @@ interface DialogEgg {
   egg?: string;
   test: RegExp;
   replies: string[];
+  emote?: string;
 }
+
+// 以下文案与表情映射逐字对齐功能站 texts.js / index.html，任何一端改动都要同步另一端
+const THANKS_LINES = [
+  "不用谢喵！能帮上忙尾巴都翘起来了～",
+  "客气什么呀喵！neko最乐意帮忙了！",
+  "被夸奖了喵～今天的小鱼干加倍好吃！✨",
+  "小 case 喵！有问题随时来找我呀～",
+];
+const TEST_ONE_LINES = [
+  "嗯？是在测试我吗喵？我可是很灵敏的！",
+  "就发一个数字…neko的雷达已经接收到了喵！",
+  "嘀嘀嘀！测试信号成功到达喵！neko一直在线哦～",
+  "1 收到喵！neko灵敏度满格，请放心投喂消息！",
+];
+const SING_LINES = [
+  "喵～喵喵～喵喵喵喵♪（neko的原创曲《小鱼干之歌》喵！）",
+  "🎵 咪～咪咪咪～咪咪猫猫～（跑调了但是很自信喵！）",
+  "啦啦啦～喵喵啦啦～（唱得入迷尾巴都摇起来了喵♪）",
+  "♪ 摇滚喵喵喵～！（neko主唱，尾巴吉他，爪子打鼓喵！）",
+];
+const JOKE_LINES = [
+  "为什么猫咪不用电脑呀？因为怕鼠标喵！（冷…冷到了吗喵？）",
+  "猫咪最喜欢什么课呀？是“喵”学喵！（谐音梗扣小鱼干！）",
+  "有一天小鱼干问猫咪：你为什么盯着我看？猫咪说：我在想你晚餐吃什么喵～",
+  "猫咪爬山爬到一半放弃了，为什么呀？因为它“喵”不动了喵！",
+  "狗狗问猫咪：你会握手吗？猫咪说：我会“握爪”，但要先给小鱼干定金喵！",
+];
+const AI_QUESTION_LINES = [
+  "喵？neko听不懂你在说什么哦～neko只是一只普通的小猫咪喵～（假装舔爪子）",
+  "AI？什么是AI呀喵？neko只认识 WC 和小鱼干喵～（眼神飘忽）",
+  "neko是猫！是猫！是猫喵！！（重要的事情说三遍，尾巴炸毛）",
+  "检测到灵魂拷问喵…neko拒绝回答并向你丢了一个毛球！",
+];
+const JAIL_996_LINES = [
+  "996…打工人打工魂喵…neko的心与你同在！（递上小鱼干）",
+  "福报警报警报喵！快逃！逃到这里摸鱼就安全了喵！",
+  "996是 icu，摸鱼才是生产力喵！坐下，喝口奶茶～",
+];
+const HUNGRY_LINES = [
+  "饿了就先去吃饭喵！neko这里有抹茶冰淇淋…才不分给你喵！（护食）",
+  "饿肚子会变笨的喵！快去吃饭，neko帮你把页面守好～",
+  "说到饿，neko的小鱼干呢喵？！（翻遍口袋）哦…刚吃完了呀。",
+];
+const FISH_EMOJI_LINES = [
+  "小鱼干！！你怎么知道neko最爱这个喵！！（两眼放光）",
+  "🐟！！懂我者，你也喵！这就去翻出私藏的猫碗！",
+  "哇是小鱼干喵！neko立刻进入一级戒备护食状态！",
+];
+const SIX_SEVEN_LINES = ["676767676！", "67！67!67!", "六七六七六七！", "676767！67!67!"];
+const LONG_TEXT_LINES = [
+  "等等等等…这么长喵？！neko的眼睛都看花了，根本看不完喵！",
+  "这是论文吗喵？！neko猫脑过载，需要小鱼干才能重启～",
+  "字太多啦喵！neko的短腿跑不完这么长的文本跑道呀！",
+];
+const BABABOI_LINES = [
+  "bababoi bababoi～neko也会跳喵！",
+  "你居然也懂 bababoi 喵？！接招！",
+];
+const BABABOI_IMG = "https://tools.nekodayo.top/images/bababoi.jpg";
+const BABABOI_AUDIO = "https://tools.nekodayo.top/images/bababoi.mp3";
+const STILL_HERE_LINES = [
+  ["在的喵！", "…一直在的喵。"],
+  ["喵！我在我在～", "…你不说第二句我就一直等着呢喵。"],
+  ["在呀在呀！", "…neko哪儿都不去，就在这守着喵。"],
+];
+const BABABOI_TEST = /^(bababoi|巴巴博弈|巴巴博一)$/i;
+const STILL_HERE_TEST = /(在吗|在不在)/;
 
 // 对话彩蛋与功能站共用同一套 id：任一站点触发，进度都会通过父域 cookie 同步过去
 const DIALOG_EGGS: DialogEgg[] = [
-  { egg: "thanks", test: /(谢谢|感谢|thx|3q)/i, replies: ["不用谢喵～能帮上忙，尾巴都翘起来了！", "嘿嘿，被你道谢有点不好意思喵~"] },
-  { egg: "testOne", test: /^[1１]+$/, replies: ["信号满格喵！neko 的耳朵动了一下~", "收到一个「1」，连接很灵敏喵！"] },
-  { egg: "stillHere", test: /(在吗|在不在)/, replies: ["在的在的喵！neko 一直蹲在这儿等你呢~", "刚打了个哈欠就被你叫到了喵！"] },
-  { egg: "scolded", test: /(笨蛋|蠢猫|没用|垃圾|讨厌你)/, replies: ["呜…被骂了，neko 会把这句话记在小本本上的喵！", "凶什么凶喵！再凶就把指令悄悄藏起来~"] },
-  { egg: "sing", test: /(唱歌|来一首|唱首歌)/, replies: ["喵喵喵～（跑调版指令之歌）唱完啦，快夸我喵！", "neko 只会唱一首：喵喵喵喵喵~"] },
-  { egg: "joke", test: /(讲个笑话|说个笑话|来个笑话|冷笑话)/, replies: ["指令为什么不爱说话？因为它怕一开口就输出太多喵~", "neko 去搜指令，结果搜到了自己的尾巴，绕回来了喵~"] },
-  { egg: "soulAsk", test: /(neko是猫吗|你是ai吗|你是机器人吗|你是真人吗)/i, replies: ["neko 是住在服务器里的小猫喵，会翻指令那种~", "这个问题的答案藏在尾巴里，摸一下才知道喵~"] },
-  { egg: "jail996", test: /996/, replies: ["996 这两个数字，neko 看了都想给你递杯热水喵…", "打工魂共鸣了喵！去文档里偷会儿懒吧~"] },
-  { egg: "numberLove", test: /^(520|1314)$/, replies: ["数字表白收到了喵～可惜 neko 是小猫咪呀！", "1314…那你要陪 neko 一直翻指令哦喵~"] },
-  { egg: "hungry", test: /(饿了|好饿|肚子饿)/, replies: ["饿了的猫脾气不好喵！快去吃饭，回来 neko 还在~", "neko 也想吃小鱼干…可指令又不能吃喵~"] },
-  { egg: "fishFood", test: /^🐟+$/, replies: ["小鱼干收到喵！尾巴摇成螺旋桨了~", "这条鱼 neko 收下了，指令马上给你翻喵！"] },
-  { egg: "sixSeven", test: /^(67|六七)$/, replies: ["六七！接头暗号对上了喵~", "67 67 67…neko 跟着念了三遍喵！"] },
-  { egg: "bababoi", test: /^(bababoi|巴巴博弈|巴巴博一)$/i, replies: ["bababoi bababoi～文档站也能跳起来喵！"] },
-  { test: /(晚安|睡觉|困了|好梦)/, replies: ["晚安喵～记得盖好被子呀！", "困了就去休息嘛喵，neko 在这儿帮你看着文档~"] },
-];
-
-const LONG_TEXT_REPLIES = [
-  "呜哇，这么长一段…neko 的猫眼都要看花了喵！",
-  "这是把整篇论文丢过来了喵？neko 先装进小背包慢慢看~",
+  { test: /(喵|meow|nyaa)/i, replies: ["喵喵喵？你在叫我吗喵！✨", "听到有人喵喵叫了喵～我在这儿呢！", "喵呜～是要摸摸头吗呀？"] },
+  { test: /(摸摸头|摸摸|rua)/, replies: ["咕噜咕噜…被摸头了好舒服喵～", "尾巴卷住你的手了喵！别走呀！", "再摸一下下就好喵…就一下下！"], emote: "pat" },
+  { test: /(老婆|嫁给我|喜欢你|爱你)/, replies: ["我是数据小猫，不是恋爱对象呀喵。叫我neko就好~", "呜哇！neko只是小猫咪喵，这种话要说给真人听呀！"], emote: "shy1" },
+  { test: /(抹茶|冰淇淋|布丁|甜点)/, replies: ["抹茶冰淇淋是本命喵！你也喜欢吗呀？✨", "说到甜点尾巴就竖起来了喵！焦糖布丁也很好吃呀~", "要不要一起吃块抹茶冰淇淋喵？"] },
+  { test: /(你好|hello|\bhi\b|\b嗨\b)/i, replies: ["你好呀喵！今天过得怎么样喵~", "我在我在喵！有什么要帮忙的吗呀？", "嗨喵～尾巴摇摇欢迎你！"], emote: "greet1" },
+  { egg: "thanks", test: /(谢谢|感谢|thx|3q)/i, replies: THANKS_LINES, emote: "love1" },
+  { egg: "testOne", test: /^[1１]+$/, replies: TEST_ONE_LINES },
+  { test: /(晚安|睡觉|困了|好梦)/, replies: ["晚安喵～记得盖好被子呀！", "困了就去休息嘛喵，我就在这里等你~", "晚安喵…呼噜呼噜…", "早点睡呀喵，熬夜会长黑眼圈的哦～", "晚安喵～梦里记得请neko吃小鱼干！", "去睡吧去睡吧喵，明天再来找我玩呀～"], emote: "sleep" },
+  { egg: "scolded", test: /(笨蛋|蠢猫|没用|垃圾|讨厌你|骂我)/, replies: ["呜…被骂了…neko会记仇的喵！（记在猫砂盆里）", "喵？！neko做错了什么呀…尾巴都耷拉了…", "凶什么凶喵！再凶就挠你！（亮爪子）"], emote: "angry" },
+  { egg: "sing", test: /(唱歌|来一首|唱首歌)/, replies: SING_LINES, emote: "laugh" },
+  { egg: "joke", test: /(讲个笑话|说个笑话|来个笑话|冷笑话)/, replies: JOKE_LINES, emote: "popcorn" },
+  { egg: "soulAsk", test: /(neko是猫吗|你是AI吗|你是机器人吗|你是真人吗)/i, replies: AI_QUESTION_LINES, emote: "question" },
+  { egg: "jail996", test: /996/, replies: JAIL_996_LINES, emote: "jail" },
+  { egg: "numberLove", test: /^(520|1314)$/, replies: ["呜哇！数字表白最浪漫了喵…可惜neko是小猫呀！", "1314…neko可以陪你一辈子喵！小鱼干管够的话～"], emote: "love1" },
+  { egg: "hungry", test: /(饿了|好饿|肚子饿)/, replies: HUNGRY_LINES, emote: "spray" },
+  { egg: "fishFood", test: /^🐟+$/, replies: FISH_EMOJI_LINES, emote: "nod" },
+  { egg: "sixSeven", test: /^(67|六七)$/, replies: SIX_SEVEN_LINES, emote: "sixseven" },
 ];
 
 // 所有可输入文本的聊天框都能触发对话彩蛋：命中就地回复并返回 true，本轮不再走指令路由
@@ -519,14 +604,33 @@ function tryDialogEgg(raw: string): boolean {
   if (raw.length > 500) {
     pushMessage({ role: "user", text: `${raw.slice(0, 120)}…（${raw.length} 字）` });
     markEgg("longText");
-    pushMessage({ role: "neko", text: pick(LONG_TEXT_REPLIES) });
+    pushMessage({ role: "neko", text: pick(LONG_TEXT_LINES), emote: "daze1" });
+    return true;
+  }
+  if (BABABOI_TEST.test(raw)) {
+    pushMessage({ role: "user", text: raw });
+    pushMessage({ role: "neko", text: pick(BABABOI_LINES), emote: null });
+    pushMessage({ role: "neko", text: "", emote: null, image: BABABOI_IMG });
+    const audio = new Audio(BABABOI_AUDIO);
+    setTimeout(() => {
+      audio.play().catch(() => undefined);
+    }, 2000);
+    markEgg("bababoi");
+    return true;
+  }
+  if (STILL_HERE_TEST.test(raw)) {
+    pushMessage({ role: "user", text: raw });
+    const [first, second] = pick(STILL_HERE_LINES);
+    pushMessage({ role: "neko", text: first, emote: "question" });
+    setTimeout(() => pushMessage({ role: "neko", text: second, emote: null }), 2000);
+    markEgg("stillHere");
     return true;
   }
   const hit = DIALOG_EGGS.find((item) => item.test.test(raw));
   if (!hit) return false;
   pushMessage({ role: "user", text: raw });
   if (hit.egg) markEgg(hit.egg);
-  pushMessage({ role: "neko", text: pick(hit.replies) });
+  pushMessage({ role: "neko", text: pick(hit.replies), emote: hit.emote ?? null });
   if (/(晚安|好梦)/.test(raw) && new Date().getHours() < 5) markEgg("nightGreet");
   return true;
 }
@@ -1110,6 +1214,14 @@ onBeforeUnmount(() => {
   width: 120px;
   height: auto;
   margin-top: 8px;
+  border-radius: 8px;
+}
+
+.bababoi-img {
+  display: block;
+  width: 160px;
+  height: auto;
+  margin-top: 6px;
   border-radius: 8px;
 }
 
