@@ -145,10 +145,10 @@ onMounted(() => {
   z-index: 1500;
   width: min(272px, calc(100vw - 40px));
   padding: 14px 16px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(248, 224, 248, 0.94), rgba(200, 232, 248, 0.94));
-  box-shadow: 0 10px 25px rgba(255, 192, 203, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--vp-c-divider, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  background: var(--vp-c-bg-elv, #fff);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
 .announcement-head {
@@ -160,10 +160,7 @@ onMounted(() => {
 
 .announcement-title {
   flex: 1;
-  background: linear-gradient(120deg, #ff9ed5, #b48cf2, #7fb8f0);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
+  color: var(--vp-c-text);
   font-weight: 600;
   font-size: 14px;
   line-height: 1.5;
@@ -178,9 +175,9 @@ onMounted(() => {
   height: 22px;
   padding: 0;
   border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
-  color: #8a6fa8;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vp-c-text-mute, #6b7280);
   cursor: pointer;
   transition: background 0.2s var(--ease-out);
 }
@@ -191,7 +188,8 @@ onMounted(() => {
 }
 
 .announcement-close:hover {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(127, 176, 255, 0.14);
+  color: var(--vp-c-accent, #096dd9);
 }
 
 .announcement-body {
@@ -210,23 +208,31 @@ onMounted(() => {
 }
 
 .announcement-action {
-  padding: 6px 14px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
+  padding: 5px 13px;
+  border: 1px solid var(--vp-c-divider, rgba(0, 0, 0, 0.1));
+  border-radius: 8px;
+  background: transparent;
   color: var(--vp-c-text);
   font-size: 13px;
   cursor: pointer;
-  transition: background 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  transition: color 0.2s var(--ease-out), border-color 0.2s var(--ease-out), background 0.2s var(--ease-out);
 }
 
 .announcement-action:hover {
-  transform: translateY(-1px);
+  border-color: var(--vp-c-accent, #096dd9);
+  color: var(--vp-c-accent, #096dd9);
 }
 
 .announcement-action.primary {
+  border-color: transparent;
   background: var(--vp-c-accent-bg, #096dd9);
   color: var(--vp-c-accent-text, #fff);
+}
+
+.announcement-action.primary:hover {
+  border-color: transparent;
+  color: var(--vp-c-accent-text, #fff);
+  opacity: 0.88;
 }
 
 .announcement-fade-enter-active,
@@ -242,18 +248,13 @@ onMounted(() => {
 
 html.dark .announcement {
   border-color: rgba(255, 255, 255, 0.12);
-  background: linear-gradient(135deg, rgba(90, 66, 110, 0.94), rgba(54, 74, 102, 0.94));
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: #22202a;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
-html.dark .announcement-close,
-html.dark .announcement-action {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--vp-c-text);
-}
-
-html.dark .announcement-close:hover {
-  background: rgba(255, 255, 255, 0.24);
+html.dark .announcement-close:hover,
+html.dark .announcement-action:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 @media (max-width: 768px) {
@@ -287,10 +288,6 @@ html.dark .announcement-close:hover {
   .announcement-fade-enter-active,
   .announcement-fade-leave-active {
     transition: none;
-  }
-
-  .announcement-action:hover {
-    transform: none;
   }
 }
 </style>
