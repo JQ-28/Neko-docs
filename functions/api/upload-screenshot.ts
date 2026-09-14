@@ -1,5 +1,5 @@
 // Cloudflare Pages Function for uploading screenshots to R2
-import { ALLOWED_MIME_TYPES, contentTypeOf } from "../_shared/image-types";
+import { contentTypeOf } from "../_shared/image-types";
 
 export const onRequestPost = async (context) => {
   const { request, env } = context;
@@ -15,9 +15,9 @@ export const onRequestPost = async (context) => {
       });
     }
 
-    // 服务端按扩展名白名单判定，不信任客户端 file.type（可伪造）
+    // 服务端只按扩展名白名单判定，客户端 file.type 可伪造，一律不采信
     const contentType = contentTypeOf(file.name);
-    if (!contentType || !ALLOWED_MIME_TYPES.has(file.type)) {
+    if (!contentType) {
       return new Response(JSON.stringify({ error: '仅支持 JPG、PNG、WebP 格式图片' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }

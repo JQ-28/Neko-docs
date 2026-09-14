@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { copyText, showTip } from "./copy-utils";
 
 interface HomeFeat {
@@ -170,7 +170,11 @@ const FEAT_POOL: HomeFeat[] = [
 ];
 
 function pickRandomFeats(): HomeFeat[] {
-  const shuffled = [...FEAT_POOL].sort(() => Math.random() - 0.5);
+  const shuffled = [...FEAT_POOL];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
   return shuffled.slice(0, FEAT_COUNT);
 }
 
@@ -185,14 +189,19 @@ const feats = ref<HomeFeat[]>(FEAT_POOL.slice(0, FEAT_COUNT));
 const recents = ref<RecentItem[]>([]);
 const entered = ref(false);
 
+let recentAbort: AbortController | undefined;
+
 onMounted(() => {
   // 同步标记 entered：Vue 会在浏览器首绘前 flush 更新，首帧即动画起点，不会先闪一帧原样内容
   entered.value = true;
   feats.value = pickRandomFeats();
+  const controller = new AbortController();
+  recentAbort = controller;
   void (async () => {
     try {
       const response = await fetch("/recent-updates.json", {
         headers: { Accept: "application/json" },
+        signal: controller.signal,
       });
       if (!response.ok) return;
       recents.value = (await response.json()) as RecentItem[];
@@ -200,6 +209,10 @@ onMounted(() => {
       // 构建期无 git 或文件缺失时静默隐藏「最近更新」区块
     }
   })();
+});
+
+onBeforeUnmount(() => {
+  recentAbort?.abort();
 });
 </script>
 

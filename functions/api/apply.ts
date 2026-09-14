@@ -1,4 +1,23 @@
 // Cloudflare Pages Function for handling group application
+const SCREENSHOT_URL_PATTERN = /^(?:\/api\/screenshot\/[\w.-]+|https?:\/\/\S+)$/u;
+const TEXT_LIMITS = {
+  groupName: 100,
+  groupSize: 50,
+  groupAtmosphere: 500,
+  applicantRole: 50,
+  reason: 1000,
+};
+const SUBMISSION_INTERVAL_MS = 60_000;
+const recentSubmissions = new Map<string, number>();
+
+function isDuplicateSubmission(ip: string): boolean {
+  const now = Date.now();
+  if (recentSubmissions.size > 1000) recentSubmissions.clear();
+  const last = recentSubmissions.get(ip);
+  recentSubmissions.set(ip, now);
+  return last !== undefined && now - last < SUBMISSION_INTERVAL_MS;
+}
+
 export const onRequestPost = async (context) => {
   const { request, env } = context;
 
@@ -33,6 +52,36 @@ export const onRequestPost = async (context) => {
     // 群号格式验证
     if (!/^[0-9]{6,11}$/.test(groupNumber)) {
       return new Response(JSON.stringify({ error: '群号格式不正确' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    if (isDuplicateSubmission(ip)) {
+      return new Response(JSON.stringify({ error: '提交太频繁了，喝口水再来' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const textFields: Array<[string, unknown, number]> = [
+      ['群名称', groupName, TEXT_LIMITS.groupName],
+      ['群规模', groupSize, TEXT_LIMITS.groupSize],
+      ['群氛围', groupAtmosphere, TEXT_LIMITS.groupAtmosphere],
+      ['申请身份', applicantRole, TEXT_LIMITS.applicantRole],
+      ['申请理由', reason, TEXT_LIMITS.reason],
+    ];
+    const overlong = textFields.find(([, value, max]) => typeof value === 'string' && value.length > max);
+    if (overlong) {
+      return new Response(JSON.stringify({ error: `${overlong[0]}太长了，请精简一下` }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (screenshotUrl && !SCREENSHOT_URL_PATTERN.test(String(screenshotUrl))) {
+      return new Response(JSON.stringify({ error: '截图地址不合法' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });

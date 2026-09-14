@@ -331,6 +331,8 @@ const router = useRouter();
 let messageId = 0;
 let clearTimer: number | undefined;
 let greetingTimer: number | undefined;
+let routeAbort: AbortController | undefined;
+const eggTimers: number[] = [];
 let voiceTimeout: number | undefined;
 let voiceSilenceTimer: number | undefined;
 let voiceFinal = "";
@@ -491,6 +493,15 @@ const BABABOI_AUDIO = "https://tools.nekodayo.top/images/bababoi.mp3";
 
 const dialogEggs = DIALOG_EGGS as DialogEgg[];
 
+function scheduleEgg(fn: () => void, delay: number): void {
+  const id = window.setTimeout(() => {
+    const index = eggTimers.indexOf(id);
+    if (index >= 0) eggTimers.splice(index, 1);
+    fn();
+  }, delay);
+  eggTimers.push(id);
+}
+
 // 所有可输入文本的聊天框都能触发对话彩蛋：命中就地回复并返回 true，本轮不再走指令路由
 function tryDialogEgg(raw: string): boolean {
   if (raw.length > LONG_TEXT_MAX) {
@@ -504,7 +515,7 @@ function tryDialogEgg(raw: string): boolean {
     pushMessage({ role: "neko", text: pick(BABABOI_LINES), emote: null });
     pushMessage({ role: "neko", text: "", emote: null, image: BABABOI_IMG });
     const audio = new Audio(BABABOI_AUDIO);
-    setTimeout(() => {
+    scheduleEgg(() => {
       audio.play().catch(() => undefined);
     }, 2000);
     markEgg("bababoi");
@@ -514,7 +525,7 @@ function tryDialogEgg(raw: string): boolean {
     pushMessage({ role: "user", text: raw });
     const [first, second] = pick(STILL_HERE_LINES);
     pushMessage({ role: "neko", text: first, emote: "question" });
-    setTimeout(() => pushMessage({ role: "neko", text: second, emote: null }), 2000);
+    scheduleEgg(() => pushMessage({ role: "neko", text: second, emote: null }), 2000);
     markEgg("stillHere");
     return true;
   }
@@ -542,11 +553,15 @@ async function submit(): Promise<void> {
   typing.value = true;
   nextTick(scrollToBottom);
 
+  const controller = new AbortController();
+  routeAbort = controller;
+
   try {
     const resp = await fetch("/api/command-route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query: raw, history }),
+      signal: controller.signal,
     });
     if (!resp.ok) throw new Error(String(resp.status));
     const data = (await resp.json()) as {
@@ -565,11 +580,14 @@ async function submit(): Promise<void> {
     if (results.length > 0) pushMessage({ role: "neko", text: reply || pick(NEKO_HIT_LINES), results });
     else pushMessage({ role: "neko", text: reply || pick(NEKO_MISS_LINES), fallback: true });
   } catch {
+    if (controller.signal.aborted) return;
     typing.value = false;
     // 后端不可用时退回本地匹配，至少还能给出指令卡片
     const local = localMatch(raw);
     if (local.length > 0) pushMessage({ role: "neko", text: pick(NEKO_HIT_LINES), results: local });
     else pushMessage({ role: "neko", text: NEKO_BUSY_LINE, fallback: true });
+  } finally {
+    if (routeAbort === controller) routeAbort = undefined;
   }
 }
 
@@ -1018,6 +1036,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopVoice();
+  routeAbort?.abort();
+  eggTimers.forEach((id) => window.clearTimeout(id));
+  eggTimers.length = 0;
   window.removeEventListener("keydown", onKeydown);
   window.removeEventListener(OPEN_EVENT, openRouter);
   window.removeEventListener("popstate", onPopState);

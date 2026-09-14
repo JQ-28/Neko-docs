@@ -123,7 +123,7 @@ function listenTitleMeow(): Cleanup {
   const baseTitle = document.title;
   let hiddenTimes = 0;
   let resetTimer = 0;
-  return onDocumentEvent("visibilitychange", () => {
+  const cleanup = onDocumentEvent("visibilitychange", () => {
     if (document.hidden) {
       hiddenTimes++;
       return;
@@ -137,6 +137,11 @@ function listenTitleMeow(): Cleanup {
       document.title = baseTitle;
     }, TITLE_MEOW_RESET);
   });
+  return () => {
+    window.clearTimeout(resetTimer);
+    document.title = baseTitle;
+    cleanup();
+  };
 }
 
 /* 猫界捉奸：两个标签页同时开着会互相发现 */

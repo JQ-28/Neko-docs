@@ -7,6 +7,15 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+const ALLOWED_ORIGINS = new Set(["https://docs.nekodayo.top", "https://tools.nekodayo.top"]);
+
+function originRejected(request: Request): boolean {
+  const origin = request.headers.get("Origin");
+  if (!origin || ALLOWED_ORIGINS.has(origin)) return false;
+  return !/^https:\/\/[a-z0-9-]+\.nekodayo-docs\.pages\.dev$/u.test(origin)
+    && !/^http:\/\/localhost(:\d+)?$/u.test(origin);
+}
+
 const ASR_MODEL = "@cf/openai/whisper-large-v3-turbo";
 
 // 30 秒 opus 录音不到 100KB，4MB 上限只是防滥用
@@ -52,7 +61,15 @@ export const onRequestPost = async (context: {
   const { request, env } = context;
 
   if (request.method === "OPTIONS") {
+    if (originRejected(request)) return new Response(null, { status: 403 });
     return new Response(null, { headers: CORS_HEADERS });
+  }
+
+  if (originRejected(request)) {
+    return new Response(JSON.stringify({ ok: false, error: "来源不被允许" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {

@@ -531,6 +531,15 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+const ALLOWED_ORIGINS = new Set(["https://docs.nekodayo.top", "https://tools.nekodayo.top"]);
+
+function originRejected(request: Request): boolean {
+  const origin = request.headers.get("Origin");
+  if (!origin || ALLOWED_ORIGINS.has(origin)) return false;
+  return !/^https:\/\/[a-z0-9-]+\.nekodayo-docs\.pages\.dev$/u.test(origin)
+    && !/^http:\/\/localhost(:\d+)?$/u.test(origin);
+}
+
 const AI_MODEL = "@cf/zai-org/glm-4.7-flash";
 
 type AiResult = { response?: string; choices?: Array<{ message?: { content?: string } }> };
@@ -552,7 +561,15 @@ export const onRequestPost = async (context: {
   const { request, env } = context;
 
   if (request.method === "OPTIONS") {
+    if (originRejected(request)) return new Response(null, { status: 403 });
     return new Response(null, { headers: CORS_HEADERS });
+  }
+
+  if (originRejected(request)) {
+    return new Response(JSON.stringify({ ok: false, error: "来源不被允许" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -610,7 +627,7 @@ export const onRequestPost = async (context: {
     // 历史里被注入过的轮次直接丢弃，避免多轮渐进式洗脑
     const history: Array<{ role: string; content: string }> = [];
     let drift = driftScore(query);
-    for (const item of body.history ?? []) {
+    for (const item of (body.history ?? []).slice(-20)) {
       const text = typeof item?.text === "string" ? item.text.trim() : "";
       if (!text || isInjection(text)) continue;
       const isAssistant = item.role === "assistant";
@@ -652,7 +669,8 @@ export const onRequestPost = async (context: {
     const parsed = extractJson(output);
     const raw = output.replace(/```json|```/gi, "").trim();
     const fallback = parsed || !raw || raw.startsWith("{") ? "" : raw;
-    const reply = guardReply((parsed?.reply ?? fallback).replace(/\s+/g, " ").trim());
+    const replyText = typeof parsed?.reply === "string" ? parsed.reply : fallback;
+    const reply = guardReply(replyText.replace(/\s+/g, " ").trim());
     // 规则命中项优先，其次用模型返回的 link 回填真实条目，防止编造路径
     const hit = parsed?.link ? ROUTE_INDEX.find((entry) => entry.link === parsed.link) : undefined;
     const kbHit = parsed?.link ? KB_PAGES.find((page) => page.link === parsed.link) : undefined;

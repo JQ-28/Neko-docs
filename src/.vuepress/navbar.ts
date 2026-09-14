@@ -7,12 +7,12 @@ export default navbar([
   "/zhiling/",
   {
     text: "注意事项",
-    icon: "/splotch.svg",
+    icon: "/assets/icon/splotch.svg",
     link: "/zhuyi/",
   },
   {
     text: "关于",
-    icon: "/info.svg",
+    icon: "/assets/icon/info.svg",
     link: "/about/",
   }
 

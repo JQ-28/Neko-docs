@@ -62,8 +62,8 @@ const ANNOUNCEMENTS: Announcement[] = [
       "玩得开心，有问题群里喊 neko 喵。",
     showOnce: true,
     actions: [
-      { text: "指令速查", link: "/zhiling/cheatsheet.html", type: "primary" },
-      { text: "在线状态", link: "/zhuangtai.html" },
+      { text: "指令速查", link: "/zhiling/cheatsheet", type: "primary" },
+      { text: "在线状态", link: "/zhuangtai" },
       { text: "我知道了" },
     ],
   },
@@ -96,7 +96,11 @@ function storageOf(announcement: Announcement): Storage {
 }
 
 function hasRead(announcement: Announcement): boolean {
-  return storageOf(announcement).getItem(`${STORAGE_PREFIX}${announcement.id}`) === "true";
+  try {
+    return storageOf(announcement).getItem(`${STORAGE_PREFIX}${announcement.id}`) === "true";
+  } catch {
+    return false;
+  }
 }
 
 const currentAnnouncement = computed<Announcement | null>(() => {
@@ -111,7 +115,11 @@ const currentAnnouncement = computed<Announcement | null>(() => {
 function dismiss(): void {
   const announcement = currentAnnouncement.value;
   if (!announcement) return;
-  storageOf(announcement).setItem(`${STORAGE_PREFIX}${announcement.id}`, "true");
+  try {
+    storageOf(announcement).setItem(`${STORAGE_PREFIX}${announcement.id}`, "true");
+  } catch {
+    /* 存储不可用时仅本次会话内关闭 */
+  }
   dismissedIds.value = [...dismissedIds.value, announcement.id];
 }
 
@@ -141,7 +149,6 @@ onMounted(() => {
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(248, 224, 248, 0.94), rgba(200, 232, 248, 0.94));
   box-shadow: 0 10px 25px rgba(255, 192, 203, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px);
 }
 
 .announcement-head {

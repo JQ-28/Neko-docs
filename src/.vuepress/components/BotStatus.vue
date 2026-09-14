@@ -420,6 +420,7 @@ function stopPolling(): void {
 }
 
 async function load(): Promise<void> {
+  if (refreshing.value) return;
   refreshing.value = true;
   try {
     const response = await fetch(ENDPOINT, { headers: { Accept: "application/json" } });

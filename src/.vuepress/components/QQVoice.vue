@@ -22,7 +22,7 @@
     </div>
     
     <!-- 时长显示 -->
-    <div class="voice-duration">{{ duration }}"</div>
+    <div class="voice-duration">{{ duration }}</div>
     
     <audio ref="audioPlayer" :src="src" @ended="onEnded"></audio>
   </div>
