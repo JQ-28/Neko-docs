@@ -64,11 +64,39 @@ export const DOCS_EGGS: Record<string, string> = {
 };
 
 const DOCS_EGG_HINTS: Record<string, string> = {
-  docsNight: "凌晨 0 点到 5 点之间打开文档站，neko 会陪你一起看",
-  docsSearchNeko: "在文档站搜索框里输入 neko 或 猫",
-  docsEggsSearch: "在文档站搜索框里输入 彩蛋 或 eggs（会直接翻开这本册子）",
+  docsNight: "凌晨 0 点到 5 点之间打开任意一端，neko 会陪你一起看",
+  docsSearchNeko: "在任意一端的搜索框里输入 neko 或 猫",
+  docsEggsSearch: "在任意一端的搜索框里输入 彩蛋 或 eggs（会直接翻开这本册子）",
   docsThemeTen: "在文档站来回切换深色/浅色主题 10 次",
   docsCopyTen: "在文档站连续复制指令 10 次",
+};
+
+// 这些原本只在功能站存在的彩蛋已经能在文档站本地触发，提示改成两端通用的说法
+const LOCAL_TOOL_HINTS: Record<string, string> = {
+  nekoSearch: "在任意一端的搜索框里输入 neko 或 猫",
+  s666: "在任意一端的搜索框里输入 666",
+  moyer: "在任意一端的搜索框里输入 摸鱼 或 上班",
+  s404: "在任意一端的搜索框里输入 404",
+  sMiao: "在任意一端的搜索框里输入 miao 或 喵",
+  shake: "摇晃手机，或在电脑上快速左右甩鼠标 7 个来回",
+  titleMeow: "切到别的标签页再切回来，反复两次",
+  multiTab: "同时开两个 neko 的网页标签",
+  printNeko: "在任意一端按 Ctrl+P 唤出打印",
+  offline: "把网络断掉试试",
+  cinema: "让网页进入全屏（F11 或视频全屏都可以喵）",
+  logoTap: "快速连点左上角的 logo 6 次",
+  logo22: "连点不松劲儿，把 logo 戳到 22 次",
+  idleSleep: "打开网站后什么都不做，等 2 分钟",
+  longPress: "按住任意按钮 3 秒不松手",
+  clearTwice: "在聊天窗口里点一次垃圾桶按钮",
+  copyNeko: "复制 neko 说过的话，累计 3 次（点消息上的复制按钮也算喵）",
+  footerTour: "把聊天窗口底部那排按钮挨个点一遍",
+  explorer: "一次不关网页的情况下，打开 3 个不同的页面",
+  visit3: "连续 3 天都来访问网站（neko 会记得你喵）",
+  monday: "星期一打开网站",
+  thursday: "星期四当天打开疯四彩蛋",
+  onTime: "整点前后 1 分钟内在网站上（11:44-11:46 有特别版喵）",
+  festival: "元旦、春节、中秋等节日当天访问网站",
 };
 
 export const TOOLS_EGG_TIP = "去功能站逛逛就能找到它喵";
@@ -96,7 +124,7 @@ export function closeEggPanel(): void {
 }
 
 export function eggHintOf(id: string): string {
-  return DOCS_EGG_HINTS[id] ?? TOOLS_EGG_TIP;
+  return DOCS_EGG_HINTS[id] ?? LOCAL_TOOL_HINTS[id] ?? TOOLS_EGG_TIP;
 }
 
 export function isDocsEgg(id: string): boolean {

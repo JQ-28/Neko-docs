@@ -61,7 +61,7 @@
           </template>
         </div>
 
-        <p class="egg-foot">在功能站或本站的搜索框里输入「彩蛋」，都能翻开这本册子</p>
+        <p class="egg-foot">在任意一端的搜索框里输入「彩蛋」，都能翻开这本册子</p>
       </div>
     </div>
   </Transition>

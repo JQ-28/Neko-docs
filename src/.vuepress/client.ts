@@ -28,13 +28,25 @@ import {
   openEggPanel,
   showEggTip,
 } from "./components/egg-utils";
+import { initEggEvents, trackPageVisit } from "./components/egg-events";
 
 const COPY_TEXT = "复制代码";
 const TIP_CONTENT = "复制成功";
-const EGG_SEARCH_WORDS = ["彩蛋", "eggs"];
-const NEKO_SEARCH_WORDS = ["neko", "猫"];
 const THEME_FLIP_GOAL = 10;
 const SEARCH_INPUT_CLASS = "search-pro-input";
+// 搜索框关键词与功能站保持一致，同一彩蛋在哪端触发都会同步
+const SEARCH_EGG_WORDS: Array<[string[], string]> = [
+  [["彩蛋", "eggs"], "docsEggsSearch"],
+  [["neko", "猫"], "docsSearchNeko"],
+  [["666"], "s666"],
+  [["摸鱼", "上班"], "moyer"],
+  [["404"], "s404"],
+  [["miao", "喵"], "sMiao"],
+];
+// 搜 neko 同时点亮功能站那颗，做到两端完全一致
+const SEARCH_MIRROR_EGGS: Record<string, string[]> = {
+  docsSearchNeko: ["nekoSearch"],
+};
 const EGG_NAMES: Record<string, string> = { ...TOOLS_EGGS, ...DOCS_EGGS };
 
 function injectCopyButtons(): void {
@@ -91,6 +103,7 @@ export default defineClientConfig({
     let activePath = "";
     let themeFlips = 0;
     let lastDark = false;
+    let cleanupEggEvents: (() => void) | null = null;
 
     function mountCommandCard(command: string): void {
       if (typeof document === "undefined") return;
@@ -121,14 +134,16 @@ export default defineClientConfig({
       if (!target.classList.contains(SEARCH_INPUT_CLASS)) return;
       const keyword = target.value.trim().toLowerCase();
       if (!keyword) return;
-      if (EGG_SEARCH_WORDS.includes(keyword)) {
-        markEgg("docsEggsSearch");
+      const matched = SEARCH_EGG_WORDS.find(([words]) => words.includes(keyword));
+      if (!matched) return;
+      const id = matched[1];
+      markEgg(id);
+      SEARCH_MIRROR_EGGS[id]?.forEach((mirrorId) => markEgg(mirrorId));
+      if (id === "docsEggsSearch") {
         // 收起搜索模态，避免两层弹层叠在一起
         document.querySelector<HTMLButtonElement>(".search-pro-close-button")?.click();
         openEggPanel();
-        return;
       }
-      if (NEKO_SEARCH_WORDS.includes(keyword)) markEgg("docsSearchNeko");
     }
 
     // 深色/浅色切换由主题内部管理，只观察 html 上的 dark 类翻转来计数
@@ -146,6 +161,7 @@ export default defineClientConfig({
       (path) => {
         const command = pageData.value.frontmatter?.command;
         activePath = path;
+        trackPageVisit(path);
         contentObserver?.disconnect();
         contentObserver = null;
         clearCommandCard();
@@ -188,6 +204,7 @@ export default defineClientConfig({
         if (name) showEggTip(`彩蛋发现：${name}（${eggFound.value.size}/${EGG_TOTAL}）`);
       });
       initEggs();
+      cleanupEggEvents = initEggEvents();
 
       document.addEventListener("input", onSearchInput, true);
       lastDark = document.documentElement.classList.contains("dark");
@@ -204,6 +221,7 @@ export default defineClientConfig({
       observer?.disconnect();
       contentObserver?.disconnect();
       themeObserver?.disconnect();
+      cleanupEggEvents?.();
       document.removeEventListener("input", onSearchInput, true);
       clearCommandCard();
     });
