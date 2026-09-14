@@ -1,23 +1,9 @@
 import ClipboardJS from "clipboard";
-import { markEgg } from "../eggs";
 
 const TIP_TITLE = "提示";
 const TIP_TIME = 3000;
 
-// 指令复制彩蛋：累计复制 3 次指令解锁（代码块复制不算）
-const COPY_EGG_KEY = "neko-doc-copy-cmd";
-const COPY_EGG_TARGET = 3;
-
-export function copyText(text: string, countAsEgg = true): Promise<string> {
-  if (countAsEgg) {
-    try {
-      const count = Number(localStorage.getItem(COPY_EGG_KEY) ?? 0) + 1;
-      localStorage.setItem(COPY_EGG_KEY, String(count));
-      if (count >= COPY_EGG_TARGET) markEgg("docCopyCmd");
-    } catch {
-      // 隐私模式等忽略
-    }
-  }
+export function copyText(text: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const btn = document.createElement("div");
     btn.style.display = "none";
