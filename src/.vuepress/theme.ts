@@ -31,7 +31,7 @@ export default hopeTheme({
   navbarLayout: {
     start: ["Brand"],
     center: ["Links"],
-    end: ["NavbarToolsLink", "Repo", "MiaoToggle", "Outlook", "Search"],
+    end: ["NavbarToolsLink", "Repo", "Outlook", "Search"],
   },
   
 
