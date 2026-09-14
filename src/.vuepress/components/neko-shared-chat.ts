@@ -145,7 +145,7 @@ export const DIALOG_EGGS = [
   { egg: 'numberLove', test: /^(520|1314)$/, replies: ['呜哇！数字表白最浪漫了喵…可惜neko是小猫呀！', '1314…neko可以陪你一辈子喵！小鱼干管够的话～'], emote: 'love' },
   { egg: 'hungry', test: /(饿了|好饿|肚子饿)/, replies: HUNGRY_LINES, emote: 'spray' },
   { egg: 'fishFood', test: /^🐟+$/, replies: FISH_EMOJI_LINES, emote: 'nod' },
-  { egg: 'sixSeven', test: /^(67|六七)$/, replies: SIX_SEVEN_LINES, emote: 'sixseven' },
+  { egg: 'sixSeven', test: /67|六七|six\s*seven/i, replies: SIX_SEVEN_LINES, emote: 'sixseven' },
 ];
 
 /* 表情 id → 图床原始文件名；两端共用同一套 id，功能站本地没有的图回落到这里 */

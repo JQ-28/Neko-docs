@@ -58,7 +58,7 @@ export const EGG_HINTS = {
   longText: '在任意聊天输入框里粘贴超过 500 字的长文本',
   fishFood: '在任意聊天框里只发一个 🐟',
   shake: '手机用力摇晃，或电脑上快速左右甩动鼠标 7 个来回',
-  sixSeven: '在任意聊天框里只发 67 或 六七',
+  sixSeven: '在任意聊天框里带上 67、六七 或 six seven',
   bababoi: '在任意聊天框里发 bababoi 或 巴巴博弈',
   longPress: '在功能窗口里长按任意发送按钮（解析/来一张/生成/搜源这类）3 秒不松手',
   titleMeow: '切到别的标签页再切回来 2 次以上',
