@@ -15,5 +15,9 @@ export const SEARCH_MIRROR_EGGS = {
 };
 
 export function matchSearchEgg(keyword) {
-  return SEARCH_EGG_WORDS.find(([words]) => words.includes(keyword))?.[1] ?? "";
+  if (!keyword) return "";
+  const exact = SEARCH_EGG_WORDS.find(([words]) => words.includes(keyword));
+  if (exact) return exact[1];
+  /* 精确没中再看包含，避免「666~」「neko喵」这类误输把彩蛋卡住 */
+  return SEARCH_EGG_WORDS.find(([words]) => words.some((word) => keyword.includes(word)))?.[1] ?? "";
 }

@@ -1,3 +1,4 @@
+import { showTip } from "./copy-utils";
 import { markEgg } from "./egg-utils";
 import { EGG_THRESHOLDS, matchFestival } from "./neko-shared-eggs";
 
@@ -6,6 +7,7 @@ const SLEEP_LOGO_SRC = "/assets/image/nekosleep.webp";
 const CLEAR_BUTTON_SELECTOR = '.neko-head-btn[title="清空聊天记录"]';
 const NEKO_BUBBLE_SELECTOR = ".neko-msg.neko";
 const FOOTER_SELECTOR = ".neko-qq-footer > div";
+const FOOTER_TOUR_KEY = "neko-footer-tour";
 
 const ACCELERATION_THRESHOLD = 34;
 const SHAKE_COOLDOWN = 3000;
@@ -16,6 +18,15 @@ const MOUSE_SWING_WINDOW = 500;
 const LOGO_TAP_GOAL = 6;
 const LOGO_TAP_MAX = 22;
 const LOGO_TAP_RESET = 1500;
+/* 6 次之后每 4 次给一句反馈，跟功能站保持一致，免得戳的人以为没反应 */
+const LOGO_TAP_HINTS: Record<number, string> = {
+  10: "还在戳还在戳…尾巴开始不耐烦了喵！",
+  14: "戳戳戳！neko 头都要被戳扁啦！",
+  18: "再戳尾巴要炸毛了喵！！",
+};
+
+/* 底部工具栏共 6 个按钮，第 0 个是语音输入，提示里写明「除了麦克风」，它不该算数 */
+const FOOTER_TOUR_GOAL = 5;
 
 const IDLE_MS = EGG_THRESHOLDS.idleSleepMs;
 const LONG_PRESS_MS = 3000;
@@ -32,6 +43,8 @@ const PRESENCE_CHANNEL = "neko-presence";
 
 type Cleanup = () => void;
 type WebkitFullscreenDocument = Document & { webkitFullscreenElement?: Element | null };
+/* 标准库类型里没有 iOS 私有的 requestPermission，只能自己补一个 */
+type MotionPermissionEvent = typeof DeviceMotionEvent & { requestPermission?: () => Promise<PermissionState> };
 
 const DAY_MS = 86_400_000;
 
@@ -58,6 +71,25 @@ function onDocumentEvent<K extends keyof DocumentEventMap>(
   return () => document.removeEventListener(type, listener, options);
 }
 
+/* iOS 13+ 默认屏蔽运动传感器，必须先申请，而申请只能在用户手势里发起 */
+function listenMotionPermission(): Cleanup {
+  const motionEvent = window.DeviceMotionEvent as MotionPermissionEvent | undefined;
+  if (typeof motionEvent?.requestPermission !== "function") return () => undefined;
+  let asked = false;
+  const ask = (): void => {
+    if (asked) return;
+    asked = true;
+    void motionEvent.requestPermission?.().catch(() => {
+      /* 用户拒绝就拉倒喵 */
+    });
+  };
+  const cleanups = [
+    onDocumentEvent("pointerdown", ask, { passive: true }),
+    onDocumentEvent("touchstart", ask, { passive: true }),
+  ];
+  return () => cleanups.forEach((cleanup) => cleanup());
+}
+
 /* 摇一摇：手机读重力加速度，电脑端靠鼠标快速左右折返 */
 function listenShake(): Cleanup {
   let lastShake = 0;
@@ -68,6 +100,7 @@ function listenShake(): Cleanup {
     return true;
   };
   const cleanups: Cleanup[] = [
+    listenMotionPermission(),
     onEvent(
       window,
       "devicemotion",
@@ -165,6 +198,10 @@ function listenSystemEggs(): Cleanup {
         markEgg("cinema");
       }
     }),
+    // F11 走的是浏览器 UI 全屏，不派发 fullscreenchange，得单独听按键
+    onDocumentEvent("keydown", (event) => {
+      if (event.key === "F11") markEgg("cinema");
+    }),
   ];
   return () => cleanups.forEach((cleanup) => cleanup());
 }
@@ -185,6 +222,9 @@ function listenLogoTap(): Cleanup {
     else if (taps >= LOGO_TAP_MAX) {
       taps = 0;
       markEgg("logo22");
+    } else {
+      const hint = LOGO_TAP_HINTS[taps];
+      if (hint) showTip(hint);
     }
   });
   return () => {
@@ -275,9 +315,18 @@ function listenCopyNeko(): Cleanup {
   return () => cleanups.forEach((cleanup) => cleanup());
 }
 
-/* 全按钮巡礼：聊天窗口底部那排工具按钮挨个点一遍 */
+/* 全按钮巡礼：聊天窗口底部那排工具按钮（麦克风除外）挨个点一遍 */
+function readTouredFooterIndexes(): Set<number> {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(FOOTER_TOUR_KEY) ?? "[]");
+    return new Set(Array.isArray(stored) ? stored.filter((n): n is number => typeof n === "number") : []);
+  } catch {
+    return new Set<number>();
+  }
+}
+
 function listenFooterTour(): Cleanup {
-  const tapped = new Set<number>();
+  const tapped = readTouredFooterIndexes();
   return onDocumentEvent("click", (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
@@ -285,9 +334,16 @@ function listenFooterTour(): Cleanup {
     const parent = item?.parentElement;
     if (!item || !parent) return;
     const index = Array.from(parent.children).indexOf(item);
-    if (index < 0) return;
+    // 跳过麦克风，且进度跨会话保留，凑满 5 个才算数
+    if (index <= 0 || tapped.has(index)) return;
     tapped.add(index);
-    if (tapped.size >= parent.children.length) markEgg("footerTour");
+    try {
+      localStorage.setItem(FOOTER_TOUR_KEY, JSON.stringify([...tapped]));
+    } catch {
+      /* 隐私模式等存储异常静默跳过 */
+    }
+    if (tapped.size >= FOOTER_TOUR_GOAL) markEgg("footerTour");
+    else showTip(`这个按钮戳到啦（${tapped.size}/${FOOTER_TOUR_GOAL} 喵）`);
   });
 }
 
@@ -319,8 +375,8 @@ function trackVisitStreak(): void {
 function checkClockEggs(): void {
   const now = new Date();
   const day = now.getDay();
+  // thursday 是功能站独有的（得打开疯狂星期四），文档站不跟着蹭
   if (day === 1) markEgg("monday");
-  if (day === 4) markEgg("thursday");
   const minutes = now.getMinutes();
   if (minutes <= 1 || (now.getHours() === 11 && minutes >= 44 && minutes <= 46)) markEgg("onTime");
   if (matchFestival(now)) markEgg("festival");

@@ -19,7 +19,6 @@ import EggCollection from "./components/EggCollection.vue";
 import {
   EGGS,
   EGG_TOTAL,
-  countEggCopy,
   eggFound,
   initEggs,
   markEgg,
@@ -47,10 +46,7 @@ function injectCopyButtons(): void {
       btn.textContent = COPY_TEXT;
       btn.addEventListener("click", () => {
         copyText(el.textContent ?? "")
-          .then(() => {
-            showTip(TIP_CONTENT);
-            countEggCopy();
-          })
+          .then(() => showTip(TIP_CONTENT))
           .catch(() => showTip("复制失败"));
       });
       el.parentElement?.appendChild(btn);

@@ -140,12 +140,12 @@ export const DIALOG_EGGS = [
   { egg: 'scolded', test: /(笨蛋|蠢猫|没用|垃圾|讨厌你|骂我)/, replies: ['呜…被骂了…neko会记仇的喵！（记在猫砂盆里）', '喵？！neko做错了什么呀…尾巴都耷拉了…', '凶什么凶喵！再凶就挠你！（亮爪子）'], emote: 'angry' },
   { egg: 'sing', test: /(唱歌|来一首|唱首歌)/, replies: SING_LINES, emote: 'laugh' },
   { egg: 'joke', test: /(讲个笑话|说个笑话|来个笑话|冷笑话)/, replies: JOKE_LINES, emote: 'popcorn' },
-  { egg: 'soulAsk', test: /(neko是猫吗|你是AI吗|你是机器人吗|你是真人吗)/i, replies: AI_QUESTION_LINES, emote: 'question' },
-  { egg: 'jail996', test: /996/, replies: JAIL_996_LINES, emote: 'jail' },
+  { egg: 'soulAsk', test: /(是猫吗|你是AI吗|你是机器人吗|你是真人吗)/i, replies: AI_QUESTION_LINES, emote: 'question' },
+  { egg: 'jail996', test: /(^|[^0-9])996([^0-9]|$)/, replies: JAIL_996_LINES, emote: 'jail' },
   { egg: 'numberLove', test: /^(520|1314)$/, replies: ['呜哇！数字表白最浪漫了喵…可惜neko是小猫呀！', '1314…neko可以陪你一辈子喵！小鱼干管够的话～'], emote: 'love' },
   { egg: 'hungry', test: /(饿了|好饿|肚子饿)/, replies: HUNGRY_LINES, emote: 'spray' },
   { egg: 'fishFood', test: /^🐟+$/, replies: FISH_EMOJI_LINES, emote: 'nod' },
-  { egg: 'sixSeven', test: /67|六七|six\s*seven/i, replies: SIX_SEVEN_LINES, emote: 'sixseven' },
+  { egg: 'sixSeven', test: /(^|[^0-9])67([^0-9]|$)|六七|six\s*seven/i, replies: SIX_SEVEN_LINES, emote: 'sixseven' },
 ];
 
 /* 表情 id → 图床原始文件名；两端共用同一套 id，功能站本地没有的图回落到这里 */

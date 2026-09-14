@@ -1,5 +1,7 @@
 import ClipboardJS from "clipboard";
 
+import { countEggCopy } from "./egg-utils";
+
 const TIP_TITLE = "提示";
 const TIP_TIME = 3000;
 
@@ -12,6 +14,8 @@ export function copyText(text: string): Promise<string> {
     cli.on("success", () => {
       cli.destroy();
       btn.remove();
+      // 复制狂魔统一在这里计数，各个复制入口不必各自记得加一次
+      countEggCopy();
       resolve(text);
     });
     cli.on("error", (e) => {
