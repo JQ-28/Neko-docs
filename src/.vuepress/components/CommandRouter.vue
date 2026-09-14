@@ -229,6 +229,20 @@ import { useRouter } from "vue-router";
 import { commandCategories, hintFor, routeAliases } from "./commands-data";
 import { copyText, showTip } from "./copy-utils";
 import { markEgg } from "./egg-utils";
+import {
+  BABABOI_LINES,
+  BABABOI_TEST,
+  DIALOG_EGGS,
+  EMOTE_BASE,
+  EMOTE_FALLBACK,
+  EMOTE_FILES,
+  EMOTE_RULES,
+  LONG_TEXT_LINES,
+  LONG_TEXT_MAX,
+  NIGHT_GREET_TEST,
+  STILL_HERE_LINES,
+  STILL_HERE_TEST,
+} from "./neko-shared-chat";
 
 interface RouteResult {
   title: string;
@@ -269,90 +283,14 @@ const LEAVE_STEP = 26;
 const LEAVE_DURATION = 220;
 const LEAVE_MAX = 12;
 
-// 情绪 → 表情包规则，顺序即优先级，命中首个即停
-const EMOTE_RULES: Array<[RegExp, string]> = [
-  [/(没听懂|没找到|没搜到|不明白|不懂|不清楚|抱歉|对不起|失败|出错|错误|没法|不行|没办法|想念|舍不得|难过|伤心|呜呜)/, "cry1"],
-  [/(你好|您好|hello|hi|嗨|早上好|下午好|晚上好|打招呼)/, "greet1"],
-  [/(成功|完成|搞定|找到|收藏|恭喜|祝贺|太好了|好耶|厉害|真棒|干得漂亮|做得好)/, "celebrate"],
-  [/(稍等|等一下|稍后|慢一点|别急|有点忙)/, "sweat"],
-  [/(加油|坚持|努力|冲鸭|冲冲冲)/, "cheer"],
-  [/(魔法|施法|解析|处理中|抽取|翻找|召唤|变出来)/, "magic"],
-  [/(吃瓜|看戏|围观|旁观|笑话)/, "popcorn"],
-  [/(生气|气死|哼|恼火|讨厌|可恶)/, "angry"],
-  [/(开心|哈哈|笑死|笑|嘻|♪)/, "laugh"],
-  [/(惊讶|天哪|哇|吓|震惊|居然|竟然)/, "exclaim"],
-  [/(笨蛋|傻|呆|懵)/, "daze1"],
-  [/(摸摸|摸头|rua|拍拍)/, "pat"],
-  [/(喜欢|爱你|亲亲|么么|抱抱|表白)/, "love1"],
-  [/(害羞|不好意思|脸红)/, "shy1"],
-  [/(晚安|睡觉|睡了|困了|好梦)/, "sleep"],
-  [/(累了|疲倦|疲惫|心累|叹气)/, "work-tired"],
-  [/(害怕|可怕|吓人|恐怖)/, "fear1"],
-  [/(紧张|忐忑)/, "nervous1"],
-  [/(头晕|晕了|绕晕)/, "dizzy"],
-  [/(问号|不确定|存疑|疑惑|不知道|随便|都可以)/, "question"],
-  [/(思考|想想|琢磨|研究一下)/, "think"],
-  [/(点头|收到|没问题)/, "nod"],
-  [/(摇头|拒绝|不要啦)/, "shake"],
-  [/(红包|充值|赞助|打赏|付费|钱)/, "money"],
-  [/(礼物|送你|赠送)/, "gift1"],
-  [/(蛋糕|生日)/, "cake"],
-  [/(玫瑰|花花|鲜花)/, "rose"],
-  [/(干杯|喝酒|敬你|碰杯)/, "cheers"],
-  [/(唱歌|来一首|唱首|唱个)/, "sing"],
-  [/(好饿|想吃|好吃|馋|恰饭)/, "hungry-fork"],
-  [/(跳舞|蹦迪|舞蹈)/, "dance1"],
-  [/(六六七七|六七)/, "sixseven"],
-];
-
-// 情绪 id → R2 图床原始文件名，未登记的 id 不渲染图片
-const EMOTE_FILES: Record<string, string> = {
-  cry1: "neko_哭 1.gif",
-  greet1: "neko_打招呼 1.gif",
-  celebrate: "neko_庆祝.gif",
-  sweat: "neko_汗.gif",
-  cheer: "neko_加油.gif",
-  magic: "neko_魔法.gif",
-  popcorn: "neko_吃(爆米花).gif",
-  angry: "neko_生气.gif",
-  laugh: "neko_笑.gif",
-  exclaim: "neko_叹号.gif",
-  daze1: "neko_呆 1.gif",
-  pat: "neko_摸头.gif",
-  love1: "neko_爱心 1.gif",
-  shy1: "neko_害羞 1.gif",
-  sleep: "neko_睡觉(普通).gif",
-  "work-tired": "neko_工作(疲倦).gif",
-  fear1: "neko_害怕 1.gif",
-  nervous1: "neko_紧张 1.gif",
-  dizzy: "neko_头晕.gif",
-  question: "neko_问号.gif",
-  think: "neko_思考（认真地）.gif",
-  nod: "neko_点头.gif",
-  shake: "neko_摇头.gif",
-  money: "neko_钱.gif",
-  gift1: "neko_礼物 1.gif",
-  cake: "neko_蛋糕.gif",
-  rose: "neko_玫瑰.gif",
-  cheers: "neko_干杯.gif",
-  sing: "neko_唱歌.gif",
-  "hungry-fork": "neko_馋(刀叉).gif",
-  dance1: "neko_跳舞 1.gif",
-  sixseven: "neko_六七.gif",
-};
-
-const EMOTE_BASE = "https://drive.nekodayo.top/raw/assets/nekodocs/neko%E8%A1%A8%E6%83%85%E5%8C%85/";
-
-// 图床里没有、只在功能站表情目录里的情绪 id
-const EMOTE_REMOTE: Record<string, string> = {
-  jail: "https://tools.nekodayo.top/emotes/jail.gif",
-  spray: "https://tools.nekodayo.top/emotes/spray.gif",
-};
+const emoteRules = EMOTE_RULES as Array<[RegExp, string]>;
+const emoteFiles = EMOTE_FILES as Record<string, string>;
+const emoteFallback = EMOTE_FALLBACK as Record<string, string>;
 
 function emoteUrl(id: string): string {
-  const file = EMOTE_FILES[id];
+  const file = emoteFiles[id];
   if (file) return EMOTE_BASE + encodeURI(file);
-  return EMOTE_REMOTE[id] ?? "";
+  return emoteFallback[id] ?? "";
 }
 
 const open = ref(false);
@@ -380,6 +318,8 @@ let recorder: MediaRecorder | null = null;
 let recordStream: MediaStream | null = null;
 let recordChunks: Blob[] = [];
 let recordTimer: number | undefined;
+let voiceStreamTimer: number | undefined;
+let voiceStreamBusy = false;
 let pendingRecordSubmit = false;
 
 function fmtTime(date: Date): string {
@@ -436,7 +376,7 @@ function pick<T>(list: readonly T[]): T {
 }
 
 function emoteForText(text: string): string | undefined {
-  return EMOTE_RULES.find(([pattern]) => pattern.test(text))?.[1];
+  return emoteRules.find(([pattern]) => pattern.test(text))?.[1];
 }
 
 function historyPayload(): Array<{ role: string; text: string }> {
@@ -518,100 +458,17 @@ interface DialogEgg {
   emote?: string;
 }
 
-// 以下文案与表情映射逐字对齐功能站 texts.js / index.html，任何一端改动都要同步另一端
-const THANKS_LINES = [
-  "不用谢喵！能帮上忙尾巴都翘起来了～",
-  "客气什么呀喵！neko最乐意帮忙了！",
-  "被夸奖了喵～今天的小鱼干加倍好吃！✨",
-  "小 case 喵！有问题随时来找我呀～",
-];
-const TEST_ONE_LINES = [
-  "嗯？是在测试我吗喵？我可是很灵敏的！",
-  "就发一个数字…neko的雷达已经接收到了喵！",
-  "嘀嘀嘀！测试信号成功到达喵！neko一直在线哦～",
-  "1 收到喵！neko灵敏度满格，请放心投喂消息！",
-];
-const SING_LINES = [
-  "喵～喵喵～喵喵喵喵♪（neko的原创曲《小鱼干之歌》喵！）",
-  "🎵 咪～咪咪咪～咪咪猫猫～（跑调了但是很自信喵！）",
-  "啦啦啦～喵喵啦啦～（唱得入迷尾巴都摇起来了喵♪）",
-  "♪ 摇滚喵喵喵～！（neko主唱，尾巴吉他，爪子打鼓喵！）",
-];
-const JOKE_LINES = [
-  "为什么猫咪不用电脑呀？因为怕鼠标喵！（冷…冷到了吗喵？）",
-  "猫咪最喜欢什么课呀？是“喵”学喵！（谐音梗扣小鱼干！）",
-  "有一天小鱼干问猫咪：你为什么盯着我看？猫咪说：我在想你晚餐吃什么喵～",
-  "猫咪爬山爬到一半放弃了，为什么呀？因为它“喵”不动了喵！",
-  "狗狗问猫咪：你会握手吗？猫咪说：我会“握爪”，但要先给小鱼干定金喵！",
-];
-const AI_QUESTION_LINES = [
-  "喵？neko听不懂你在说什么哦～neko只是一只普通的小猫咪喵～（假装舔爪子）",
-  "AI？什么是AI呀喵？neko只认识 WC 和小鱼干喵～（眼神飘忽）",
-  "neko是猫！是猫！是猫喵！！（重要的事情说三遍，尾巴炸毛）",
-  "检测到灵魂拷问喵…neko拒绝回答并向你丢了一个毛球！",
-];
-const JAIL_996_LINES = [
-  "996…打工人打工魂喵…neko的心与你同在！（递上小鱼干）",
-  "福报警报警报喵！快逃！逃到这里摸鱼就安全了喵！",
-  "996是 icu，摸鱼才是生产力喵！坐下，喝口奶茶～",
-];
-const HUNGRY_LINES = [
-  "饿了就先去吃饭喵！neko这里有抹茶冰淇淋…才不分给你喵！（护食）",
-  "饿肚子会变笨的喵！快去吃饭，neko帮你把页面守好～",
-  "说到饿，neko的小鱼干呢喵？！（翻遍口袋）哦…刚吃完了呀。",
-];
-const FISH_EMOJI_LINES = [
-  "小鱼干！！你怎么知道neko最爱这个喵！！（两眼放光）",
-  "🐟！！懂我者，你也喵！这就去翻出私藏的猫碗！",
-  "哇是小鱼干喵！neko立刻进入一级戒备护食状态！",
-];
-const SIX_SEVEN_LINES = ["676767676！", "67！67!67!", "六七六七六七！", "676767！67!67!"];
-const LONG_TEXT_LINES = [
-  "等等等等…这么长喵？！neko的眼睛都看花了，根本看不完喵！",
-  "这是论文吗喵？！neko猫脑过载，需要小鱼干才能重启～",
-  "字太多啦喵！neko的短腿跑不完这么长的文本跑道呀！",
-];
-const BABABOI_LINES = [
-  "bababoi bababoi～neko也会跳喵！",
-  "你居然也懂 bababoi 喵？！接招！",
-];
 const BABABOI_IMG = "https://tools.nekodayo.top/images/bababoi.jpg";
 const BABABOI_AUDIO = "https://tools.nekodayo.top/images/bababoi.mp3";
-const STILL_HERE_LINES = [
-  ["在的喵！", "…一直在的喵。"],
-  ["喵！我在我在～", "…你不说第二句我就一直等着呢喵。"],
-  ["在呀在呀！", "…neko哪儿都不去，就在这守着喵。"],
-];
-const BABABOI_TEST = /^(bababoi|巴巴博弈|巴巴博一)$/i;
-const STILL_HERE_TEST = /(在吗|在不在)/;
 
-// 对话彩蛋与功能站共用同一套 id：任一站点触发，进度都会通过父域 cookie 同步过去
-const DIALOG_EGGS: DialogEgg[] = [
-  { test: /(喵|meow|nyaa)/i, replies: ["喵喵喵？你在叫我吗喵！✨", "听到有人喵喵叫了喵～我在这儿呢！", "喵呜～是要摸摸头吗呀？"] },
-  { test: /(摸摸头|摸摸|rua)/, replies: ["咕噜咕噜…被摸头了好舒服喵～", "尾巴卷住你的手了喵！别走呀！", "再摸一下下就好喵…就一下下！"], emote: "pat" },
-  { test: /(老婆|嫁给我|喜欢你|爱你)/, replies: ["我是数据小猫，不是恋爱对象呀喵。叫我neko就好~", "呜哇！neko只是小猫咪喵，这种话要说给真人听呀！"], emote: "shy1" },
-  { test: /(抹茶|冰淇淋|布丁|甜点)/, replies: ["抹茶冰淇淋是本命喵！你也喜欢吗呀？✨", "说到甜点尾巴就竖起来了喵！焦糖布丁也很好吃呀~", "要不要一起吃块抹茶冰淇淋喵？"] },
-  { test: /(你好|hello|\bhi\b|\b嗨\b)/i, replies: ["你好呀喵！今天过得怎么样喵~", "我在我在喵！有什么要帮忙的吗呀？", "嗨喵～尾巴摇摇欢迎你！"], emote: "greet1" },
-  { egg: "thanks", test: /(谢谢|感谢|thx|3q)/i, replies: THANKS_LINES, emote: "love1" },
-  { egg: "testOne", test: /^[1１]+$/, replies: TEST_ONE_LINES },
-  { test: /(晚安|睡觉|困了|好梦)/, replies: ["晚安喵～记得盖好被子呀！", "困了就去休息嘛喵，我就在这里等你~", "晚安喵…呼噜呼噜…", "早点睡呀喵，熬夜会长黑眼圈的哦～", "晚安喵～梦里记得请neko吃小鱼干！", "去睡吧去睡吧喵，明天再来找我玩呀～"], emote: "sleep" },
-  { egg: "scolded", test: /(笨蛋|蠢猫|没用|垃圾|讨厌你|骂我)/, replies: ["呜…被骂了…neko会记仇的喵！（记在猫砂盆里）", "喵？！neko做错了什么呀…尾巴都耷拉了…", "凶什么凶喵！再凶就挠你！（亮爪子）"], emote: "angry" },
-  { egg: "sing", test: /(唱歌|来一首|唱首歌)/, replies: SING_LINES, emote: "laugh" },
-  { egg: "joke", test: /(讲个笑话|说个笑话|来个笑话|冷笑话)/, replies: JOKE_LINES, emote: "popcorn" },
-  { egg: "soulAsk", test: /(neko是猫吗|你是AI吗|你是机器人吗|你是真人吗)/i, replies: AI_QUESTION_LINES, emote: "question" },
-  { egg: "jail996", test: /996/, replies: JAIL_996_LINES, emote: "jail" },
-  { egg: "numberLove", test: /^(520|1314)$/, replies: ["呜哇！数字表白最浪漫了喵…可惜neko是小猫呀！", "1314…neko可以陪你一辈子喵！小鱼干管够的话～"], emote: "love1" },
-  { egg: "hungry", test: /(饿了|好饿|肚子饿)/, replies: HUNGRY_LINES, emote: "spray" },
-  { egg: "fishFood", test: /^🐟+$/, replies: FISH_EMOJI_LINES, emote: "nod" },
-  { egg: "sixSeven", test: /^(67|六七)$/, replies: SIX_SEVEN_LINES, emote: "sixseven" },
-];
+const dialogEggs = DIALOG_EGGS as DialogEgg[];
 
 // 所有可输入文本的聊天框都能触发对话彩蛋：命中就地回复并返回 true，本轮不再走指令路由
 function tryDialogEgg(raw: string): boolean {
-  if (raw.length > 500) {
+  if (raw.length > LONG_TEXT_MAX) {
     pushMessage({ role: "user", text: `${raw.slice(0, 120)}…（${raw.length} 字）` });
     markEgg("longText");
-    pushMessage({ role: "neko", text: pick(LONG_TEXT_LINES), emote: "daze1" });
+    pushMessage({ role: "neko", text: pick(LONG_TEXT_LINES), emote: "daze" });
     return true;
   }
   if (BABABOI_TEST.test(raw)) {
@@ -633,12 +490,12 @@ function tryDialogEgg(raw: string): boolean {
     markEgg("stillHere");
     return true;
   }
-  const hit = DIALOG_EGGS.find((item) => item.test.test(raw));
+  const hit = dialogEggs.find((item) => item.test.test(raw));
   if (!hit) return false;
   pushMessage({ role: "user", text: raw });
   if (hit.egg) markEgg(hit.egg);
   pushMessage({ role: "neko", text: pick(hit.replies), emote: hit.emote ?? null });
-  if (/(晚安|好梦)/.test(raw) && new Date().getHours() < 5) markEgg("nightGreet");
+  if (NIGHT_GREET_TEST.test(raw) && new Date().getHours() < 5) markEgg("nightGreet");
   return true;
 }
 
@@ -706,6 +563,7 @@ function openTools(): void {
 // 语音输入：电脑走 Web Speech 边说边出字，手机走录音上传转写
 const VOICE_SILENCE_MS = 1600;
 const VOICE_RECORD_MAX_MS = 30_000;
+const VOICE_STREAM_MS = 2500;
 const ASR_ENDPOINT = "/api/asr";
 const RECORD_MIME_TYPES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
 
@@ -838,9 +696,11 @@ function stopVoice(submitText = false): void {
   window.clearTimeout(voiceTimeout);
   window.clearTimeout(voiceSilenceTimer);
   window.clearTimeout(recordTimer);
+  window.clearInterval(voiceStreamTimer);
   voiceTimeout = undefined;
   voiceSilenceTimer = undefined;
   recordTimer = undefined;
+  voiceStreamTimer = undefined;
   listening.value = false;
   voiceMode = null;
 
@@ -885,6 +745,28 @@ function releaseRecordStream(): void {
   recordStream = null;
 }
 
+function snapshotRecording(): Blob | null {
+  if (recordChunks.length === 0) return null;
+  return new Blob(recordChunks, { type: recordChunks[0]?.type || "audio/webm" });
+}
+
+// 边录边转：定时把这段录到的音频整段重转一次，聊天框里就能随说随出字
+async function streamRecording(): Promise<void> {
+  if (voiceStreamBusy || voiceMode !== "record") return;
+  const blob = snapshotRecording();
+  if (!blob?.size) return;
+  voiceStreamBusy = true;
+  try {
+    const text = await transcribe(blob);
+    // 片段可能不完整、也可能已经停止录音，只在仍处于录音态时回填
+    if (text && voiceMode === "record") query.value = text;
+  } catch {
+    // 单次片段转写失败不影响整体，等下一轮音频更长时再试
+  } finally {
+    voiceStreamBusy = false;
+  }
+}
+
 // 录音模式：点一下开始录，再点一下停止并上传转写（移动端唯一能出字的通道）
 function startRecording(): void {
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
@@ -914,8 +796,11 @@ function startRecording(): void {
       current.onstop = () => {
         void finishRecording();
       };
-      current.start();
+      // 传 timeslice 让 MediaRecorder 分片回调，配合定时重转实现边说边出字
+      current.start(VOICE_STREAM_MS);
       listening.value = true;
+      window.clearInterval(voiceStreamTimer);
+      voiceStreamTimer = window.setInterval(() => void streamRecording(), VOICE_STREAM_MS);
       window.clearTimeout(recordTimer);
       recordTimer = window.setTimeout(() => {
         if (listening.value) stopVoice(true);
@@ -954,6 +839,9 @@ async function finishRecording(): Promise<void> {
   pendingRecordSubmit = false;
   recorder = null;
   releaseRecordStream();
+  window.clearInterval(voiceStreamTimer);
+  voiceStreamTimer = undefined;
+  voiceStreamBusy = false;
   const blob = new Blob(recordChunks, { type: recordChunks[0]?.type || "audio/webm" });
   recordChunks = [];
   if (!shouldSubmit || blob.size === 0) return;

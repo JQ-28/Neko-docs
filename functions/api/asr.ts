@@ -13,9 +13,9 @@ const ASR_MODEL = "@cf/openai/whisper-large-v3-turbo";
 const MAX_AUDIO_LENGTH = 4_000_000;
 const MAX_TEXT_LENGTH = 300;
 
-// 简易限流：单实例内按 IP 每分钟 10 次
+// 简易限流：单实例内按 IP 每分钟 30 次（移动端边录边转每 2.5 秒一次，上限留足余量）
 const RATE_LIMIT: Record<string, { count: number; resetAt: number }> = {};
-const RATE_MAX = 10;
+const RATE_MAX = 30;
 const RATE_WINDOW = 60_000;
 const RATE_ENTRIES_MAX = 1_000;
 

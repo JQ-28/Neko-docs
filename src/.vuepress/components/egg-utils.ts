@@ -1,108 +1,12 @@
 import { ref } from "vue";
 
+import { EGG_HINTS, EGG_TIP, EGGS } from "./neko-shared-eggs";
+
 const COOKIE_KEY = "neko-eggs";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const COOKIE_ROOT_DOMAIN = "nekodayo.top";
 
-export const TOOLS_EGGS: Record<string, string> = {
-  night: "深夜来访",
-  logoTap: "连点 logo",
-  nekoSearch: "搜索 neko",
-  clearTwice: "清空撒娇",
-  thursday: "疯四正日子",
-  idleSleep: "打瞌睡的neko",
-  themeTen: "换装狂魔",
-  dlTen: "下载达人",
-  logo22: "戳穿 logo",
-  monday: "周一综合征",
-  onTime: "整点报时",
-  festival: "节日问候",
-  s666: "搜索 666",
-  moyer: "摸鱼倒计时",
-  nightGreet: "深夜晚安",
-  visit3: "一日不见",
-  fabingNeko: "对neko发病",
-  explorer: "到处逛逛",
-  eggAll: "全彩蛋达成",
-  thanks: "道谢的乖孩子",
-  testOne: "灵敏测试",
-  stillHere: "在的喵",
-  s404: "搜索 404",
-  sMiao: "搜索喵叫",
-  healthPig: "猪还是人",
-  newsFan: "资讯达人",
-  randPick: "选择困难晚期",
-  accentTen: "彩虹收藏家",
-  scolded: "反击的neko",
-  sing: "neko的歌单",
-  joke: "冷笑话大师",
-  soulAsk: "灵魂拷问",
-  jail996: "打工魂共鸣",
-  numberLove: "数字表白",
-  hungry: "馋猫护食",
-  longText: "论文警告",
-  fishFood: "小鱼干投喂",
-  shake: "摇一摇",
-  sixSeven: "六七接头",
-  longPress: "长按感应",
-  titleMeow: "标题栏喵叫",
-  offline: "云端猫消失",
-  footerTour: "全按钮巡礼",
-  copyNeko: "偷学台词",
-  multiTab: "猫界捉奸",
-  printNeko: "neko海报",
-  cinema: "影院模式",
-  bababoi: "bababoi!",
-};
-
-export const DOCS_EGGS: Record<string, string> = {
-  docsNight: "文档站夜读",
-  docsSearchNeko: "搜索框喊猫",
-  docsEggsSearch: "抽屉里的册子",
-  docsThemeTen: "换装狂魔·文档版",
-  docsCopyTen: "复制狂魔·文档版",
-};
-
-const DOCS_EGG_HINTS: Record<string, string> = {
-  docsNight: "凌晨 0 点到 5 点之间打开任意一端，neko 会陪你一起看",
-  docsSearchNeko: "在任意一端的搜索框里输入 neko 或 猫",
-  docsEggsSearch: "在任意一端的搜索框里输入 彩蛋 或 eggs（会直接翻开这本册子）",
-  docsThemeTen: "在文档站来回切换深色/浅色主题 10 次",
-  docsCopyTen: "在文档站连续复制指令 10 次",
-};
-
-/* 彩蛋已两端统一，收集册共用这一份名单，不再分站点 */
-export const EGGS: Record<string, string> = { ...TOOLS_EGGS, ...DOCS_EGGS };
-
-// 这些原本只在功能站存在的彩蛋已经能在文档站本地触发，提示改成两端通用的说法
-const LOCAL_TOOL_HINTS: Record<string, string> = {
-  nekoSearch: "在任意一端的搜索框里输入 neko 或 猫",
-  s666: "在任意一端的搜索框里输入 666",
-  moyer: "在任意一端的搜索框里输入 摸鱼 或 上班",
-  s404: "在任意一端的搜索框里输入 404",
-  sMiao: "在任意一端的搜索框里输入 miao 或 喵",
-  shake: "摇晃手机，或在电脑上快速左右甩鼠标 7 个来回",
-  titleMeow: "切到别的标签页再切回来，反复两次",
-  multiTab: "同时开两个 neko 的网页标签",
-  printNeko: "在任意一端按 Ctrl+P 唤出打印",
-  offline: "把网络断掉试试",
-  cinema: "让网页进入全屏（F11 或视频全屏都可以喵）",
-  logoTap: "快速连点左上角的 logo 6 次",
-  logo22: "连点不松劲儿，把 logo 戳到 22 次",
-  idleSleep: "打开网站后什么都不做，等 2 分钟",
-  longPress: "按住任意按钮 3 秒不松手",
-  clearTwice: "在聊天窗口里点一次垃圾桶按钮",
-  copyNeko: "复制 neko 说过的话，累计 3 次（点消息上的复制按钮也算喵）",
-  footerTour: "把聊天窗口底部那排按钮挨个点一遍",
-  explorer: "一次不关网页的情况下，打开 3 个不同的页面",
-  visit3: "连续 3 天都来访问网站（neko 会记得你喵）",
-  monday: "星期一打开网站",
-  thursday: "星期四当天打开疯四彩蛋",
-  onTime: "整点前后 1 分钟内在网站上（11:44-11:46 有特别版喵）",
-  festival: "元旦、春节、中秋等节日当天访问网站",
-};
-
-export const TOOLS_EGG_TIP = "在任意一端多逛逛就能找到它喵";
+export { EGGS };
 
 export const EGG_TOTAL = Object.keys(EGGS).length;
 
@@ -126,8 +30,10 @@ export function closeEggPanel(): void {
   eggPanelOpen.value = false;
 }
 
+const hints = EGG_HINTS as Record<string, string>;
+
 export function eggHintOf(id: string): string {
-  return DOCS_EGG_HINTS[id] ?? LOCAL_TOOL_HINTS[id] ?? TOOLS_EGG_TIP;
+  return hints[id] ?? EGG_TIP;
 }
 
 const EGG_TIP_ROOT_ID = "neko-egg-tips";

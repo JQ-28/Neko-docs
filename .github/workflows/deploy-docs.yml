@@ -17,8 +17,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # 如果你文档需要 Git 子模块，取消注释下一行
-          # submodules: true
+          # 共享层 neko-shared 以子模块形式挂载，构建前需一并拉取
+          submodules: true
 
 
 

@@ -73,15 +73,12 @@ import {
   eggPanelOpen,
   showEggTip,
 } from "./egg-utils";
+import { EGG_POKE_1, EGG_POKE_2, EGG_REVEAL_TIP } from "./neko-shared-eggs";
 
 interface EggItem {
   id: string;
   name: string;
 }
-
-const EGG_POKE_QUIPS = ["嗯？戳我干嘛喵？", "喵？被你戳中了", "戳戳…这名字很好戳吗喵？"];
-const EGG_POKE_HINTS = ["诶~真的要告诉你吗喵…", "都这么想知道呀喵…", "诶~真的要告诉你呀……好吧喵"];
-const EGG_REVEAL_TIP = "好啦好啦，悄悄告诉你喵…";
 
 function pick(lines: string[]): string {
   return lines[Math.floor(Math.random() * lines.length)] ?? "";
@@ -113,8 +110,8 @@ function reveal(id: string): void {
   const pokes = (pokeCounts.get(id) ?? 0) + 1;
   pokeCounts.set(id, pokes);
   shaking.value = { id, token: ++shakeToken };
-  if (pokes === 2) showEggTip(pick(EGG_POKE_QUIPS));
-  else if (pokes === 3) showEggTip(pick(EGG_POKE_HINTS));
+  if (pokes === 2) showEggTip(pick(EGG_POKE_1));
+  else if (pokes === 3) showEggTip(pick(EGG_POKE_2));
   else if (pokes >= 4) {
     revealed.value = new Set([...revealed.value, id]);
     showEggTip(EGG_REVEAL_TIP);

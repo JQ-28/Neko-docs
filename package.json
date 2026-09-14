@@ -5,9 +5,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "docs:build": "vuepress-vite build src",
-    "docs:clean-dev": "vuepress-vite dev src --clean-cache",
-    "docs:dev": "vuepress-vite dev src",
+    "sync": "node neko-shared/sync.mjs",
+    "docs:build": "npm run sync && vuepress-vite build src",
+    "docs:clean-dev": "npm run sync && vuepress-vite dev src --clean-cache",
+    "docs:dev": "npm run sync && vuepress-vite dev src",
     "docs:update-package": "npx vp-update"
   },
   "devDependencies": {

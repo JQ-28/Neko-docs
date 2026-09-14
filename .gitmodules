@@ -1,0 +1,3 @@
+[submodule "neko-shared"]
+	path = neko-shared
+	url = https://github.com/JQ-28/Neko-shared.git
