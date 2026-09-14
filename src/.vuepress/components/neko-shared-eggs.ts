@@ -63,7 +63,7 @@ export const EGG_HINTS = {
   longPress: '在功能窗口里长按任意发送按钮（解析/来一张/生成/搜源这类）3 秒不松手',
   titleMeow: '切到别的标签页再切回来 2 次以上',
   offline: '把网络断掉（拔网线/关 WiFi）让 neko 消失一次',
-  footerTour: '把功能窗口底部那排工具按钮（麦克风/图片/相机等 6 个）挨个点一遍',
+  footerTour: '把功能窗口底部那排工具按钮里除麦克风外的 5 个挨个点一遍',
   copyNeko: '选中 neko 的聊天消息复制 3 次（点消息上的复制按钮也算喵）',
   multiTab: '同时打开两个 neko 网站标签页，两只猫会互相发现喵',
   printNeko: '在网站上按 Ctrl+P（或浏览器菜单里的打印）',
