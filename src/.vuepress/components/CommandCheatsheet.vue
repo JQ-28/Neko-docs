@@ -604,6 +604,7 @@ html.dark .cat-count {
 .cheatsheet-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  align-items: start;
   gap: 12px;
 }
 
