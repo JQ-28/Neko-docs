@@ -82,3 +82,23 @@ export const EGG_POKE_1 = ['嗯？戳我干嘛喵？', '喵？被你戳中了', 
 export const EGG_POKE_2 = ['诶~真的要告诉你吗喵…', '都这么想知道呀喵…', '诶~真的要告诉你呀……好吧喵'];
 
 export const EGG_REVEAL_TIP = '好啦好啦，悄悄告诉你喵…';
+
+/* 两端口径必须一致的触发阈值，集中在这里免得各写一份后悄悄漂移 */
+export const EGG_THRESHOLDS = {
+  themeTen: 10,
+  idleSleepMs: 120_000,
+  exploreGoal: 3,
+  visitGoal: 3,
+};
+
+/* 节日问候：短 key 每年命中，长 key 只针对特定年份，日期一律不补零 */
+export const FESTIVAL_DATES = [
+  '1-1', '2-14', '5-1', '6-1', '10-1', '12-24', '12-25', '2026-2-17', '2026-9-25',
+];
+
+export function matchFestival(date) {
+  const shortKey = `${date.getMonth() + 1}-${date.getDate()}`;
+  const fullKey = `${date.getFullYear()}-${shortKey}`;
+  if (FESTIVAL_DATES.includes(fullKey)) return fullKey;
+  return FESTIVAL_DATES.includes(shortKey) ? shortKey : null;
+}

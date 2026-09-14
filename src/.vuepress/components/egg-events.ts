@@ -1,4 +1,5 @@
 import { markEgg } from "./egg-utils";
+import { EGG_THRESHOLDS, matchFestival } from "./neko-shared-eggs";
 
 const LOGO_SELECTOR = ".vp-nav-logo";
 const SLEEP_LOGO_SRC = "/assets/image/nekosleep.webp";
@@ -16,30 +17,18 @@ const LOGO_TAP_GOAL = 6;
 const LOGO_TAP_MAX = 22;
 const LOGO_TAP_RESET = 1500;
 
-const IDLE_MS = 120_000;
+const IDLE_MS = EGG_THRESHOLDS.idleSleepMs;
 const LONG_PRESS_MS = 3000;
 const CLEAR_ARM_MS = 4000;
 const NEKO_COPY_GOAL = 3;
-const EXPLORE_GOAL = 3;
-const VISIT_GOAL = 3;
+const EXPLORE_GOAL = EGG_THRESHOLDS.exploreGoal;
+const VISIT_GOAL = EGG_THRESHOLDS.visitGoal;
 const TITLE_MEOW_GOAL = 2;
 const TITLE_MEOW_LEVEL_MAX = 3;
 const TITLE_MEOW_RESET = 3000;
 
 const VISIT_KEY = "neko-visits";
 const PRESENCE_CHANNEL = "neko-presence";
-
-const FESTIVAL_DATES = new Set([
-  "1-1",
-  "2-14",
-  "5-1",
-  "6-1",
-  "10-1",
-  "12-24",
-  "12-25",
-  "2026-2-17",
-  "2026-9-25",
-]);
 
 type Cleanup = () => void;
 type WebkitFullscreenDocument = Document & { webkitFullscreenElement?: Element | null };
@@ -329,9 +318,7 @@ function checkClockEggs(): void {
   if (day === 4) markEgg("thursday");
   const minutes = now.getMinutes();
   if (minutes <= 1 || (now.getHours() === 11 && minutes >= 44 && minutes <= 46)) markEgg("onTime");
-  const dateKey = localDateKey(now);
-  const shortKey = `${now.getMonth() + 1}-${now.getDate()}`;
-  if (FESTIVAL_DATES.has(dateKey) || FESTIVAL_DATES.has(shortKey)) markEgg("festival");
+  if (matchFestival(now)) markEgg("festival");
 }
 
 export function initEggEvents(): Cleanup {

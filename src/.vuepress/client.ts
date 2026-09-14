@@ -28,24 +28,12 @@ import {
   showEggTip,
 } from "./components/egg-utils";
 import { initEggEvents, trackPageVisit } from "./components/egg-events";
+import { EGG_THRESHOLDS } from "./components/neko-shared-eggs";
+import { SEARCH_MIRROR_EGGS, matchSearchEgg } from "./components/neko-shared-search-eggs";
 
 const COPY_TEXT = "复制代码";
 const TIP_CONTENT = "复制成功";
-const THEME_FLIP_GOAL = 10;
 const SEARCH_INPUT_CLASS = "search-pro-input";
-// 搜索框关键词与功能站保持一致，同一彩蛋在哪端触发都会同步
-const SEARCH_EGG_WORDS: Array<[string[], string]> = [
-  [["彩蛋", "eggs"], "docsEggsSearch"],
-  [["neko", "猫"], "docsSearchNeko"],
-  [["666"], "s666"],
-  [["摸鱼", "上班"], "moyer"],
-  [["404"], "s404"],
-  [["miao", "喵"], "sMiao"],
-];
-// 搜 neko 同时点亮功能站那颗，做到两端完全一致
-const SEARCH_MIRROR_EGGS: Record<string, string[]> = {
-  docsSearchNeko: ["nekoSearch"],
-};
 
 function injectCopyButtons(): void {
   document
@@ -132,9 +120,8 @@ export default defineClientConfig({
       if (!target.classList.contains(SEARCH_INPUT_CLASS)) return;
       const keyword = target.value.trim().toLowerCase();
       if (!keyword) return;
-      const matched = SEARCH_EGG_WORDS.find(([words]) => words.includes(keyword));
-      if (!matched) return;
-      const id = matched[1];
+      const id = matchSearchEgg(keyword);
+      if (!id) return;
       markEgg(id);
       SEARCH_MIRROR_EGGS[id]?.forEach((mirrorId) => markEgg(mirrorId));
       if (id === "docsEggsSearch") {
@@ -149,7 +136,10 @@ export default defineClientConfig({
       const isDark = document.documentElement.classList.contains("dark");
       if (isDark === lastDark) return;
       lastDark = isDark;
-      if (++themeFlips >= THEME_FLIP_GOAL) markEgg("docsThemeTen");
+      if (++themeFlips >= EGG_THRESHOLDS.themeTen) {
+        markEgg("docsThemeTen");
+        markEgg("themeTen");
+      }
     }
 
     const pageData = usePageData();

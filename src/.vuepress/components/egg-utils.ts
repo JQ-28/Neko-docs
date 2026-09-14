@@ -1,10 +1,7 @@
 import { ref } from "vue";
 
+import { isKnownEgg, readEggIdUnion, writeEggIds } from "./neko-shared-egg-sync";
 import { EGG_HINTS, EGG_TIP, EGGS } from "./neko-shared-eggs";
-
-const COOKIE_KEY = "neko-eggs";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-const COOKIE_ROOT_DOMAIN = "nekodayo.top";
 
 export { EGGS };
 
@@ -66,44 +63,10 @@ export function showEggTip(text: string): void {
   }, EGG_TIP_DURATION);
 }
 
-function readLocalIds(): string[] {
-  try {
-    const raw = JSON.parse(localStorage.getItem(COOKIE_KEY) ?? "[]") as unknown;
-    return Array.isArray(raw) ? raw.filter((id): id is string => typeof id === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function cookieDomainAttr(): string {
-  return location.hostname.endsWith(`.${COOKIE_ROOT_DOMAIN}`) ? `;domain=.${COOKIE_ROOT_DOMAIN}` : "";
-}
-
-function readCookieIds(): string[] {
-  const prefix = `${COOKIE_KEY}=`;
-  const raw = document.cookie.split("; ").find((item) => item.startsWith(prefix))?.slice(prefix.length);
-  if (!raw) return [];
-  try {
-    return decodeURIComponent(raw).split(",").map((id) => id.trim()).filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
-function writeCookieIds(ids: string[]): void {
-  const value = encodeURIComponent(ids.join(","));
-  document.cookie = `${COOKIE_KEY}=${value};path=/;max-age=${COOKIE_MAX_AGE};SameSite=Lax${cookieDomainAttr()}`;
-}
-
-/* 两端的进度取并集后回写：本站 localStorage 与父域 cookie 任一有新进度都不会丢 */
+/* 两端进度取并集后回写，任一端有新进度都不会丢；存取细节见共享层 neko-shared-egg-sync */
 function persist(): void {
   allEggIds = [...new Set([...allEggIds, ...eggFound.value])];
-  try {
-    localStorage.setItem(COOKIE_KEY, JSON.stringify(allEggIds));
-  } catch {
-    /* 隐私模式等场景忽略 */
-  }
-  writeCookieIds(allEggIds);
+  writeEggIds(allEggIds);
 }
 
 export function markEgg(id: string): boolean {
@@ -116,11 +79,12 @@ export function markEgg(id: string): boolean {
 
 export function initEggs(): void {
   if (typeof window === "undefined") return;
-  const shared = [...new Set([...readLocalIds(), ...readCookieIds()])];
+  const shared = readEggIdUnion();
   allEggIds = shared;
-  eggFound.value = new Set(shared.filter((id) => id in EGGS));
+  eggFound.value = new Set(shared.filter((id) => isKnownEgg(EGGS, id)));
   persist();
-  if (eggFound.value.size >= EGG_TOTAL) markEgg("eggAll");
+  // eggAll 不在自身计数内，集齐其余彩蛋即达成
+  if (eggFound.value.size >= EGG_TOTAL - 1) markEgg("eggAll");
   // 深夜来访两个站点都能触发：文档站半夜打开同样点亮功能站那颗「深夜来访」
   if (new Date().getHours() < 5) {
     markEgg("docsNight");
@@ -131,12 +95,11 @@ export function initEggs(): void {
 /* 另一端（功能站）触发后只写进了父域 cookie，翻开册子前重新合一次并集，进度立刻对齐 */
 export function syncEggs(): void {
   if (typeof window === "undefined") return;
-  const shared = [...new Set([...readLocalIds(), ...readCookieIds()])];
-  const added = shared.filter((id) => id in EGGS && !eggFound.value.has(id));
+  const added = readEggIdUnion().filter((id) => isKnownEgg(EGGS, id) && !eggFound.value.has(id));
   if (added.length === 0) return;
   eggFound.value = new Set([...eggFound.value, ...added]);
   persist();
-  if (eggFound.value.size >= EGG_TOTAL) markEgg("eggAll");
+  if (eggFound.value.size >= EGG_TOTAL - 1) markEgg("eggAll");
 }
 
 let copyCount = 0;
