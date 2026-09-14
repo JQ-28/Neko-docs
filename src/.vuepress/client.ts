@@ -4,6 +4,7 @@ import { Popper } from "@moefy-canvas/theme-popper";
 import { copyText, showTip } from "./components/copy-utils";
 import NavbarToolsLink from "./components/NavbarToolsLink.vue";
 import CustomOutlook from "./components/CustomOutlook.vue";
+import MiaoToggle from "./components/MiaoToggle.vue";
 import HomeIntro from "./components/HomeIntro.vue";
 import QQChat from "./components/QQChat.vue";
 import QQMessage from "./components/QQMessage.vue";
@@ -90,6 +91,8 @@ export default defineClientConfig({
     let lastDark = false;
     let cleanupEggEvents: (() => void) | null = null;
     let copyInjectScheduled = false;
+    let miaoApp: ReturnType<typeof createApp> | null = null;
+    let miaoHolder: HTMLElement | null = null;
 
     // DOM 每次变动都全量重扫一遍太费，合并到下一帧统一处理
     function scheduleInjectCopyButtons(): void {
@@ -98,9 +101,30 @@ export default defineClientConfig({
       requestAnimationFrame(() => {
         copyInjectScheduled = false;
         injectCopyButtons();
+        mountMiaoToggle();
         // 路由切换后导航/侧边栏/正文重建，喵语模式需要对新文本补一次追加
         applyMiaoTextToPage();
       });
+    }
+
+    // 移动端汉堡菜单（NavScreen）由主题 v-if 每次开合重建，
+    // 其内部外观区不含喵语开关，需跟随面板重建重新挂载
+    function mountMiaoToggle(): void {
+      const wrapper = document.querySelector<HTMLElement>(".vp-outlook-wrapper");
+      if (!wrapper) {
+        if (miaoHolder && !miaoHolder.isConnected) {
+          miaoApp?.unmount();
+          miaoApp = null;
+          miaoHolder = null;
+        }
+        return;
+      }
+      if (miaoHolder && wrapper.contains(miaoHolder)) return;
+      miaoApp?.unmount();
+      miaoHolder = document.createElement("div");
+      wrapper.appendChild(miaoHolder);
+      miaoApp = createApp(MiaoToggle);
+      miaoApp.mount(miaoHolder);
     }
 
     function mountCommandCard(command: string): void {
@@ -193,6 +217,7 @@ export default defineClientConfig({
       }
 
       injectCopyButtons();
+      mountMiaoToggle();
       applyMiaoTextToPage();
       observer = new MutationObserver(scheduleInjectCopyButtons);
       observer.observe(document.body, { childList: true, subtree: true });
@@ -222,6 +247,7 @@ export default defineClientConfig({
       themeObserver?.disconnect();
       cleanupEggEvents?.();
       document.removeEventListener("input", onSearchInput, true);
+      miaoApp?.unmount();
       clearCommandCard();
     });
   },

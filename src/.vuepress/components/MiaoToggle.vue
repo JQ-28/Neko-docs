@@ -115,7 +115,7 @@ const switchLabel = computed(() =>
 }
 
 /* 移动端：触控区放大，图标同步变大 */
-@media (max-width: 768px) {
+@media (max-width: 719px) {
   .vp-miao-mode-switch {
     width: 2.4rem;
     height: 2.4rem;

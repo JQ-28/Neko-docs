@@ -335,7 +335,7 @@ onBeforeUnmount(() => {
 }
 
 /* 移动端：触控区放大到 44px 级，面板限宽防止溢出视口 */
-@media (max-width: 768px) {
+@media (max-width: 719px) {
   .vp-outlook-dropdown {
     min-width: 220px;
     max-width: calc(100vw - 24px);
@@ -350,6 +350,38 @@ onBeforeUnmount(() => {
   .vp-color-mode-switch .icon {
     width: 1.25rem;
     height: 1.25rem;
+  }
+
+  /* 汉堡菜单面板：主题默认把主题色与外观并排 flex，
+     13 个色块占满宽度后「外观」标签被挤成一字一行，改为纵向堆叠 */
+  .vp-outlook-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .vp-outlook-wrapper .vp-theme-color,
+  .vp-outlook-wrapper .vp-color-mode,
+  .vp-outlook-wrapper .vp-miao-mode {
+    width: 100%;
+  }
+
+  .vp-theme-color-picker {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .vp-theme-color-title,
+  .vp-color-mode-title,
+  .vp-miao-mode-title {
+    white-space: nowrap;
+    flex: none;
+  }
+
+  .vp-outlook-wrapper .vp-color-mode-switch {
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: none;
   }
 }
 </style>
