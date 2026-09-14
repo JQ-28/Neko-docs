@@ -354,6 +354,9 @@ let messageId = 0;
 let clearTimer: number | undefined;
 let greetingTimer: number | undefined;
 let voiceTimeout: number | undefined;
+let voiceSilenceTimer: number | undefined;
+let voiceFinal = "";
+let voiceInterim = "";
 let recognition: SpeechRecognition | null = null;
 
 function fmtTime(date: Date): string {
@@ -537,11 +540,30 @@ function openTools(): void {
   window.open(TOOLS_URL, "_blank", "noopener");
 }
 
-// 语音输入：优先 Web Speech API，不支持或识别失败时给出兜底提示
+// 语音输入：优先 Web Speech API，边说边出字，停顿后自动发送
+const VOICE_SILENCE_MS = 1600;
+
+function voiceTranscript(): string {
+  return `${voiceFinal}${voiceInterim}`.trim();
+}
+
+function resetVoiceText(): void {
+  voiceFinal = "";
+  voiceInterim = "";
+}
+
+// 每次拿到识别结果都重置计时：说完停住一会儿就自动发出去
+function scheduleVoiceSubmit(): void {
+  window.clearTimeout(voiceSilenceTimer);
+  voiceSilenceTimer = window.setTimeout(() => {
+    if (voiceTranscript()) stopVoice(true);
+  }, VOICE_SILENCE_MS);
+}
+
 function startVoice(): void {
   // 取消优先：无论是否在等待回复，正在聆听就停止（此分支不受 typing 限制）
   if (listening.value) {
-    stopVoice();
+    stopVoice(true);
     return;
   }
   if (typing.value) return;
@@ -561,36 +583,76 @@ function startVoice(): void {
   // SpeechRecognition 实例 start 后不可复用，每次重新创建，避免二次 start 抛 InvalidStateError
   const current = new SpeechCtor();
   recognition = current;
+  resetVoiceText();
   current.lang = "zh-CN";
-  current.interimResults = false;
+  // 连续识别 + 显示中间结果：说话过程中就能看到字，而不是等到最后一片空白
+  current.continuous = true;
+  current.interimResults = true;
   current.maxAlternatives = 1;
   current.onstart = () => {
     listening.value = true;
   };
   current.onresult = (event: SpeechRecognitionEvent) => {
-    const text = event.results[0]?.[0]?.transcript?.trim() ?? "";
-    stopVoice();
+    let interim = "";
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const result = event.results.item(index);
+      const transcript = result.item(0).transcript;
+      if (result.isFinal) voiceFinal += transcript;
+      else interim += transcript;
+    }
+    voiceInterim = interim;
+    const text = voiceTranscript();
     if (text) {
       query.value = text;
-      void submit();
+      scheduleVoiceSubmit();
     }
   };
   current.onerror = (event: SpeechRecognitionErrorEvent) => {
     const { error } = event;
-    if (error === "not-allowed" || error === "service-not-allowed") {
-      pushMessage({ role: "neko", text: "麦克风权限被拒绝了喵，去浏览器设置里允许一下~" });
-    } else if (error !== "aborted" && error !== "no-speech") {
-      pushMessage({ role: "neko", text: "没听清喵，再说一次试试？" });
+    if (error === "aborted") return;
+    const heard = voiceTranscript();
+    if (error === "no-speech") {
+      if (heard) stopVoice(true);
+      else {
+        stopVoice(false);
+        pushMessage({ role: "neko", text: "没听到声音喵，再点一次麦克风试试~" });
+      }
+      return;
     }
+    if (error === "not-allowed" || error === "service-not-allowed") {
+      stopVoice(false);
+      pushMessage({ role: "neko", text: "麦克风权限被拒绝了喵，去浏览器设置里允许一下~" });
+      return;
+    }
+    if (error === "network") {
+      stopVoice(false);
+      pushMessage({
+        role: "neko",
+        text: "连不上语音识别服务喵（Chrome 走的是谷歌服务器），换 Edge 试试，或者直接用键盘打字吧~",
+      });
+      return;
+    }
+    if (heard) {
+      stopVoice(true);
+      return;
+    }
+    stopVoice(false);
+    pushMessage({ role: "neko", text: "没听清喵，再说一次试试？" });
   };
   current.onend = () => {
-    stopVoice();
+    // 引擎自行断开（常见于长时间静音）时收尾，避免一直亮着聆听状态
+    if (!listening.value) return;
+    if (voiceTranscript()) stopVoice(true);
+    else {
+      stopVoice(false);
+      pushMessage({ role: "neko", text: "语音识别断开了喵，再点一次麦克风试试~" });
+    }
   };
 
   try {
     current.start();
   } catch {
-    stopVoice();
+    stopVoice(false);
     pushMessage({ role: "neko", text: "语音好像没启动成功，检查一下麦克风权限喵~" });
   }
 
@@ -598,7 +660,7 @@ function startVoice(): void {
   window.clearTimeout(voiceTimeout);
   voiceTimeout = window.setTimeout(() => {
     if (listening.value) return;
-    stopVoice();
+    stopVoice(false);
     pushMessage({
       role: "neko",
       text: "麦克风好像没反应，检查一下权限，或者换 Chrome 试试喵~",
@@ -606,22 +668,32 @@ function startVoice(): void {
   }, 3000);
 }
 
-function stopVoice(): void {
+function stopVoice(submitText = false): void {
   window.clearTimeout(voiceTimeout);
+  window.clearTimeout(voiceSilenceTimer);
   voiceTimeout = undefined;
+  voiceSilenceTimer = undefined;
   listening.value = false;
+  const text = voiceTranscript();
+  resetVoiceText();
   const current = recognition;
   recognition = null;
-  if (!current) return;
-  // 先摘掉回调再 abort，避免 abort 触发的 onerror/onend 递归进来
-  current.onstart = null;
-  current.onresult = null;
-  current.onerror = null;
-  current.onend = null;
-  try {
-    current.abort();
-  } catch {
-    // 实例可能已结束，忽略
+  if (current) {
+    // 先摘掉回调再 abort，避免 abort 触发的 onerror/onend 递归进来
+    current.onstart = null;
+    current.onresult = null;
+    current.onerror = null;
+    current.onend = null;
+    try {
+      current.abort();
+    } catch {
+      // 实例可能已结束，忽略
+    }
+  }
+  // 只发送语音识别出来的内容，不动用户手打的字
+  if (submitText && text) {
+    query.value = text;
+    void submit();
   }
 }
 
