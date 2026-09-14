@@ -49,13 +49,21 @@ interface Announcement {
 
 const ANNOUNCEMENTS: Announcement[] = [
   {
-    id: "neko-feature-release",
-    title: "网站更新公告 · 指令速查与 neko 小助手",
+    id: "neko-feature-release-v2",
+    title: "网站更新公告 · 最近攒了一堆新东西",
     content:
-      "「指令速查」页面现已上线，支持按关键词检索并一键复制指令。同时新增 neko 小助手，点击导航栏的 neko 头像或按下 Ctrl+Shift+K 即可唤起，欢迎使用并反馈问题。",
+      "这是这段时间的更新大总结：\n" +
+      "· 「指令速查」页面：输关键词就能搜指令，点一下直接复制\n" +
+      "· 「在线状态」页面：neko 的账号和后台服务活着没一眼看清，账号被腾讯下线会单独标红提示\n" +
+      "· neko 小助手：点导航栏的 neko 头像，或按 Ctrl+Shift+K 随时唤起\n" +
+      "· 语音输入：懒得打字就点麦克风说话，边说边出字\n" +
+      "· 彩蛋互通：文档站和功能站点亮的彩蛋双向同步，两边进度都不会丢\n" +
+      "· 功能站聊两句和文档站同款：同一个「问问neko」，回答口径与限流完全一致\n" +
+      "玩得开心，有问题群里喊 neko 喵。",
     showOnce: true,
     actions: [
-      { text: "前往查看", link: "/zhiling/cheatsheet.html", type: "primary" },
+      { text: "指令速查", link: "/zhiling/cheatsheet.html", type: "primary" },
+      { text: "在线状态", link: "/zhuangtai.html" },
       { text: "我知道了" },
     ],
   },
@@ -184,6 +192,7 @@ onMounted(() => {
   color: var(--vp-c-text);
   font-size: 13px;
   line-height: 1.7;
+  white-space: pre-line;
 }
 
 .announcement-actions {
