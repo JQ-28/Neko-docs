@@ -1,5 +1,4 @@
 import { defineUserConfig, type App } from "vuepress";
-import { viteBundler } from "@vuepress/bundler-vite";
 import { getDirname, path } from "vuepress/utils";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -146,17 +145,6 @@ export default defineUserConfig({
   description: "一个可爱的超多功能QQ群机器人",
 
   theme,
-
-  bundler: viteBundler({
-    viteOptions: {
-      resolve: {
-        alias: {
-          // 主题库编译产物内部按 @theme-hope 引用自身，需显式指回 client 目录
-          "@theme-hope": path.resolve(__dirname, "../../node_modules/vuepress-theme-hope/lib/client"),
-        },
-      },
-    },
-  }),
 
   clientConfigFile: path.resolve(__dirname, './client.ts'),
 

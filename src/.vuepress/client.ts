@@ -58,7 +58,7 @@ function injectCopyButtons(): void {
 export default defineClientConfig({
   enhance: ({ app }) => {
     app.component("NavbarToolsLink", NavbarToolsLink);
-    app.component("Outlook", CustomOutlook);
+    app.component("CustomOutlook", CustomOutlook);
     app.component("HomeIntro", HomeIntro);
     app.component("QQChat", QQChat);
     app.component("QQMessage", QQMessage);
