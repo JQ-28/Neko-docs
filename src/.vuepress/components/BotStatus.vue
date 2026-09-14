@@ -118,6 +118,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 interface StatusEntry {
   online: boolean;
+  login: boolean;
   since: number;
   received: number;
   sent: number;
@@ -149,7 +150,7 @@ interface InventoryItem {
   avatar?: string;
 }
 
-type RowState = "online" | "offline" | "unknown";
+type RowState = "online" | "expired" | "offline" | "unknown";
 
 interface StatusRow extends InventoryItem {
   state: RowState;
@@ -178,6 +179,7 @@ type ViewState = "loading" | "error" | "empty" | "stale" | "partial" | "ready";
 
 const STATE_TEXT: Record<RowState, string> = {
   online: "在线",
+  expired: "账号掉线",
   offline: "离线",
   unknown: "未知",
 };
@@ -243,7 +245,7 @@ const viewState = computed<ViewState>(() => {
 // 取账号与服务的在线集合作指纹：连续多轮轮询无变化即判定"稳定"，暂停装饰动画省 GPU
 function statusFingerprint(value: StatusResponse): string {
   const accounts = Object.entries(value.accounts)
-    .map(([key, entry]) => `${key}:${entry.online}`)
+    .map(([key, entry]) => `${key}:${entry.online}:${entry.login}`)
     .sort()
     .join(",");
   const services = Object.entries(value.services)
@@ -294,7 +296,14 @@ function buildRows(
   showActivity: boolean
 ): StatusRow[] {
   const build = (item: InventoryItem, entry: StatusEntry | undefined): StatusRow => {
-    const state: RowState = stale ? "unknown" : entry?.online ? "online" : "offline";
+    // 连接还在但账号没登录成功，说明被腾讯踢下线了，不能算在线
+    const state: RowState = stale
+      ? "unknown"
+      : !entry?.online
+        ? "offline"
+        : entry.login === false
+          ? "expired"
+          : "online";
     const activity =
       showActivity && entry ? `今日 ${entry.received + entry.sent} 条` : "";
     return {
@@ -320,6 +329,9 @@ const serviceRows = computed(() =>
 );
 const accountOnline = computed(
   () => accountRows.value.filter((row) => row.state === "online").length
+);
+const accountExpired = computed(
+  () => accountRows.value.filter((row) => row.state === "expired").length
 );
 const serviceOnline = computed(
   () => serviceRows.value.filter((row) => row.state === "online").length
@@ -382,8 +394,12 @@ const summaryText = computed(() => {
       return accountStale.value
         ? "nonebot 主进程没有上报，账号状态暂时未知"
         : "看门狗没有上报，服务状态暂时未知";
-    default:
-      return `neko 正在营业：账号 ${accountOnline.value}/${accountRows.value.length} 、服务 ${serviceOnline.value}/${serviceRows.value.length} 在线`;
+    default: {
+      const summary = `neko 正在营业：账号 ${accountOnline.value}/${accountRows.value.length} 、服务 ${serviceOnline.value}/${serviceRows.value.length} 在线`;
+      return accountExpired.value > 0
+        ? `${summary}，其中 ${accountExpired.value} 个账号掉线了`
+        : summary;
+    }
   }
 });
 
@@ -451,6 +467,7 @@ onBeforeUnmount(() => {
   --state-online: #34c759;
   --state-offline: #c4becd;
   --state-unknown: #ff9f0a;
+  --state-expired: #ff5d73;
   margin: 20px 0 8px;
 }
 
@@ -803,6 +820,17 @@ onBeforeUnmount(() => {
   animation: bot-status-ripple 1.8s ease-out infinite;
 }
 
+.bot-status-item.is-expired .bot-status-light-core {
+  background: var(--state-expired);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--state-expired) 20%, transparent);
+  animation: bot-status-blink 1.8s ease-in-out infinite;
+}
+
+.bot-status-item.is-expired .bot-status-light-ring {
+  border-color: var(--state-expired);
+  animation: bot-status-ripple 1.8s ease-out infinite;
+}
+
 .bot-status-state {
   flex: none;
   font-size: 11px;
@@ -817,6 +845,10 @@ onBeforeUnmount(() => {
 
 .bot-status-item.is-unknown .bot-status-state {
   color: var(--state-unknown);
+}
+
+.bot-status-item.is-expired .bot-status-state {
+  color: var(--state-expired);
 }
 
 .bot-status-hardware {

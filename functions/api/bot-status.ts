@@ -43,6 +43,8 @@ const JSON_HEADERS = {
 
 interface StatusEntry {
   online: boolean;
+  // 账号是否真登录着：NapCat 程序与连接还在，QQ 也可能已被腾讯踢下线
+  login: boolean;
   // 连续在线的起点（Unix 秒），前端据此显示「已运行 N 小时」；离线为 0
   since: number;
   // 今日收到的消息数与发出的消息数，仅 nonebot 上报的账号有值
@@ -114,11 +116,13 @@ function normalizeEntries(value: unknown): Record<string, StatusEntry> {
     Record<string, StatusEntry>
   >((map, [key, raw]) => {
     if (typeof raw === "boolean") {
-      map[key] = { online: raw, since: 0, received: 0, sent: 0 };
+      map[key] = { online: raw, login: true, since: 0, received: 0, sent: 0 };
     } else if (raw && typeof raw === "object") {
       const entry = raw as Record<string, unknown>;
       map[key] = {
         online: entry.online === true,
+        // 早期版本没有该字段，缺省视为登录正常，避免老数据全变「账号掉线」
+        login: entry.login !== false,
         since: toCount(entry.since) ?? 0,
         received: toCount(entry.received) ?? 0,
         sent: toCount(entry.sent) ?? 0,
@@ -160,6 +164,8 @@ function toEntries(
     const last = previous[key];
     map[key] = {
       online,
+      // 旧版上报没有该字段，按登录正常处理
+      login: record.login !== false,
       // 上一轮在线且带有效起点才沿用；since 为 0（旧布尔格式或从未在线）时以当前时间重新起算
       since: online ? (last?.online && last.since > 0 ? last.since : now) : 0,
       received: toCount(record.received) ?? last?.received ?? 0,
