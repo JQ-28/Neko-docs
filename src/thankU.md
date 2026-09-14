@@ -199,7 +199,7 @@ html.dark .name-card { color: #e6e8ee; }
 <div class="stats-grid">
   <div class="stat-card glass-card">
     <span class="stat-ico"><img src="https://api.iconify.design/mdi:account-heart.svg?color=%237fb0ff" alt="sponsors"></span>
-    <b style="color: #7fb0ff;">22</b>
+    <b style="color: #7fb0ff;">23</b>
     <p>位赞助者</p>
   </div>
 

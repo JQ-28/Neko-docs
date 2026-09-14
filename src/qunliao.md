@@ -140,4 +140,10 @@ html.dark .divider-text {
   <div class="divider-line"></div>
 </div>
 
+:::info ⌛ 审核说明
+提交申请后通常在 **1-3 个工作日**内完成审核，结果会通过 **QQ 邮箱**或 QQ 私信通知你。
+
+表单中填写的 QQ 号、昵称、群信息与入群截图仅用于人工审核，不会用于其他用途，详见 [隐私政策](/zhuyi/privacy)。
+:::
+
 <ApplyForm />

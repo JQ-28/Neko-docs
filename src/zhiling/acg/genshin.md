@@ -95,6 +95,12 @@ footer: 原来，你也...
 发送 `#扫码登录` Bot会发送二维码让你扫描，打开你的米游社 `我的-左上角扫码` 然后进行扫码  
 然后你就可以任意使用查询角色面板等功能啦
 
+:::info 🔐 关于账号凭证
+`#扫码登录` 得到的 Cookie / stoken 会保存在机器人服务端，仅用于代您查询角色面板、抽卡记录等游戏数据，不会用于其他用途。
+
+如需解绑或删除凭证，请联系 [JQ-28](/about/me)，详见 [隐私政策](/zhuyi/privacy)。
+:::
+
 <QQChat title="原神绑定查询">
   <QQMessage align="right" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=480352716&spec=640">
     <div>#扫码登录</div>

@@ -18,7 +18,7 @@ footer: Neko docs - 反馈​
 - `#反馈 内容` - 反馈问题  
 - `#建议 内容` - 提出建议
 
-你的消息会自动记录到 [喵喵信箱](https://input.nekodayo.top)
+你的消息会自动记录到 [喵喵信箱](https://input.nekodayo.top)，我们通常会在 **1-3 个工作日**内回复你。
 
 **示例：**
 

@@ -14,13 +14,12 @@ footer: Neko docs - 快速上手
 
 ## 第一步 · 把 neko 请进群
 
-neko 目前住在许多qq群聊里，想让她来你的群做客，需要先通过审核。三个途径任选其一：
+neko 目前住在许多 QQ 群聊里，想让她来你的群做客，需要先通过审核。两个途径任选其一：
 
-- 填写 [邀群问卷](/qunliao)，说明你的群和用途
-- 填写 [在线申请表单](/qunliao)，按提示提交申请
+- 填写 [邀群问卷](/qunliao)，说明你的群和用途（问卷页内含在线申请表单）
 - 直接加入 [小猫窝地下室](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info) 主群，在里面喊一声 JQ，说明你的群和用途
 
-审核通过后 JQ 会主动联系你，把 neko 拉进群。
+审核通常在 **1-3 个工作日**内完成，通过后 JQ 会主动联系你，把 neko 拉进群。
 
 :::info 注意
 未经允许请勿擅自将 neko 拉入群聊，也不要私聊骚扰 neko 哦。

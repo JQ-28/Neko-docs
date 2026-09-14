@@ -38,6 +38,12 @@ footer: 你吃灰的VR有救了！
 ***注意:***  
 先绑定SteamID再查分!!!
 
+:::info 🔐 关于账号绑定
+`BS绑定` 提供的 SteamID 会保存在机器人服务端，仅用于代您查询 ScoreSaber / BeatLeader 成绩。
+
+如需解绑或更换，请联系 [JQ-28](/about/me)，详见 [隐私政策](/zhuyi/privacy)。
+:::
+
 ***ScoreSaber查分***
 
 ` s40 `,` ss40 `,` SS查分 `,` SS score `都可用于触发查分指令

@@ -71,6 +71,12 @@ footer: 多练​.webp
 | `retask/刷新任务` | 刷新任务，需要花费20Notes
 | `#p (send\|送\|转) <目标> <数量>` | 送给目标Note，支持@或QQ号
 
+:::info 🔐 关于账号凭证
+`#p bind` 提供的 sessionToken 会保存在机器人服务端，仅用于代您查询 Phigros 成绩。
+
+可随时发送 `#p unbind` 解绑并删除存档记录，或 `#p clean` 删除全部记录，详见 [隐私政策](/zhuyi/privacy)。
+:::
+
 #### **以下为管理功能**
 
 | 功能名称 | 功能说明

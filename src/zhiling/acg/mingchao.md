@@ -76,3 +76,9 @@ footer: XX是这样的，XX只要XX就可以，可是XX要考虑的事情就多�
 | ~帮助     | 获取插件帮助           | ![renderings](https://cdn.jsdelivr.net/gh/erzaozi/waves-plugin@main/resources/readme/Help.png)                                                                           |
 
 </details>
+
+:::info 🔐 关于账号凭证
+`~登录` 提供的账号 Token 会保存在机器人服务端，仅用于代您查询体力、面板、抽卡记录等游戏数据，不会用于其他用途。
+
+如需解绑或删除凭证，请联系 [JQ-28](/about/me)，详见 [隐私政策](/zhuyi/privacy)。
+:::

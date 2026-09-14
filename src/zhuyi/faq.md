@@ -1,6 +1,11 @@
 ---
 title: 常见问题
-icon: circle-question
+icon: /assets/icon/material-symbols--question-mark.svg
+order: 4
+category:
+  - Neko
+tag:
+  - FAQ
 copyright: false
 footer: Neko docs - 常见问题
 ---
@@ -41,7 +46,9 @@ BOT 没反应可能有以下几种情况：
 
 :::details 点击查看
 
-Neko 在 **QQ 群聊和私聊** 中全天候服务。
+Neko 在 **QQ 群聊和私聊** 中为大家服务。
+
+她运行在开发者的个人电脑上，所以偶尔会因维护、关机而短暂离线（会提前在群内通知）。
 
 大部分功能是**被动触发**的，需要发送对应指令才会回复；部分功能（如签到）需要主动使用。
 
@@ -60,6 +67,16 @@ Neko 在 **QQ 群聊和私聊** 中全天候服务。
 1. 填写 [邀群问卷](/qunliao)（或在线申请表单）
 2. 也可以直接加入 [小猫窝地下室](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info) 主群找 JQ
 3. 审核通过后 JQ 会主动联系你
+
+:::
+
+### 提交邀群申请后多久有结果？
+
+:::details 点击查看
+
+审核通常在 **1-3 个工作日**内完成，结果会通过 **QQ 邮箱**或 QQ 私信通知你。
+
+如果超过一周仍未收到回复，可以加入 [小猫窝地下室](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info) 主群或在 [反馈页](/about/fankui) 留言询问。
 
 :::
 
@@ -119,6 +136,6 @@ Neko **已关闭自动同意加好友**。
 ---
 
 :::tip 还有问题？
-加入 **ღ互联网小猫窝ღ** QQ 群，和大家一起交流吧！
-[点击加入](/jieshao/catwo)
+加入 **小猫窝地下室** 主群，和大家一起交流吧！
+[点击加入](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info)
 :::
