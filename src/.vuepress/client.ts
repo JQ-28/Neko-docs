@@ -2,7 +2,6 @@ import { defineClientConfig, usePageData } from "vuepress/client";
 import { createApp, nextTick, onBeforeUnmount, onMounted, watch } from "vue";
 import { Popper } from "@moefy-canvas/theme-popper";
 import { copyText, showTip } from "./components/copy-utils";
-import { EGGS, eggCount as eggStats, markEgg } from "./eggs";
 import NavbarToolsLink from "./components/NavbarToolsLink.vue";
 import HomeIntro from "./components/HomeIntro.vue";
 import QQChat from "./components/QQChat.vue";
@@ -16,14 +15,26 @@ import CommandCheatsheet from "./components/CommandCheatsheet.vue";
 import CommandRouter from "./components/CommandRouter.vue";
 import AnnouncementPopup from "./components/AnnouncementPopup.vue";
 import BotStatus from "./components/BotStatus.vue";
-import EggPanel from "./components/EggPanel.vue";
+import EggCollection from "./components/EggCollection.vue";
+import {
+  DOCS_EGGS,
+  EGG_TOTAL,
+  TOOLS_EGGS,
+  countEggCopy,
+  eggFound,
+  initEggs,
+  markEgg,
+  onEggUnlocked,
+  openEggPanel,
+} from "./components/egg-utils";
 
 const COPY_TEXT = "复制代码";
 const TIP_CONTENT = "复制成功";
-
-function nameOfEgg(id: string): string {
-  return EGGS[id] ?? id;
-}
+const EGG_SEARCH_WORDS = ["彩蛋", "eggs"];
+const NEKO_SEARCH_WORDS = ["neko", "猫"];
+const THEME_FLIP_GOAL = 10;
+const SEARCH_INPUT_CLASS = "search-pro-input";
+const EGG_NAMES: Record<string, string> = { ...TOOLS_EGGS, ...DOCS_EGGS };
 
 function injectCopyButtons(): void {
   document
@@ -36,8 +47,11 @@ function injectCopyButtons(): void {
       btn.className = "v-copy-code-btn";
       btn.textContent = COPY_TEXT;
       btn.addEventListener("click", () => {
-        copyText(el.textContent ?? "", false)
-          .then(() => showTip(TIP_CONTENT))
+        copyText(el.textContent ?? "")
+          .then(() => {
+            showTip(TIP_CONTENT);
+            countEggCopy();
+          })
           .catch(() => showTip("复制失败"));
       });
       el.parentElement?.appendChild(btn);
@@ -59,10 +73,10 @@ export default defineClientConfig({
     app.component("CommandRouter", CommandRouter);
     app.component("AnnouncementPopup", AnnouncementPopup);
     app.component("BotStatus", BotStatus);
-    app.component("EggPanel", EggPanel);
+    app.component("EggCollection", EggCollection);
   },
 
-  rootComponents: [CommandRouter, AnnouncementPopup, EggPanel],
+  rootComponents: [CommandRouter, AnnouncementPopup, EggCollection],
 
   setup() {
     let popper: Popper | null = null;
@@ -72,9 +86,10 @@ export default defineClientConfig({
     let copyApp: ReturnType<typeof createApp> | null = null;
     let copyHolder: HTMLElement | null = null;
     let contentObserver: MutationObserver | null = null;
-    let searchInputListener: ((event: Event) => void) | null = null;
-    let eggListener: ((event: Event) => void) | null = null;
+    let themeObserver: MutationObserver | null = null;
     let activePath = "";
+    let themeFlips = 0;
+    let lastDark = false;
 
     function mountCommandCard(command: string): void {
       if (typeof document === "undefined") return;
@@ -97,51 +112,37 @@ export default defineClientConfig({
       copyHolder = null;
     }
 
+    // 搜索框由 vuepress-plugin-search-pro 内部渲染且每次开合都会重建，
+    // 故用文档级事件委托监听输入，命中关键词即翻开收集册
+    function onSearchInput(event: Event): void {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (!target.classList.contains(SEARCH_INPUT_CLASS)) return;
+      const keyword = target.value.trim().toLowerCase();
+      if (!keyword) return;
+      if (EGG_SEARCH_WORDS.includes(keyword)) {
+        markEgg("docsEggsSearch");
+        // 收起搜索模态，避免两层弹层叠在一起
+        document.querySelector<HTMLButtonElement>(".search-pro-close-button")?.click();
+        openEggPanel();
+        return;
+      }
+      if (NEKO_SEARCH_WORDS.includes(keyword)) markEgg("docsSearchNeko");
+    }
+
+    // 深色/浅色切换由主题内部管理，只观察 html 上的 dark 类翻转来计数
+    function countThemeFlip(): void {
+      const isDark = document.documentElement.classList.contains("dark");
+      if (isDark === lastDark) return;
+      lastDark = isDark;
+      if (++themeFlips >= THEME_FLIP_GOAL) markEgg("docsThemeTen");
+    }
+
     const pageData = usePageData();
-
-    // 彩蛋：逛 5 个不同页面（sessionStorage 统计，刷新不清）
-    const EXPLORE_KEY = "neko-doc-explore";
-    function trackExplore(path: string): void {
-      try {
-        const seen = new Set<string>(
-          JSON.parse(sessionStorage.getItem(EXPLORE_KEY) ?? "[]") as string[]
-        );
-        seen.add(path);
-        sessionStorage.setItem(EXPLORE_KEY, JSON.stringify([...seen]));
-        if (seen.size >= 5) markEgg("docExplore");
-      } catch {
-        // 隐私模式等忽略
-      }
-    }
-
-    // 彩蛋：连续 3 天回首页
-    const HOME_KEY = "neko-doc-home";
-    function trackHomeVisit(): void {
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        const days = JSON.parse(localStorage.getItem(HOME_KEY) ?? "[]") as string[];
-        const next = days.includes(today) ? days : [...days, today].slice(-3);
-        localStorage.setItem(HOME_KEY, JSON.stringify(next));
-        if (next.length >= 3) markEgg("docHome");
-      } catch {
-        // 隐私模式等忽略
-      }
-    }
-
-    // 页面级彩蛋：按路由解锁
-    const ROUTE_EGGS: Record<string, string> = {
-      "/zhiling/cheatsheet": "docCheat",
-      "/zhuangtai": "docStatus",
-      "/draw": "docGallery",
-    };
 
     watch(
       () => pageData.value.path,
       (path) => {
-        trackExplore(path);
-        if (path === "/") trackHomeVisit();
-        const eggId = ROUTE_EGGS[path];
-        if (eggId) markEgg(eggId);
         const command = pageData.value.frontmatter?.command;
         activePath = path;
         contentObserver?.disconnect();
@@ -181,29 +182,19 @@ export default defineClientConfig({
       observer = new MutationObserver(() => injectCopyButtons());
       observer.observe(document.body, { childList: true, subtree: true });
 
-      // 彩蛋入口：搜索框输入「彩蛋」/「eggs」唤起收集册（search-pro 输入框由弹层动态挂载，用捕获监听）
-      const EGG_KEYWORDS = new Set(["彩蛋", "eggs"]);
-      const onSearchInput = (event: Event): void => {
-        const target = event.target as HTMLInputElement | null;
-        if (!target || !target.matches(".search-pro-input")) return;
-        const value = target.value.trim().toLowerCase();
-        if (!EGG_KEYWORDS.has(value)) return;
-        window.dispatchEvent(new CustomEvent("neko-open-eggs"));
-        target.value = "";
-        // search-pro 的输入是受控组件，置空后派发 input 事件同步其内部状态
-        target.dispatchEvent(new Event("input", { bubbles: true }));
-      };
-      window.addEventListener("input", onSearchInput, true);
-      searchInputListener = onSearchInput;
+      onEggUnlocked((id) => {
+        const name = EGG_NAMES[id];
+        if (name) showTip(`彩蛋发现：${name}（${eggFound.value.size}/${EGG_TOTAL}）`);
+      });
+      initEggs();
 
-      // 彩蛋解锁提示：markEgg 触发后给个轻提示
-      const onEggFound = (event: Event): void => {
-        const id = (event as CustomEvent<string>).detail;
-        const { found, total } = eggStats();
-        showTip(`彩蛋发现喵！${nameOfEgg(id)}（${found}/${total}）`);
-      };
-      window.addEventListener("neko-egg", onEggFound);
-      eggListener = onEggFound;
+      document.addEventListener("input", onSearchInput, true);
+      lastDark = document.documentElement.classList.contains("dark");
+      themeObserver = new MutationObserver(countThemeFlip);
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
     });
 
     onBeforeUnmount(() => {
@@ -211,8 +202,8 @@ export default defineClientConfig({
       canvas?.remove();
       observer?.disconnect();
       contentObserver?.disconnect();
-      if (searchInputListener) window.removeEventListener("input", searchInputListener, true);
-      if (eggListener) window.removeEventListener("neko-egg", eggListener);
+      themeObserver?.disconnect();
+      document.removeEventListener("input", onSearchInput, true);
       clearCommandCard();
     });
   },
