@@ -602,15 +602,15 @@ html.dark .cat-count {
 
 /* ===== 卡片网格 ===== */
 .cheatsheet-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  align-items: start;
-  gap: 12px;
+  column-width: 240px;
+  column-gap: 12px;
 }
 
 .cheatsheet-card {
   position: relative;
   overflow: hidden;
+  break-inside: avoid;
+  margin-bottom: 12px;
   padding: 16px 18px;
   border-radius: 22px;
   background: #ffffff;
