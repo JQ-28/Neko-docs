@@ -30,23 +30,11 @@ import {
 import { initEggEvents, trackPageVisit } from "./components/egg-events";
 import { EGG_THRESHOLDS } from "./components/neko-shared-eggs";
 import { SEARCH_MIRROR_EGGS, matchSearchEgg } from "./components/neko-shared-search-eggs";
-import { miao, onMiaoChange } from "./components/miao";
+import { applyMiaoTextToPage } from "./components/miao";
 
+const COPY_TEXT = "复制代码";
+const TIP_CONTENT = "复制成功";
 const SEARCH_INPUT_CLASS = "search-pro-input";
-
-// 复制按钮文案跟随喵语模式切换
-function copyButtonText(): string {
-  return miao("复制代码", "复制喵");
-}
-
-function refreshCopyButtons(): void {
-  const text = copyButtonText();
-  document
-    .querySelectorAll<HTMLElement>(".v-copy-code-btn")
-    .forEach((btn) => {
-      btn.textContent = text;
-    });
-}
 
 function injectCopyButtons(): void {
   document
@@ -57,11 +45,11 @@ function injectCopyButtons(): void {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "v-copy-code-btn";
-      btn.textContent = copyButtonText();
+      btn.textContent = COPY_TEXT;
       btn.addEventListener("click", () => {
         copyText(el.textContent ?? "")
-          .then(() => showTip(miao("复制成功", "复制成功喵~")))
-          .catch(() => showTip(miao("复制失败", "复制失败喵")));
+          .then(() => showTip(TIP_CONTENT))
+          .catch(() => showTip("复制失败"));
       });
       el.parentElement?.appendChild(btn);
     });
@@ -102,7 +90,6 @@ export default defineClientConfig({
     let lastDark = false;
     let cleanupEggEvents: (() => void) | null = null;
     let copyInjectScheduled = false;
-    let offMiao: (() => void) | null = null;
 
     // DOM 每次变动都全量重扫一遍太费，合并到下一帧统一处理
     function scheduleInjectCopyButtons(): void {
@@ -111,6 +98,8 @@ export default defineClientConfig({
       requestAnimationFrame(() => {
         copyInjectScheduled = false;
         injectCopyButtons();
+        // 路由切换后导航/侧边栏/正文重建，喵语模式需要对新文本补一次追加
+        applyMiaoTextToPage();
       });
     }
 
@@ -204,6 +193,7 @@ export default defineClientConfig({
       }
 
       injectCopyButtons();
+      applyMiaoTextToPage();
       observer = new MutationObserver(scheduleInjectCopyButtons);
       observer.observe(document.body, { childList: true, subtree: true });
 
@@ -231,7 +221,6 @@ export default defineClientConfig({
       contentObserver?.disconnect();
       themeObserver?.disconnect();
       cleanupEggEvents?.();
-      offMiao?.();
       document.removeEventListener("input", onSearchInput, true);
       clearCommandCard();
     });

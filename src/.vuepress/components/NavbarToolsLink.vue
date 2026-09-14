@@ -3,19 +3,19 @@
     <button
       type="button"
       class="vp-action-link"
-      :aria-label="askLabel"
-      :title="askTitle"
+      aria-label="问问neko"
+      title="问问neko（Ctrl+Shift+K）"
       @click="openRouter"
     >
-      <img class="vp-action-neko" src="/assets/image/neko.webp" :alt="askLabel" />
+      <img class="vp-action-neko" src="/assets/image/neko.webp" alt="问问neko" />
     </button>
     <a
       class="vp-action-link"
       href="https://tools.nekodayo.top/"
       target="_blank"
       rel="noopener noreferrer"
-      :aria-label="toolsLabel"
-      :title="toolsLabel"
+      aria-label="功能网站"
+      title="功能网站"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -35,8 +35,8 @@
       href="https://input.nekodayo.top/"
       target="_blank"
       rel="noopener noreferrer"
-      :aria-label="mailLabel"
-      :title="mailLabel"
+      aria-label="喵喵信箱"
+      title="喵喵信箱"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -55,17 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { miao } from "./miao";
-
 const OPEN_EVENT = "neko-open-router";
-
-const askLabel = computed(() => miao("问问neko", "喵喵neko"));
-const askTitle = computed(() =>
-  miao("问问neko（Ctrl+Shift+K）", "喵喵neko（Ctrl+Shift+K）")
-);
-const toolsLabel = computed(() => miao("功能网站", "喵功能站"));
-const mailLabel = computed(() => miao("喵喵信箱", "投喂小鱼干"));
 
 function openRouter(): void {
   window.dispatchEvent(new CustomEvent(OPEN_EVENT));

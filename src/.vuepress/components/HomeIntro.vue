@@ -3,7 +3,7 @@
     <h2 class="home-intro-title">
       <span class="home-intro-bar" aria-hidden="true"></span>
       Neko 能做什么？
-      <span class="home-intro-sub">{{ introSub }}</span>
+      <span class="home-intro-sub">挑几个代表性的看看，全部功能在指令速查</span>
     </h2>
 
     <div class="home-feats">
@@ -20,7 +20,7 @@
             type="button"
             class="home-feat-cmd"
             :title="feat.desc"
-            :aria-label="copyTip(cmd)"
+            :aria-label="`复制指令 ${cmd}`"
             @click="copy(cmd)"
           >
             {{ cmd }}
@@ -54,7 +54,7 @@
             d="M448 256L192 512v-192H0L256 0v192z"
           />
         </svg>
-        <span>{{ ctaStart }}</span>
+        <span>5 分钟快速上手</span>
       </RouterLink>
       <RouterLink class="home-cta-ghost" to="/qunliao">
         <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -63,7 +63,7 @@
             d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32V224H48c-17.7 0-32 14.3-32 32s14.3 32 32 32H192V432c0 17.7 14.3 32 32 32s32-14.3 32-32V288H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H256V80z"
           />
         </svg>
-        <span>{{ ctaInvite }}</span>
+        <span>把 neko 拉进群</span>
       </RouterLink>
     </div>
 
@@ -76,9 +76,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { copyText, showTip } from "./copy-utils";
-import { miao } from "./miao";
 
 interface HomeFeat {
   name: string;
@@ -179,18 +178,10 @@ function pickRandomFeats(): HomeFeat[] {
   return shuffled.slice(0, FEAT_COUNT);
 }
 
-const introSub = computed(() => miao("挑几个代表性的看看，全部功能在指令速查", "挑几个代表性的喵，全部功能在指令速查"));
-const ctaStart = computed(() => miao("5 分钟快速上手", "5 分钟快速上手喵"));
-const ctaInvite = computed(() => miao("把 neko 拉进群", "把 neko 拉进群喵"));
-
-function copyTip(cmd: string): string {
-  return miao(`复制指令 ${cmd}`, `复制指令 ${cmd}喵`);
-}
-
 function copy(command: string): void {
   copyText(command)
-    .then(() => showTip(miao("指令已复制", "指令已复制喵~")))
-    .catch(() => showTip(miao("复制失败", "复制失败喵")));
+    .then(() => showTip("指令已复制"))
+    .catch(() => showTip("复制失败"));
 }
 
 // SSR 首帧与无 JS 时展示固定前 4 张，水合后由 onMounted 随机换新
