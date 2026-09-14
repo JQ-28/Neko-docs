@@ -342,6 +342,7 @@ let recordStream: MediaStream | null = null;
 let recordChunks: Blob[] = [];
 let recordTimer: number | undefined;
 let recordSegmentTimer: number | undefined;
+let recordSegmentIndex = 0;
 let recordDrain: Promise<void> = Promise.resolve();
 let recordQueue: Blob[] = [];
 let recordText = "";
@@ -591,6 +592,8 @@ function openTools(): void {
 const VOICE_SILENCE_MS = 1600;
 const VOICE_RECORD_MAX_MS = 30_000;
 const VOICE_SEGMENT_MS = 4000;
+// 第一段短一点，开口后很快就能看到字，确认已经在录了
+const VOICE_FIRST_SEGMENT_MS = 2000;
 const ASR_ENDPOINT = "/api/asr";
 const RECORD_MIME_TYPES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
 
@@ -735,8 +738,9 @@ function stopVoice(submitText = false): void {
     voiceMode = null;
     pendingRecordSubmit = submitText;
     const currentRecorder = recorder;
-    if (currentRecorder && currentRecorder.state !== "inactive") {
-      currentRecorder.stop();
+    // stop 事件是异步的：片段还在就一律交给 onstop 收尾，否则会漏掉刚录满的那一段
+    if (currentRecorder) {
+      if (currentRecorder.state !== "inactive") currentRecorder.stop();
       return;
     }
     void finishRecording();
@@ -783,6 +787,16 @@ function takeSegment(): Blob {
   return new Blob(chunks, { type: chunks[0]?.type || "audio/webm" });
 }
 
+const CJK_CHAR = /[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]/;
+
+// 中文直接接上，英文和数字之间补个空格，免得两段粘成一坨
+function mergeSegmentText(accumulated: string, segment: string): string {
+  if (!accumulated || CJK_CHAR.test(accumulated.slice(-1)) || CJK_CHAR.test(segment.slice(0, 1))) {
+    return accumulated + segment;
+  }
+  return `${accumulated} ${segment}`;
+}
+
 // 每段封口后进队列，串行转写并按顺序拼起来，聊天框里就能随说随出字
 async function transcribeQueuedSegments(): Promise<void> {
   while (recordQueue.length > 0) {
@@ -791,7 +805,7 @@ async function transcribeQueuedSegments(): Promise<void> {
     try {
       const text = await transcribe(blob);
       if (!text) continue;
-      recordText = `${recordText}${text}`;
+      recordText = mergeSegmentText(recordText, text);
       if (recordActive) query.value = recordText;
     } catch {
       // 单段转写失败不影响整句，记下来方便最后给个准确提示
@@ -830,13 +844,17 @@ function startSegment(): void {
   try {
     current.start();
   } catch {
+    // 片段没起来就别留着 recorder，否则停录时会等一个永远不来的 stop 事件
+    recorder = null;
     stopVoice(true);
     return;
   }
+  const segmentMs = recordSegmentIndex === 0 ? VOICE_FIRST_SEGMENT_MS : VOICE_SEGMENT_MS;
+  recordSegmentIndex += 1;
   window.clearTimeout(recordSegmentTimer);
   recordSegmentTimer = window.setTimeout(() => {
     if (voiceMode === "record" && current.state === "recording") current.stop();
-  }, VOICE_SEGMENT_MS);
+  }, segmentMs);
 }
 
 // 录音模式：点一下开始录，再点一下停止并提交（移动端唯一能出字的通道）
@@ -861,6 +879,7 @@ function startRecording(): void {
       recordText = "";
       recordFailed = false;
       recordActive = true;
+      recordSegmentIndex = 0;
       listening.value = true;
       startSegment();
       window.clearTimeout(recordTimer);
