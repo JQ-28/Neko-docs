@@ -113,4 +113,17 @@ const switchLabel = computed(() =>
     transform: scale(1.06);
   }
 }
+
+/* 移动端：触控区放大，图标同步变大 */
+@media (max-width: 768px) {
+  .vp-miao-mode-switch {
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: none;
+  }
+
+  .miao-ico {
+    font-size: 1.3rem;
+  }
+}
 </style>

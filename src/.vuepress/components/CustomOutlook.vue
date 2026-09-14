@@ -90,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { usePageData } from "vuepress/client";
 import MiaoToggle from "./MiaoToggle.vue";
 
@@ -162,7 +162,14 @@ watch(
   }
 );
 
+// 移动端没有 hover，点面板外的地方收起
+function onDocClick(event: MouseEvent): void {
+  const target = event.target as HTMLElement | null;
+  if (target && !target.closest(".vp-outlook-button")) open.value = false;
+}
+
 onMounted(() => {
+  document.addEventListener("click", onDocClick);
   try {
     const theme = localStorage.getItem(THEME_COLOR_KEY);
     if (theme) setThemeColor(Number(theme.replace(/^theme-/, "")));
@@ -171,6 +178,10 @@ onMounted(() => {
   } catch {
     applyScheme("auto");
   }
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", onDocClick);
 });
 </script>
 
@@ -321,5 +332,24 @@ onMounted(() => {
 
 .vp-color-mode-switch .icon.show {
   display: block;
+}
+
+/* 移动端：触控区放大到 44px 级，面板限宽防止溢出视口 */
+@media (max-width: 768px) {
+  .vp-outlook-dropdown {
+    min-width: 220px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .vp-color-mode-switch {
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: none;
+  }
+
+  .vp-color-mode-switch .icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
 }
 </style>
