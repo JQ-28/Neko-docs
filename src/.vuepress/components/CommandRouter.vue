@@ -239,6 +239,9 @@ import {
   EMOTE_RULES,
   LONG_TEXT_LINES,
   LONG_TEXT_MAX,
+  NEKO_BUSY_LINE,
+  NEKO_HIT_LINES,
+  NEKO_MISS_LINES,
   NIGHT_GREET_TEST,
   STILL_HERE_LINES,
   STILL_HERE_TEST,
@@ -266,16 +269,6 @@ const OPEN_EVENT = "neko-open-router";
 const TOOLS_URL = "https://tools.nekodayo.top/";
 const GREETING = "你好喵~ 我是 neko！说说你想做什么，我来帮你找到对应的指令。";
 const CLEAR_HINT = "真的要扔掉我们的聊天记录吗喵…neko 会想念它们的。再点一次垃圾桶就清空啦。";
-const HIT_REPLIES = [
-  "找到啦，看看这几个喵~",
-  "喵！这几个应该对得上~",
-  "翻到啦，拿去用吧喵~",
-];
-const MISS_REPLIES = [
-  "没听懂喵，换个说法试试，也可以直接翻翻指令速查页~",
-  "neko 没找到对应的指令喵，要不要去速查页翻翻？",
-];
-const BUSY = "neko 现在有点忙喵，稍后再试试吧~";
 const STORAGE_KEY = "neko-chat-history";
 const STORAGE_MAX = 40;
 const STICK_THRESHOLD = 40;
@@ -534,14 +527,14 @@ async function submit(): Promise<void> {
       hint: (match.keywords ?? []).slice(0, 3).join("、"),
     }));
     typing.value = false;
-    if (results.length > 0) pushMessage({ role: "neko", text: reply || pick(HIT_REPLIES), results });
-    else pushMessage({ role: "neko", text: reply || pick(MISS_REPLIES), fallback: true });
+    if (results.length > 0) pushMessage({ role: "neko", text: reply || pick(NEKO_HIT_LINES), results });
+    else pushMessage({ role: "neko", text: reply || pick(NEKO_MISS_LINES), fallback: true });
   } catch {
     typing.value = false;
     // 后端不可用时退回本地匹配，至少还能给出指令卡片
     const local = localMatch(raw);
-    if (local.length > 0) pushMessage({ role: "neko", text: pick(HIT_REPLIES), results: local });
-    else pushMessage({ role: "neko", text: BUSY, fallback: true });
+    if (local.length > 0) pushMessage({ role: "neko", text: pick(NEKO_HIT_LINES), results: local });
+    else pushMessage({ role: "neko", text: NEKO_BUSY_LINE, fallback: true });
   }
 }
 

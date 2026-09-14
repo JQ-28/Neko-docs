@@ -192,3 +192,17 @@ export const EMOTE_FALLBACK = {
   jail: 'https://tools.nekodayo.top/emotes/jail.gif',
   spray: 'https://tools.nekodayo.top/emotes/spray.gif',
 };
+
+/* AI 路由的兜底话术：两端共用，改一处即同时生效 */
+export const NEKO_BUSY_LINE = 'neko 现在有点忙喵，稍后再试试吧~';
+
+export const NEKO_HIT_LINES = [
+  '找到啦，看看这几个喵~',
+  '喵！这几个应该对得上~',
+  '翻到啦，拿去用吧喵~',
+];
+
+export const NEKO_MISS_LINES = [
+  '没听懂喵，换个说法试试，也可以直接翻翻指令速查页~',
+  'neko 没找到对应的指令喵，要不要去速查页翻翻？',
+];
