@@ -1,5 +1,6 @@
 // Cloudflare Pages Function for handling group application
-const SCREENSHOT_URL_PATTERN = /^(?:\/api\/screenshot\/[\w.-]+|https?:\/\/\S+)$/u;
+// 只认本服务上传接口自己生成的路径（时间戳-随机串.扩展名），外链一律不收，否则外站图片能被拿来当同意凭证
+const SCREENSHOT_URL_PATTERN = /^\/api\/screenshot\/\d+-[a-z0-9]+\.(?:jpe?g|png|webp)$/u;
 const TEXT_LIMITS = {
   groupName: 100,
   groupSize: 50,
@@ -12,7 +13,12 @@ const recentSubmissions = new Map<string, number>();
 
 function isDuplicateSubmission(ip: string): boolean {
   const now = Date.now();
-  if (recentSubmissions.size > 1000) recentSubmissions.clear();
+  // 只清过期项：整表 clear() 会让攻击者用 1000 个 IP 把限流表洗白
+  if (recentSubmissions.size > 1000) {
+    for (const [key, time] of recentSubmissions) {
+      if (now - time >= SUBMISSION_INTERVAL_MS) recentSubmissions.delete(key);
+    }
+  }
   const last = recentSubmissions.get(ip);
   recentSubmissions.set(ip, now);
   return last !== undefined && now - last < SUBMISSION_INTERVAL_MS;

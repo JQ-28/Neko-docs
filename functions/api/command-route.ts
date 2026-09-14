@@ -5,6 +5,7 @@ import { MEMES, type MemeEntry } from "../_shared/memes";
 import { MEMES_AUTO } from "../_shared/memes-auto";
 
 import { ROUTE_INDEX, type RouteEntry } from "../_shared/command-catalog";
+import { CORS_HEADERS, handlePreflight, originRejected } from "../_shared/origin";
 
 // 文档站知识库页面（AI 回答知识类问题时允许返回的链接白名单）
 const KB_PAGES = [
@@ -443,21 +444,6 @@ function extractJson(text: string): { link?: string; title?: string; reply?: str
   return null;
 }
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
-
-const ALLOWED_ORIGINS = new Set(["https://docs.nekodayo.top", "https://tools.nekodayo.top"]);
-
-function originRejected(request: Request): boolean {
-  const origin = request.headers.get("Origin");
-  if (!origin || ALLOWED_ORIGINS.has(origin)) return false;
-  return !/^https:\/\/[a-z0-9-]+\.nekodayo-docs\.pages\.dev$/u.test(origin)
-    && !/^http:\/\/localhost(:\d+)?$/u.test(origin);
-}
-
 const AI_MODEL = "@cf/zai-org/glm-4.7-flash";
 
 type AiResult = { response?: string; choices?: Array<{ message?: { content?: string } }> };
@@ -472,16 +458,13 @@ async function requestAi(ai: AiBinding, opts: Record<string, unknown>): Promise<
   }
 }
 
+export const onRequestOptions = async (context: { request: Request }) => handlePreflight(context.request);
+
 export const onRequestPost = async (context: {
   request: Request;
   env: Record<string, unknown>;
 }) => {
   const { request, env } = context;
-
-  if (request.method === "OPTIONS") {
-    if (originRejected(request)) return new Response(null, { status: 403 });
-    return new Response(null, { headers: CORS_HEADERS });
-  }
 
   if (originRejected(request)) {
     return new Response(JSON.stringify({ ok: false, error: "来源不被允许" }), {

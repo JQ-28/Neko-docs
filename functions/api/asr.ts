@@ -1,20 +1,7 @@
 // 语音转写：前端录音（webm/mp4 等）转 base64 传来，用 Workers AI Whisper 出文字
 // 移动端浏览器普遍不支持 Web Speech API，这条通道是手机端语音输入的唯一出路
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
-
-const ALLOWED_ORIGINS = new Set(["https://docs.nekodayo.top", "https://tools.nekodayo.top"]);
-
-function originRejected(request: Request): boolean {
-  const origin = request.headers.get("Origin");
-  if (!origin || ALLOWED_ORIGINS.has(origin)) return false;
-  return !/^https:\/\/[a-z0-9-]+\.nekodayo-docs\.pages\.dev$/u.test(origin)
-    && !/^http:\/\/localhost(:\d+)?$/u.test(origin);
-}
+import { CORS_HEADERS, handlePreflight, originRejected } from "../_shared/origin";
 
 const ASR_MODEL = "@cf/openai/whisper-large-v3-turbo";
 
@@ -54,16 +41,13 @@ function json(payload: Record<string, unknown>, status = 200): Response {
   });
 }
 
+export const onRequestOptions = async (context: { request: Request }) => handlePreflight(context.request);
+
 export const onRequestPost = async (context: {
   request: Request;
   env: Record<string, unknown>;
 }) => {
   const { request, env } = context;
-
-  if (request.method === "OPTIONS") {
-    if (originRejected(request)) return new Response(null, { status: 403 });
-    return new Response(null, { headers: CORS_HEADERS });
-  }
 
   if (originRejected(request)) {
     return new Response(JSON.stringify({ ok: false, error: "来源不被允许" }), {
