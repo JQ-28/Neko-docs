@@ -10,6 +10,7 @@ export const TOOLS_EGGS = {
   numberLove: '数字表白', hungry: '馋猫护食', longText: '论文警告', fishFood: '小鱼干投喂', shake: '摇一摇', sixSeven: '六七接头',
   longPress: '长按感应', titleMeow: '标题栏喵叫', offline: '云端猫消失', footerTour: '全按钮巡礼',
   copyNeko: '偷学台词', multiTab: '猫界捉奸', printNeko: 'neko海报', cinema: '影院模式', bababoi: 'bababoi!',
+  miaoMode: '喵喵喵喵喵喵喵喵！！！',
 };
 
 export const DOCS_EGGS = {
@@ -71,6 +72,7 @@ export const EGG_HINTS = {
   docsNight: '凌晨 0 点到 5 点之间打开页面',
   docsSearchNeko: '在搜索框里输入 neko 或 猫',
   docsEggsSearch: '在搜索框里输入 彩蛋 或 eggs，会直接翻开这本册子',
+  miaoMode: '在外观或偏好设置里打开喵语模式，让整站都喵起来',
 };
 
 export const EGG_TIP = '多逛逛就能找到它喵';

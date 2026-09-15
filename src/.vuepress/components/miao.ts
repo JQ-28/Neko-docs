@@ -1,4 +1,5 @@
 import { nextTick, ref } from "vue";
+import { markEgg } from "./egg-utils";
 
 // 喵语模式：全站可见文字统一追加「喵」，代码/指令/输入类保持原样
 const STORAGE_KEY = "neko-miao";
@@ -74,6 +75,7 @@ export { isMiao };
 
 export async function toggleMiao(): Promise<void> {
   isMiao.value = !isMiao.value;
+  if (isMiao.value) markEgg("miaoMode");
   try {
     localStorage.setItem(STORAGE_KEY, isMiao.value ? "1" : "0");
   } catch {
