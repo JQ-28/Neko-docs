@@ -158,6 +158,17 @@ for (const gesture of definedGestures) {
   if (!usedGestures.has(gesture)) warnings.push(`动作 ${gesture} 定义了却没人用`);
 }
 
+// 台词里明摆着带着动作（跳、打呼、眨眼…）却只有点头，多半是漏配了
+const ACTING_WORDS = [
+  "跳得", "蹦", "跳起来", "摇尾巴", "摇一摇", "摆尾巴", "甩", "打呼",
+  "哈欠", "躲起来", "爬回来", "踩到", "被拎起来",
+];
+for (const [line, places] of linePlaces) {
+  if (LINE_GESTURES[line]) continue;
+  const word = ACTING_WORDS.find((item) => line.includes(item));
+  if (word) warnings.push(`这句里带着动作「${word}」却没配手势：「${line}」（${places[0]}）`);
+}
+
 // 每段演出脚本都得有样式，不然点了名也只是站着不动
 const definedPlays = new Set(
   [...homeSource.matchAll(/\[data-play="(\w+)"\]/g)].map((match) => match[1])
