@@ -317,7 +317,9 @@ function watchStage(): void {
 /** 拎到窗口边上还能再往外推这么远，推过线就交给隔壁窗口 */
 const HANDOFF_PUSH_PX = 120;
 /** 推过这么多就当场交出去，不用等松手 */
-const HANDOFF_GO_PX = 88;
+const HANDOFF_GO_PX = 64;
+/** 猫从窗口外滑进来的起步深度：没真越界的就按这个量从边上滑 */
+const SLIDE_IN_OVER_PX = 48;
 /** 猫丢出去了，隔这么久自己溜回来，免得对面不开着就一直少一只 */
 const AWAY_RETURN_MS = 45_000;
 
@@ -342,6 +344,23 @@ function overshootOf(shift: number, base: number, size: number, viewport: number
   if (shift < min) return shift - min;
   if (shift > max) return shift - max;
   return 0;
+}
+
+/** 贴着边松手就当扔出去，但得先真的拖动过，轻轻一碰就贴边不算数 */
+const PRESS_MIN_TRAVEL_PX = 56;
+
+/** 卡片是不是已经顶到窗口边上了：贴着边松手就当扔出去，不必真的推越界 */
+function pressedEdge(state: DragState): LiveEdge | null {
+  if (Math.abs(state.shiftX) < PRESS_MIN_TRAVEL_PX) return null;
+
+  const min = DRAG_MARGIN - state.baseLeft;
+  const max = Math.max(
+    min,
+    window.innerWidth - DRAG_MARGIN - state.baseLeft - state.width
+  );
+  if (state.shiftX <= min + 1) return "left";
+  if (state.shiftX >= max - 1) return "right";
+  return null;
 }
 
 /** 隔壁的猫从它那条边出去，就进我这条边（我这边是相反的一侧） */
@@ -391,7 +410,7 @@ function bringCatHome(): void {
   awayIndex.value = -1;
   awayTo = "";
   window.clearTimeout(awayTimer);
-  if (slot) slideInFrom(slot, awayEdge, 48);
+  if (slot) slideInFrom(slot, awayEdge, SLIDE_IN_OVER_PX);
 }
 
 /** 隔壁把猫推过来了：对应那张卡从那条边滑进来，像刚被扔过来一样 */
@@ -701,16 +720,14 @@ function onPointerUp(event: PointerEvent): void {
   if (card.hasPointerCapture(event.pointerId)) {
     card.releasePointerCapture(event.pointerId);
   }
-  // 顶到窗口边上松手＝把猫扔出去，交给那一侧的隔壁窗口
+  // 顶到窗口边上松手就当把猫扔出去（推越界的在拖动途中就已经交出去了）
   const over = overshootOf(drag.shiftX, drag.baseLeft, drag.width, window.innerWidth);
-  if (over !== 0) {
-    const edge: LiveEdge = over > 0 ? "right" : "left";
-    if (peerLink.neighborTowards(edge)) {
-      const index = draggedIndex.value;
-      releaseDrag();
-      handOffCard(index, edge, Math.abs(over));
-      return;
-    }
+  const edge = over !== 0 ? (over > 0 ? "right" : "left") : pressedEdge(drag);
+  if (edge && peerLink.neighborTowards(edge)) {
+    const index = draggedIndex.value;
+    releaseDrag();
+    handOffCard(index, edge, over !== 0 ? Math.abs(over) : SLIDE_IN_OVER_PX);
+    return;
   }
   // 松手落在另一张卡身上就算叠猫猫（要赶在清掉位移之前量）
   if (isStackedOnOther(slot)) markEgg("cardStack");
