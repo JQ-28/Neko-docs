@@ -11,18 +11,17 @@
     />
     <span class="home-online-text">
       <span class="home-online-name">在线猫猫</span>
-      <span class="home-online-meta">每 30 秒自动刷新</span>
+      <span class="home-online-meta">{{ headline }}</span>
     </span>
     <span class="home-online-light" aria-hidden="true">
       <span class="home-online-light-ring"></span>
       <span class="home-online-light-core"></span>
     </span>
-    <span class="home-online-count">{{ count }} 只</span>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 const ENDPOINT = "/api/online";
 /** 心跳间隔，与后端判定「掉线」的窗口配套：后端容忍 3 次心跳的静默 */
@@ -31,6 +30,13 @@ const VISITOR_KEY = "neko-visitor-id";
 const REQUEST_TIMEOUT_MS = 5_000;
 
 const count = ref(0);
+
+// 一个人时换句更亲昵的说法，比冷冰冰的「1」可爱
+const headline = computed(() => {
+  if (count.value <= 0) return "";
+  if (count.value === 1) return "现在只有你一只猫在逛";
+  return `现在有 ${count.value} 只猫在逛`;
+});
 
 // 匿名访客 ID：只用于去重，不含任何身份信息，清掉浏览器数据就换新号
 function readVisitorId(): string {
@@ -115,7 +121,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   min-width: 232px;
-  margin: 0 0 16px;
+  margin: 14px 0 20px;
   padding: 10px 16px 10px 14px;
   border: 1px solid rgba(255, 255, 255, 0.75);
   border-radius: 18px;
@@ -213,14 +219,6 @@ onBeforeUnmount(() => {
   border: 1.5px solid var(--online-state);
   opacity: 0;
   animation: home-online-ripple 2.4s ease-out infinite;
-}
-
-.home-online-count {
-  flex: none;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--vp-c-accent, #096dd9);
-  font-variant-numeric: tabular-nums;
 }
 
 html.dark .home-online {
