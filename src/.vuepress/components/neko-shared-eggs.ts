@@ -16,6 +16,7 @@ export const TOOLS_EGGS = {
 export const DOCS_EGGS = {
   docsNight: '文档站夜读', docsSearchNeko: '搜索框喊猫', docsEggsSearch: '抽屉里的册子',
   cardShake: '摇猫猫', cardStack: '叠猫猫', cardWalk: '遛猫', peekShows: '猫猫剧场', onlineAlone: '独守空站',
+  crossHandoff: '跨屏接力', twinDance: '猫界齐舞',
 };
 
 export const EGGS = { ...TOOLS_EGGS, ...DOCS_EGGS };
@@ -78,6 +79,8 @@ export const EGG_HINTS = {
   cardWalk: '拖着首页的猫卡片到处溜达，累计走满 2000 像素',
   peekShows: '在首页安静待着，看完 5 段不一样的猫猫小剧场',
   onlineAlone: '深夜只剩你一只猫在逛的时候，留意一下在线猫猫说的话',
+  crossHandoff: '同一台电脑上把首页开在两个窗口里，抓着猫往窗口边上推，它会甩到隔壁那扇窗去',
+  twinDance: '首页开着两个窗口的时候，两边的猫会隔着窗户同时演同一段',
   miaoMode: '在外观或偏好设置里打开喵语模式，让整站都喵起来',
 };
 

@@ -3,13 +3,14 @@
     <h2 class="home-intro-title">
       <span class="home-intro-bar" aria-hidden="true"></span>
       此刻的小站
-      <span class="home-intro-sub">两只猫正蹲在这里</span>
+      <span class="home-intro-sub">{{ stageNote }}</span>
     </h2>
 
     <div class="home-live-cards">
       <div
         ref="nekoSlot"
         class="home-live-slot home-live-slot--left"
+        :class="{ 'is-away': awayIndex === 0 }"
         @pointerdown="onPointerDown($event, 0)"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -43,6 +44,7 @@
       <div
         ref="onlineSlot"
         class="home-live-slot home-live-slot--right"
+        :class="{ 'is-away': awayIndex === 1 }"
         @pointerdown="onPointerDown($event, 1)"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -51,15 +53,30 @@
         <OnlineCounter />
         <span v-if="draggedIndex === 1" class="home-live-bubble">{{ speech }}</span>
       </div>
+
+      <span
+        v-if="visitorSide"
+        class="home-live-visitor"
+        :class="`is-${visitorSide}`"
+        aria-hidden="true"
+      >
+        <img :src="nekoAvatarSrc" alt="" width="28" height="28" @error="onAvatarError" />
+      </span>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "./egg-utils";
 import { EGG_THRESHOLDS } from "./neko-shared-eggs";
+import {
+  startPeerLink,
+  type HandoffPayload,
+  type LiveCardId,
+  type LiveEdge,
+} from "./live-peer";
 
 /** 隔多久自己动一下，与在线卡错开，看起来像两只猫互相打量 */
 const NUDGE_MIN_MS = 14_000;
@@ -76,6 +93,20 @@ const onlineSlot = ref<HTMLElement | null>(null);
 /** 哪只猫正被拎着（0 左边、1 右边、-1 没人被拎） */
 const draggedIndex = ref(-1);
 const speech = ref("");
+
+/** 跨窗口联动：同一个浏览器里还开着别的 neko 页面时才有邻居 */
+const peerLink = startPeerLink();
+/** 哪只猫被丢到隔壁窗口去了（-1 表示两只都在家） */
+const awayIndex = ref(-1);
+/** 隔壁的小脑袋从哪边探出来（空串表示没在探） */
+const visitorSide = ref<"" | LiveEdge>("");
+
+/** 谁把猫领走的、从哪条边出去的，它一关窗口就得把猫从原路放回来 */
+let awayTo = "";
+let awayEdge: LiveEdge = "right";
+let awayTimer = 0;
+let visitorTimer = 0;
+let visitorHideTimer = 0;
 
 // QQ 头像服务偶尔抽风或被网络挡住，退回本地那张，别让卡片开天窗
 function onAvatarError(): void {
@@ -176,12 +207,14 @@ function pickScript(): PlayScript {
   return PLAY_SCRIPTS[index];
 }
 
-function playScript(): void {
+function playScript(preset?: PlayScript): void {
   const neko = nekoSlot.value;
   const online = onlineSlot.value;
   if (!neko || !online) return;
 
-  const script = pickScript();
+  const script = preset ?? pickScript();
+  // 跟着隔壁一起演的那段算「猫界齐舞」
+  if (preset) markEgg("twinDance");
   // 一场里看完 5 段不一样的就算「猫猫剧场」
   seenShows.add(script.name);
   if (seenShows.size >= EGG_THRESHOLDS.cardShows) markEgg("peekShows");
@@ -202,6 +235,32 @@ function playScript(): void {
   lastPlayedAt = Date.now();
 }
 
+/** 隔壁也开着页面时改用统一的时间槽排期：两边不通信也能算出同一段、同一时刻 */
+const DANCE_PERIOD_MS = 24_000;
+const DANCE_OFFSET_MS = 6000;
+
+/** 下一个时间槽是第几号、什么时候开始（永远是严格的下一个，不会立刻重播） */
+function nextDanceSlot(now = Date.now()): { slot: number; at: number } {
+  const slot = Math.floor((now - DANCE_OFFSET_MS) / DANCE_PERIOD_MS) + 1;
+  return { slot, at: slot * DANCE_PERIOD_MS + DANCE_OFFSET_MS };
+}
+
+/** 纯函数：同一个槽在任何窗口都算出同一段；与上一槽错开，免得连着演同一段 */
+function scriptForSlot(slot: number): PlayScript {
+  const total = PLAY_SCRIPTS.length;
+  const pick = ((slot * 2654435761) >>> 0) % total;
+  const previous = (((slot - 1) * 2654435761) >>> 0) % total;
+  return PLAY_SCRIPTS[pick === previous ? (pick + 1) % total : pick];
+}
+
+/** 排下一段的间隔：隔壁开着就等下一个时间槽，自己待着就随便隔一阵 */
+function nextPlayDelay(): number {
+  if (!peerLink.hasPeers()) {
+    return REPLAY_MIN_MS + Math.random() * (REPLAY_MAX_MS - REPLAY_MIN_MS);
+  }
+  return Math.max(800, nextDanceSlot().at - Date.now());
+}
+
 function schedulePlay(delayMs: number): void {
   window.clearTimeout(playTimer);
   playTimer = window.setTimeout(() => {
@@ -217,8 +276,10 @@ function schedulePlay(delayMs: number): void {
       return;
     }
     waitTries = 0;
-    playScript();
-    schedulePlay(REPLAY_MIN_MS + Math.random() * (REPLAY_MAX_MS - REPLAY_MIN_MS));
+    // 有邻居就跟着时间槽演，两边动作才齐
+    const dance = nextDanceSlot();
+    playScript(peerLink.hasPeers() ? scriptForSlot(dance.slot) : undefined);
+    schedulePlay(nextPlayDelay());
   }, delayMs);
 }
 
@@ -252,6 +313,137 @@ function watchStage(): void {
   );
   stageWatcher.observe(stage);
 }
+
+/** 拎到窗口边上还能再往外推这么远，推过线就交给隔壁窗口 */
+const HANDOFF_PUSH_PX = 120;
+/** 推过这么多就当场交出去，不用等松手 */
+const HANDOFF_GO_PX = 88;
+/** 猫丢出去了，隔这么久自己溜回来，免得对面不开着就一直少一只 */
+const AWAY_RETURN_MS = 45_000;
+
+/** 串门：隔壁有窗口时，隔一阵子从边上探个小脑袋出来看看 */
+const VISITOR_MIN_MS = 20_000;
+const VISITOR_MAX_MS = 44_000;
+const VISITOR_SHOW_MS = 2600;
+
+/** 0 是左边那只 Neko，1 是右边那只在线猫猫 */
+function slotOf(index: number): HTMLElement | null {
+  return index === 0 ? nekoSlot.value : onlineSlot.value;
+}
+
+function cardIdOf(index: number): LiveCardId {
+  return index === 0 ? "neko" : "online";
+}
+
+/** 越出边界的距离：负数是从左边出去，正数是从右边出去，0 表示还在窗口里 */
+function overshootOf(shift: number, base: number, size: number, viewport: number): number {
+  const min = DRAG_MARGIN - base;
+  const max = viewport - DRAG_MARGIN - base - size;
+  if (shift < min) return shift - min;
+  if (shift > max) return shift - max;
+  return 0;
+}
+
+/** 隔壁的猫从它那条边出去，就进我这条边（我这边是相反的一侧） */
+function incomingEdge(edge: LiveEdge): LiveEdge {
+  return edge === "right" ? "left" : "right";
+}
+
+/** 从某条边滑进来：先摆到窗口外，再把过渡交还给样式，让猫自己跑回原位 */
+function slideInFrom(slot: HTMLElement, edge: LiveEdge, over: number): void {
+  const rect = slot.getBoundingClientRect();
+  const offscreen =
+    edge === "right"
+      ? window.innerWidth + over - rect.left
+      : -(rect.left + rect.width + over);
+
+  slot.style.transition = "none";
+  slot.style.translate = `${offscreen}px 0`;
+  void slot.offsetWidth;
+  slot.style.transition = "";
+  slot.style.translate = "";
+}
+
+/** 把拎着的猫交给隔壁：这边收起来，把落点告诉对面 */
+function handOffCard(index: number, edge: LiveEdge, over: number): void {
+  const target = peerLink.neighborTowards(edge);
+  if (!target) return;
+
+  peerLink.sendHandoff(target.id, {
+    card: cardIdOf(index),
+    edge,
+    over: Math.round(over),
+  });
+  markEgg("crossHandoff");
+
+  awayIndex.value = index;
+  awayEdge = edge;
+  awayTo = target.id;
+  window.clearTimeout(awayTimer);
+  awayTimer = window.setTimeout(() => bringCatHome(), AWAY_RETURN_MS);
+}
+
+/** 猫回来了：从当初出去的那条边溜回原位 */
+function bringCatHome(): void {
+  const index = awayIndex.value;
+  if (index < 0) return;
+  const slot = slotOf(index);
+  awayIndex.value = -1;
+  awayTo = "";
+  window.clearTimeout(awayTimer);
+  if (slot) slideInFrom(slot, awayEdge, 48);
+}
+
+/** 隔壁把猫推过来了：对应那张卡从那条边滑进来，像刚被扔过来一样 */
+function receiveCat(payload: HandoffPayload): void {
+  const index = payload.card === "neko" ? 0 : 1;
+  const slot = slotOf(index);
+  // 手上正拎着就别接了，免得跟手上的动作打架
+  if (drag || !slot) return;
+
+  // 自己那只本来在隔壁，人家给推回来了
+  if (awayIndex.value === index) {
+    awayIndex.value = -1;
+    awayTo = "";
+    window.clearTimeout(awayTimer);
+  }
+
+  slideInFrom(slot, incomingEdge(payload.edge), payload.over);
+  markEgg("crossHandoff");
+  speech.value = "隔壁推我一把";
+  draggedIndex.value = index;
+  window.clearTimeout(speechTimer);
+  speechTimer = window.setTimeout(() => {
+    draggedIndex.value = -1;
+    speech.value = "";
+  }, SPEECH_LINGER_MS);
+}
+
+/** 串门：隔壁有窗口时，偶尔从边上探个小脑袋出来看一眼又缩回去 */
+function scheduleVisitor(): void {
+  window.clearTimeout(visitorTimer);
+  if (!peerLink.hasPeers()) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  visitorTimer = window.setTimeout(() => {
+    if (peerLink.hasPeers() && stageVisible && !drag && awayIndex.value < 0) {
+      visitorSide.value = Math.random() < 0.5 ? "left" : "right";
+      window.clearTimeout(visitorHideTimer);
+      visitorHideTimer = window.setTimeout(() => {
+        visitorSide.value = "";
+      }, VISITOR_SHOW_MS);
+    }
+    scheduleVisitor();
+  }, VISITOR_MIN_MS + Math.random() * (VISITOR_MAX_MS - VISITOR_MIN_MS));
+}
+
+/** 隔壁有窗口时一起演同一段，算「猫界齐舞」 */
+const stageNote = computed(() => {
+  if (awayIndex.value >= 0) return "有只猫去隔壁串门了";
+  const others = peerLink.peerCount.value;
+  if (others > 0) return `隔壁还有 ${others} 只猫在看着`;
+  return "两只猫正蹲在这里";
+});
 
 /** 被拎起来的时候随口抱怨的话 */
 const GRUMBLES = [
@@ -294,6 +486,9 @@ interface DragState {
   baseTop: number;
   width: number;
   height: number;
+  /** 最近一次算出来的位移，松手时用它判断猫是不是顶在窗口边上 */
+  shiftX: number;
+  shiftY: number;
 }
 
 let drag: DragState | null = null;
@@ -320,15 +515,17 @@ function isPlaying(): boolean {
   );
 }
 
-/** 把位移限制在屏幕内，猫拎到边上就停，页面也不会被顶宽 */
+/** 把位移限制在屏幕内，猫拎到边上就停，页面也不会被顶宽。
+    slack 是给跨窗口接力留的口子：边上还开着别的窗口时，允许再往外推一截 */
 function limitShift(
   shift: number,
   base: number,
   size: number,
-  viewport: number
+  viewport: number,
+  slack = 0
 ): number {
-  const min = DRAG_MARGIN - base;
-  const max = Math.max(min, viewport - DRAG_MARGIN - base - size);
+  const min = DRAG_MARGIN - base - slack;
+  const max = Math.max(min, viewport - DRAG_MARGIN - base - size + slack);
   return Math.min(Math.max(shift, min), max);
 }
 
@@ -409,6 +606,8 @@ function onPointerDown(event: PointerEvent, index: number): void {
     baseTop: rect.top,
     width: rect.width,
     height: rect.height,
+    shiftX: 0,
+    shiftY: 0,
   };
   // 手指点得太快时指针可能已经抬起了，抓不到就按没抓到继续走
   try {
@@ -425,14 +624,33 @@ function onPointerDown(event: PointerEvent, index: number): void {
   window.clearTimeout(playTimer);
 }
 
+/** 收拾拖拽现场：猫被扔到隔壁窗口时用，不留回弹 */
+function releaseDrag(): void {
+  if (!drag) return;
+  const { card, pointerId, slot } = drag;
+  if (card.hasPointerCapture(pointerId)) card.releasePointerCapture(pointerId);
+  slot.classList.remove("is-dragging");
+  slot.style.translate = "";
+  slot.style.rotate = "";
+  drag = null;
+  draggedIndex.value = -1;
+  speech.value = "";
+  window.clearTimeout(speechTimer);
+}
+
 function onPointerMove(event: PointerEvent): void {
   if (!drag || event.pointerId !== drag.pointerId) return;
 
+  // 左右哪边还开着另一个 neko 页面，就允许把猫往那边再推一截
+  const hasSidePeer =
+    peerLink.neighborTowards("left") !== null ||
+    peerLink.neighborTowards("right") !== null;
   const dx = limitShift(
     event.clientX - drag.startX,
     drag.baseLeft,
     drag.width,
-    window.innerWidth
+    window.innerWidth,
+    hasSidePeer ? HANDOFF_PUSH_PX : 0
   );
   const dy = limitShift(
     event.clientY - drag.startY,
@@ -440,8 +658,22 @@ function onPointerMove(event: PointerEvent): void {
     drag.height,
     window.innerHeight
   );
+  drag.shiftX = dx;
+  drag.shiftY = dy;
   // 位置直接给到手上，拖尾和回弹交给样式里的过渡，掉帧也不会变形
   drag.slot.style.translate = `${dx}px ${dy}px`;
+
+  // 推过头就当场把猫交给隔壁，不用等松手
+  const over = overshootOf(dx, drag.baseLeft, drag.width, window.innerWidth);
+  if (over !== 0 && Math.abs(over) >= HANDOFF_GO_PX) {
+    const edge: LiveEdge = over > 0 ? "right" : "left";
+    if (peerLink.neighborTowards(edge)) {
+      const index = draggedIndex.value;
+      releaseDrag();
+      handOffCard(index, edge, Math.abs(over));
+      return;
+    }
+  }
 
   // 顺手数一数彩蛋：摇猫猫、遛猫
   trackCardShake(event.clientX, Date.now());
@@ -469,6 +701,17 @@ function onPointerUp(event: PointerEvent): void {
   if (card.hasPointerCapture(event.pointerId)) {
     card.releasePointerCapture(event.pointerId);
   }
+  // 顶到窗口边上松手＝把猫扔出去，交给那一侧的隔壁窗口
+  const over = overshootOf(drag.shiftX, drag.baseLeft, drag.width, window.innerWidth);
+  if (over !== 0) {
+    const edge: LiveEdge = over > 0 ? "right" : "left";
+    if (peerLink.neighborTowards(edge)) {
+      const index = draggedIndex.value;
+      releaseDrag();
+      handOffCard(index, edge, Math.abs(over));
+      return;
+    }
+  }
   // 松手落在另一张卡身上就算叠猫猫（要赶在清掉位移之前量）
   if (isStackedOnOther(slot)) markEgg("cardStack");
   // 交还样式：过渡会把猫带着惯性送回原位，顺带晃两下
@@ -485,13 +728,25 @@ function onPointerUp(event: PointerEvent): void {
 
   // 闹完了，接着原来的节奏演
   if (stageVisible) {
-    schedulePlay(REPLAY_MIN_MS + Math.random() * (REPLAY_MAX_MS - REPLAY_MIN_MS));
+    schedulePlay(nextPlayDelay());
   }
 }
 
 onMounted(() => {
   scheduleNudge();
   watchStage();
+
+  peerLink.onHandoff(receiveCat);
+  // 领走猫的那个窗口关掉了，就把猫放回来
+  peerLink.onPeerGone((id) => {
+    if (awayTo === id) bringCatHome();
+  });
+  // 隔壁来去都要重排：有邻居就切到齐舞节奏，自己待着就恢复随便演
+  watch(peerLink.peerCount, () => {
+    schedulePlay(nextPlayDelay());
+    scheduleVisitor();
+  });
+  scheduleVisitor();
 });
 
 onBeforeUnmount(() => {
@@ -500,6 +755,10 @@ onBeforeUnmount(() => {
   window.clearTimeout(playTimer);
   window.clearTimeout(resetTimer);
   window.clearTimeout(speechTimer);
+  window.clearTimeout(awayTimer);
+  window.clearTimeout(visitorTimer);
+  window.clearTimeout(visitorHideTimer);
+  peerLink.stop();
 });
 
 </script>
@@ -542,6 +801,7 @@ html.dark .home-intro-sub {
 /* 两张卡片居中并排，间距留够，像聊天窗里面对面坐着的两个人 */
 .home-live-cards {
   --ease-play: cubic-bezier(0.34, 1.3, 0.64, 1);
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -559,7 +819,13 @@ html.dark .home-intro-sub {
   /* 松手后带着惯性飞回原位，角度还会多晃两下 */
   transition: translate 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
     rotate 0.62s cubic-bezier(0.34, 1.45, 0.64, 1),
-    scale 0.4s cubic-bezier(0.34, 1.3, 0.64, 1);
+    scale 0.4s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease-out;
+}
+
+/* 猫被丢到隔壁窗口去了：位子留着，猫不在 */
+.home-live-slot.is-away {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* 拎在手上：跟手要快，但留一点点拖尾才像有重量；角度过渡带过冲，甩起来就晃 */
@@ -635,6 +901,79 @@ html.dark .home-live-slot.is-dragging :deep(.home-online) {
 html.dark .home-live-bubble {
   border-color: rgba(255, 255, 255, 0.1);
   background: #262a33;
+}
+
+/* 串门：隔壁窗口的猫探个小脑袋出来看一眼，晃两下又缩回去 */
+.home-live-visitor {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  margin-top: -15px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(120, 90, 160, 0.28);
+  overflow: hidden;
+  pointer-events: none;
+  animation: home-live-visit 2.6s cubic-bezier(0.34, 1.3, 0.64, 1) backwards;
+}
+
+.home-live-visitor.is-left {
+  left: -6px;
+  --visit-from: -40px;
+}
+
+.home-live-visitor.is-right {
+  right: -6px;
+  --visit-from: 40px;
+}
+
+.home-live-visitor img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+html.dark .home-live-visitor {
+  border-color: #262a33;
+  background: #262a33;
+}
+
+@keyframes home-live-visit {
+  0% {
+    translate: var(--visit-from) 0;
+    opacity: 0;
+  }
+
+  16% {
+    translate: 0 0;
+    opacity: 1;
+  }
+
+  32% {
+    translate: calc(var(--visit-from) * 0.22) 0;
+  }
+
+  48% {
+    translate: 0 0;
+  }
+
+  64% {
+    translate: calc(var(--visit-from) * 0.16) 0;
+  }
+
+  80% {
+    translate: 0 0;
+    opacity: 1;
+  }
+
+  100% {
+    translate: var(--visit-from) 0;
+    opacity: 0;
+  }
 }
 
 @keyframes home-live-bubble-in {
