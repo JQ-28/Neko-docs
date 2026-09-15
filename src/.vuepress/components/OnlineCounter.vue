@@ -276,6 +276,9 @@ onBeforeUnmount(() => {
   font-size: 11px;
   letter-spacing: 0.2px;
   white-space: nowrap;
+  /* 卡片窄，人数涨到三位数时不让文案把卡片撑破 */
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: #a397b2;
   transition: color 0.25s ease-out;
 }

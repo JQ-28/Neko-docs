@@ -103,17 +103,20 @@ html.dark .home-intro-sub {
   color: #a9a2b8;
 }
 
-/* 两张卡片并排站着，不各自孤零零占一行 */
+/* 两张卡片居中并排，间距留够，像聊天窗里面对面坐着的两个人 */
 .home-live-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  justify-content: center;
+  gap: 22px;
 }
 
 /* 让在线卡与左边的 Neko 卡取同一个宽度，并排才整齐 */
 .home-live-cards :deep(.home-online) {
-  flex: 0 1 280px;
-  max-width: 280px;
+  box-sizing: border-box;
+  flex: 0 1 264px;
+  max-width: 264px;
+  padding: 10px 14px 10px 12px;
 }
 
 /* 视觉与在线卡保持一致：渐变描边玻璃层 + 圆头像 + 双层呼吸灯 */
@@ -125,9 +128,10 @@ html.dark .home-intro-sub {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  flex: 0 1 280px;
-  max-width: 280px;
-  padding: 10px 18px 10px 14px;
+  box-sizing: border-box;
+  flex: 0 1 264px;
+  max-width: 264px;
+  padding: 10px 14px 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.75);
   border-radius: 18px;
   background: #ffffff;
