@@ -1,12 +1,28 @@
 <template>
-  <p v-if="text" class="home-online">
-    <span class="home-online-dot" aria-hidden="true"></span>
-    {{ text }}
-  </p>
+  <div v-if="count > 0" class="home-online" role="status" aria-live="polite">
+    <span class="home-online-glass" aria-hidden="true"></span>
+    <img
+      class="home-online-avatar"
+      src="/assets/image/neko.webp"
+      alt=""
+      width="34"
+      height="34"
+      aria-hidden="true"
+    />
+    <span class="home-online-text">
+      <span class="home-online-name">在线猫猫</span>
+      <span class="home-online-meta">每 30 秒自动刷新</span>
+    </span>
+    <span class="home-online-light" aria-hidden="true">
+      <span class="home-online-light-ring"></span>
+      <span class="home-online-light-core"></span>
+    </span>
+    <span class="home-online-count">{{ count }} 只</span>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 
 const ENDPOINT = "/api/online";
 /** 心跳间隔，与后端判定「掉线」的窗口配套：后端容忍 3 次心跳的静默 */
@@ -15,12 +31,6 @@ const VISITOR_KEY = "neko-visitor-id";
 const REQUEST_TIMEOUT_MS = 5_000;
 
 const count = ref(0);
-
-const text = computed(() => {
-  if (count.value <= 0) return "";
-  if (count.value === 1) return "现在只有你一只猫在逛";
-  return `现在有 ${count.value} 只猫在逛`;
-});
 
 // 匿名访客 ID：只用于去重，不含任何身份信息，清掉浏览器数据就换新号
 function readVisitorId(): string {
@@ -95,29 +105,134 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* 视觉沿用状态页账号卡片：渐变描边玻璃层 + 圆头像 + 双层呼吸灯 */
 .home-online {
+  --online-state: #22c55e;
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  margin: 0 0 14px;
-  color: var(--vp-c-text-2, #6b7280);
-  font-size: 13px;
-  line-height: 1;
-  animation: home-online-in 0.3s var(--ease-out, ease-out);
+  gap: 10px;
+  min-width: 232px;
+  margin: 0 0 16px;
+  padding: 10px 16px 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--vp-c-accent, #096dd9) 10%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  animation: home-online-in 0.44s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.home-online-dot {
-  width: 7px;
-  height: 7px;
+/* 渐变描边：用 mask 把渐变裁成只有边框那一圈 */
+.home-online-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 2px;
+  border-radius: inherit;
+  background: linear-gradient(120deg, #ffd6f5, #e2cdfb, #bfe4ff);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.home-online > :not(.home-online-glass) {
+  position: relative;
+  z-index: 2;
+}
+
+.home-online-avatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: #4ade80;
-  animation: home-online-pulse 2.4s ease-out infinite;
+  object-fit: cover;
+  background: #f4f1f8;
+  border: 1.5px solid color-mix(in srgb, var(--online-state) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--online-state) 14%, transparent);
+}
+
+.home-online-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.home-online-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--vp-c-accent, #096dd9);
+}
+
+.home-online-meta {
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  color: #a397b2;
+}
+
+.home-online-light {
+  flex: none;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+}
+
+.home-online-light-core,
+.home-online-light-ring {
+  grid-area: 1 / 1;
+  border-radius: 50%;
+}
+
+.home-online-light-core {
+  width: 9px;
+  height: 9px;
+  background: var(--online-state);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--online-state) 18%, transparent);
+  animation: home-online-breathe 2.4s ease-in-out infinite;
+}
+
+.home-online-light-ring {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--online-state);
+  opacity: 0;
+  animation: home-online-ripple 2.4s ease-out infinite;
+}
+
+.home-online-count {
+  flex: none;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--vp-c-accent, #096dd9);
+  font-variant-numeric: tabular-nums;
+}
+
+html.dark .home-online {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(30, 34, 42, 0.86);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html.dark .home-online-glass {
+  opacity: 0.32;
+}
+
+html.dark .home-online-avatar {
+  background: #262a33;
 }
 
 @keyframes home-online-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(6px);
   }
 
   to {
@@ -126,21 +241,36 @@ onBeforeUnmount(() => {
   }
 }
 
-/* 用 box-shadow 扩散而不是改尺寸，避免触发重排 */
-@keyframes home-online-pulse {
+@keyframes home-online-breathe {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.55);
+    transform: scale(1);
+    opacity: 1;
   }
 
   50% {
-    box-shadow: 0 0 0 5px rgba(74, 222, 128, 0);
+    transform: scale(0.82);
+    opacity: 0.72;
+  }
+}
+
+@keyframes home-online-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+
+  70%,
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home-online,
-  .home-online-dot {
+  .home-online-light-core,
+  .home-online-light-ring {
     animation: none;
   }
 }
