@@ -164,9 +164,9 @@ export default hopeTheme({
     pwa: {
       favicon: "/assets/image/neko.webp",
       cacheHTML: false,
-      cacheImage: true,
+      cacheImage: false,
       appendBase: true,
-      update: "ready",
+      update: "disable",
       generateSWConfig: {
         globIgnores: ["index.html", "404.html"],
         navigateFallback: null,

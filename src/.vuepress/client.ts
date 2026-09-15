@@ -32,6 +32,7 @@ import { initEggEvents, trackPageVisit } from "./components/egg-events";
 import { EGG_THRESHOLDS } from "./components/neko-shared-eggs";
 import { SEARCH_MIRROR_EGGS, matchSearchEgg } from "./components/neko-shared-search-eggs";
 import { playSearchEggEffect } from "./components/search-egg-effects";
+import { setupPwaUpdate } from "./components/pwa-update";
 import { applyMiaoTextToPage } from "./components/miao";
 
 const COPY_TEXT = "复制代码";
@@ -232,6 +233,7 @@ export default defineClientConfig({
       cleanupEggEvents = initEggEvents();
 
       document.addEventListener("input", onSearchInput, true);
+      setupPwaUpdate();
       lastDark = document.documentElement.classList.contains("dark");
       themeObserver = new MutationObserver(countThemeFlip);
       themeObserver.observe(document.documentElement, {
