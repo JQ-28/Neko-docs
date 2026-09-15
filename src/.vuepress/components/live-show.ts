@@ -56,6 +56,8 @@ const BIG_MIN_GAP_MS = 8 * 60_000;
 const BIG_MAX_GAP_MS = 12 * 60_000;
 /** 大编舞要跨过对方，窄屏上会撞到屏幕边被裁掉，所以只在够宽的窗口上演 */
 const BIG_MIN_VIEWPORT = 880;
+/** 到点了但台面正被占着（多半是在说话）：过这么久再来看一眼，不让它一等又是一整轮 */
+const BIG_RETRY_MS = 90_000;
 
 /** 新卡落地先演一段短的见面小戏，从几段轻巧的里挑 */
 const GREET_SCRIPTS: readonly PlayScript[] = PLAY_SCRIPTS.filter(
@@ -262,18 +264,28 @@ export function useLiveShow(host: ShowHost): LiveShow {
     return BIG_SCRIPTS[((slot * 40503) >>> 0) % BIG_SCRIPTS.length];
   }
 
-  /** 特别节目：隔一阵来一次，来之前先确认台面空着（正在说话就跳过这一轮） */
-  function scheduleBig(): void {
+  /** 特别节目：隔一阵来一次，到点了先看看台面空不空 */
+  function scheduleBig(
+    delayMs = BIG_MIN_GAP_MS + Math.random() * (BIG_MAX_GAP_MS - BIG_MIN_GAP_MS)
+  ): void {
     window.clearTimeout(bigTimer);
     bigTimer = window.setTimeout(() => {
-      scheduleBig();
-      if (holding) return;
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      if (window.innerWidth < BIG_MIN_VIEWPORT) return;
-      if (!canPlay() || isPlaying()) return;
-      if (!(host.bigReady?.() ?? true)) return;
+      // 台面这会儿不空：正在说话、手拎着卡、页切后台、窗口太窄、或者上一段还没演完
+      const busy =
+        holding ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+        window.innerWidth < BIG_MIN_VIEWPORT ||
+        !canPlay() ||
+        isPlaying() ||
+        !(host.bigReady?.() ?? true);
+      if (busy) {
+        // 只是暂时让一让，过会儿再来问，别白等满一整轮 8–12 分钟
+        scheduleBig(BIG_RETRY_MS);
+        return;
+      }
       void playScript({ script: pickBig(), big: true });
-    }, BIG_MIN_GAP_MS + Math.random() * (BIG_MAX_GAP_MS - BIG_MIN_GAP_MS));
+      scheduleBig();
+    }, delayMs);
   }
 
   onBeforeUnmount(() => {

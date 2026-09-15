@@ -386,12 +386,24 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     return sameKind.find((card) => card.id !== previous) ?? sameKind[0];
   }
 
+  /** 把没说完的那半截掐掉：定时器、寄存的后半截、还有「话还没说完」这个标记一起清。
+      少清一个标记，isChatting() 就会一直为真，大编舞也跟着永远轮不上 */
+  function abortTurn(): void {
+    window.clearTimeout(turnTimer);
+    turnPending = false;
+    pending = null;
+  }
+
   /** 戏演完了、或者根本演不出来：把刚才那段话的后半截接上 */
   function resumePending(): boolean {
     const next = pending;
-    pending = null;
-    window.clearTimeout(turnTimer);
-    if (!next || next.run !== chatRun) return false;
+    // 这段已经作废（被拎走、被搬走）：把寄着的那半截丢掉就行，
+    // turnTimer 千万别碰 —— 手上跑着的可能是另一段对话的排期
+    if (!next || next.run !== chatRun) {
+      pending = null;
+      return false;
+    }
+    abortTurn();
     playTurn(next.turns, next.index, next.run, next.previous);
     return true;
   }
@@ -524,13 +536,12 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       if (lastSpeaker === cardId) lastSpeaker = "";
       // 说话的那张被搬走了，这段对话就说到这儿
       chatRun += 1;
-      window.clearTimeout(turnTimer);
+      abortTurn();
     },
     stop: () => {
       chatRun += 1;
       // 正在等戏的那半截也算废掉，别一会儿又冒出来
-      pending = null;
-      window.clearTimeout(turnTimer);
+      abortTurn();
     },
     scheduleAfterGreeting: () => schedule(GREETING_REPLY_MS + nextChatDelay()),
     isChatting: () => speakingId.value !== "" || turnPending || pending !== null,
