@@ -14,7 +14,8 @@ function showUpdateCard(worker: ServiceWorker): void {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "neko-update-card-button";
-  button.innerHTML = '<span class="neko-update-card-icon">↻</span>刷新';
+  button.innerHTML =
+    '<span class="neko-update-card-spinner"><span class="neko-update-card-dot"></span><span class="neko-update-card-dot"></span><span class="neko-update-card-dot"></span></span>刷新';
   button.addEventListener("click", () => {
     if (button.classList.contains("is-updating")) return;
     button.classList.add("is-updating");

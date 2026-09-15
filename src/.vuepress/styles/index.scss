@@ -862,53 +862,114 @@ html.dark .neko-egg-tip-text {
   }
 }
 
-// PWA 新版本弹卡：检测到更新即出现在右下角，点击刷新接管
+// PWA 新版本弹卡：导航栏正下方居中的小胶囊，点击刷新换版本
 .neko-update-card {
   position: fixed;
-  right: 16px;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  top: calc(var(--navbar-height, 3.6rem) + 12px);
+  left: 50%;
   z-index: 99999;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
   border: 1px solid color-mix(in srgb, #7fb0ff 45%, transparent);
-  border-radius: 12px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
-  animation: neko-update-in 0.3s ease;
+  transform: translate(-50%, 0);
+  animation: neko-update-in 0.25s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .neko-update-card-text {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--vp-c-text, #2b2b2b);
 }
 
 .neko-update-card-button {
-  padding: 6px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
   border: none;
   border-radius: 999px;
   background: linear-gradient(120deg, #ff9ed5, #7fb0ff);
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
-.neko-update-card-icon {
+// three-body 三点环绕 loader（Uiverse 改色版），点击后加速表示换版本中
+.neko-update-card-spinner {
+  --neko-spin-speed: 0.8s;
+  position: relative;
   display: inline-block;
-  margin-right: 6px;
-  font-size: 16px;
-  line-height: 1;
-  animation: neko-update-spin 1.6s linear infinite;
+  width: 12px;
+  height: 12px;
+  animation: neko-update-spin calc(var(--neko-spin-speed) * 2.5) infinite linear;
 }
 
-// 点击刷新后只挡重复点击，箭头加速表示正在换版本
+.neko-update-card-dot {
+  position: absolute;
+  width: 30%;
+  height: 100%;
+}
+
+.neko-update-card-dot::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 0;
+  padding-bottom: 100%;
+  background: #fff;
+  border-radius: 50%;
+}
+
+.neko-update-card-dot:nth-child(1) {
+  bottom: 5%;
+  left: 0;
+  transform: rotate(60deg);
+  transform-origin: 50% 85%;
+}
+
+.neko-update-card-dot:nth-child(1)::after {
+  bottom: 0;
+  left: 0;
+  animation: neko-update-wobble-a var(--neko-spin-speed) infinite ease-in-out;
+  animation-delay: calc(var(--neko-spin-speed) * -0.3);
+}
+
+.neko-update-card-dot:nth-child(2) {
+  bottom: 5%;
+  right: 0;
+  transform: rotate(-60deg);
+  transform-origin: 50% 85%;
+}
+
+.neko-update-card-dot:nth-child(2)::after {
+  bottom: 0;
+  left: 0;
+  animation: neko-update-wobble-a var(--neko-spin-speed) infinite ease-in-out;
+  animation-delay: calc(var(--neko-spin-speed) * -0.15);
+}
+
+.neko-update-card-dot:nth-child(3) {
+  bottom: -5%;
+  left: 0;
+  transform: translateX(116.666%);
+}
+
+.neko-update-card-dot:nth-child(3)::after {
+  top: 0;
+  left: 0;
+  animation: neko-update-wobble-b var(--neko-spin-speed) infinite ease-in-out;
+}
+
 .neko-update-card-button.is-updating {
   pointer-events: none;
 }
 
-.neko-update-card-button.is-updating .neko-update-card-icon {
-  animation-duration: 0.4s;
+.neko-update-card-button.is-updating .neko-update-card-spinner {
+  --neko-spin-speed: 0.4s;
 }
 
 @keyframes neko-update-spin {
@@ -917,10 +978,41 @@ html.dark .neko-egg-tip-text {
   }
 }
 
+@keyframes neko-update-wobble-a {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateY(-66%) scale(0.65);
+    opacity: 0.8;
+  }
+}
+
+@keyframes neko-update-wobble-b {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateY(66%) scale(0.65);
+    opacity: 0.8;
+  }
+}
+
 @keyframes neko-update-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translate(-50%, -8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 }
 
@@ -930,15 +1022,13 @@ html.dark .neko-update-card {
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
 }
 
-@media (max-width: 768px) {
-  .neko-update-card {
-    right: 16px;
-    left: 16px;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .neko-update-card {
+    animation: none;
+  }
+
+  .neko-update-card-spinner,
+  .neko-update-card-dot::after {
     animation: none;
   }
 }
