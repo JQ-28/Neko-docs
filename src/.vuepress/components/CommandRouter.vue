@@ -1738,51 +1738,51 @@ onBeforeUnmount(() => {
   transform: translateX(-50%) translateY(14px) scale(0.9);
 }
 
-:global(html.dark) .neko-voice-ico {
+html.dark .neko-voice-ico {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
-:global(html.dark) .neko-modal {
+html.dark .neko-modal {
   border-color: #e8d5f8;
   box-shadow: 0 8px 24px rgba(232, 213, 248, 0.4);
 }
 
-:global(html.dark) .neko-modal-head {
+html.dark .neko-modal-head {
   background: linear-gradient(135deg, #d4a5f5 0%, #9ab8e8 100%);
 }
 
-:global(html.dark) .neko-chat-wrap::before {
+html.dark .neko-chat-wrap::before {
   opacity: 0.12;
 }
 
-:global(html.dark) .neko-chat {
+html.dark .neko-chat {
   color: #ccc;
 }
 
-:global(html.dark) .neko-bubble {
+html.dark .neko-bubble {
   background: rgba(255, 255, 255, 0.1);
   color: #e0e0e0;
 }
 
-:global(html.dark) .neko-msg.neko .neko-bubble::before {
+html.dark .neko-msg.neko .neko-bubble::before {
   border-color: transparent rgba(255, 255, 255, 0.1) transparent transparent;
 }
 
-:global(html.dark) .neko-msg.user .neko-bubble::before {
+html.dark .neko-msg.user .neko-bubble::before {
   border-color: transparent transparent transparent rgba(255, 255, 255, 0.1);
 }
 
-:global(html.dark) .neko-panel {
+html.dark .neko-panel {
   background: rgba(247, 228, 251, 0.1);
 }
 
-:global(html.dark) .neko-panel input {
+html.dark .neko-panel input {
   background: rgba(255, 255, 255, 0.05);
   border-color: #9ab8e8;
   color: #e0e0e0;
 }
 
-:global(html.dark) .neko-qq-footer {
+html.dark .neko-qq-footer {
   background: rgba(247, 228, 251, 0.1);
   border-top-color: rgba(249, 189, 235, 0.3);
 }
