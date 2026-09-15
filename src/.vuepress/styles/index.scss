@@ -1137,7 +1137,7 @@ html.dark .neko-firefly-field {
   width: 8px;
   height: 8px;
   margin: -4px 0 0 -4px;
-  background-color: var(--accent);
+  background-color: var(--vp-c-accent, #096dd9);
   -webkit-mask: $neko-paw-mask center / contain no-repeat;
   mask: $neko-paw-mask center / contain no-repeat;
   animation: neko-burst-fly 0.62s var(--ease-out) forwards;
@@ -1163,7 +1163,7 @@ html.dark .neko-firefly-field {
   width: 16px;
   height: 16px;
   margin: -8px 0 0 -8px;
-  background-color: var(--accent);
+  background-color: var(--vp-c-accent, #096dd9);
   -webkit-mask: $neko-paw-mask center / contain no-repeat;
   mask: $neko-paw-mask center / contain no-repeat;
   pointer-events: none;
