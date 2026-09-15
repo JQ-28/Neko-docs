@@ -14,6 +14,9 @@
 
 <script>
 export default {
+  data() {
+    return { observer: null }
+  },
   mounted() {
     // 为所有图片添加描述浮层包装
     const images = this.$el.querySelectorAll('.timeline-images img');
@@ -30,6 +33,29 @@ export default {
         wrapper.appendChild(overlay);
       }
     });
+
+    const content = this.$el.querySelector('.timeline-content');
+    if (!content) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      content.classList.add('is-visible');
+      return;
+    }
+
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          content.classList.add('is-visible');
+          this.observer.disconnect();
+        });
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+    );
+    this.observer.observe(this.$el);
+  },
+  unmounted() {
+    if (this.observer) this.observer.disconnect();
   }
 }
 </script>
@@ -103,7 +129,11 @@ defineProps({
 
 .timeline-content {
   flex: 1;
-  animation: fadeInUp 0.6s ease;
+  opacity: 0;
+}
+
+.timeline-content.is-visible {
+  animation: fadeInUp 0.44s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)) backwards;
 }
 
 .timeline-date {
@@ -211,7 +241,7 @@ html.dark .timeline-images :deep(.img-wrapper:hover) {
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -306,6 +336,20 @@ html.dark .timeline-images :deep(.img-wrapper:hover) {
   .timeline-images :deep(.img-wrapper:active .img-overlay) {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-content {
+    opacity: 1;
+  }
+
+  .timeline-content.is-visible {
+    animation: none;
+  }
+
+  .timeline-dot {
+    animation: none;
   }
 }
 </style>

@@ -28,11 +28,12 @@
 
         <div class="egg-body">
           <button
-            v-for="item in items"
+            v-for="(item, index) in items"
             :key="item.id"
             type="button"
             class="egg-item"
             :class="{ locked: !eggFound.has(item.id), 'show-hint': revealed.has(item.id) }"
+            :style="{ '--i': index }"
             @click="reveal(item.id)"
           >
             <span class="egg-mark" :class="eggFound.has(item.id) ? 'ok' : 'lock'">
@@ -246,6 +247,20 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
   text-align: left;
   cursor: pointer;
   transition: transform 0.2s var(--ease-out, ease-out), border-color 0.2s var(--ease-out, ease-out);
+  animation: egg-item-in 0.44s var(--ease-out, ease-out) backwards;
+  animation-delay: calc(0.06s + var(--i, 0) * 40ms);
+}
+
+@keyframes egg-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .egg-item:hover {
@@ -425,6 +440,10 @@ html.dark .egg-close {
   }
 
   .egg-poke {
+    animation: none;
+  }
+
+  .egg-item {
     animation: none;
   }
 }

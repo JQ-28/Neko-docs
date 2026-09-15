@@ -239,9 +239,11 @@ onBeforeUnmount(() => {
   opacity: 0;
   visibility: hidden;
 
-  transition: all 0.18s ease-out;
+  transition: opacity 0.18s var(--ease-out, ease-out),
+    transform 0.18s var(--ease-out, ease-out), visibility 0.18s;
 
   transform: scale(0.8);
+  transform-origin: top right;
 
   > *:not(:last-child) {
     padding-bottom: 0.5rem;
@@ -307,6 +309,7 @@ onBeforeUnmount(() => {
 }
 
 .vp-color-mode-switch {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -325,13 +328,19 @@ onBeforeUnmount(() => {
 }
 
 .vp-color-mode-switch .icon {
-  display: none;
+  position: absolute;
+  inset: 0;
+  margin: auto;
   width: 1.1rem;
   height: 1.1rem;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.2s var(--ease-out, ease-out), transform 0.2s var(--ease-out, ease-out);
 }
 
 .vp-color-mode-switch .icon.show {
-  display: block;
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* 移动端：触控区放大到 44px 级，面板限宽防止溢出视口 */
@@ -382,6 +391,18 @@ onBeforeUnmount(() => {
     width: 2.4rem;
     height: 2.4rem;
     flex: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-outlook-dropdown,
+  .vp-color-mode-switch .icon {
+    transition: none;
+  }
+
+  .vp-color-mode-switch .icon,
+  .vp-color-mode-switch .icon.show {
+    transform: none;
   }
 }
 </style>

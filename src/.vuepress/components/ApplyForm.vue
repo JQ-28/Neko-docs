@@ -755,22 +755,32 @@ html.dark .help-text {
   color: #9ca3af;
 }
 
-/* 消息入场动画 */
+/* 消息入场与离场动画 */
 .msg-enter-active {
-  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+  transition: opacity 0.25s var(--ease-out, ease-out), transform 0.25s var(--ease-out, ease-out);
 }
 
-.msg-enter-from {
+.msg-leave-active {
+  transition: opacity 0.15s var(--ease-out, ease-out), transform 0.15s var(--ease-out, ease-out);
+}
+
+.msg-enter-from,
+.msg-leave-to {
   opacity: 0;
   transform: translateY(6px) scale(0.96);
 }
 
-/* 截图预览入场动画 */
+/* 截图预览入场与离场动画 */
 .preview-enter-active {
-  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+  transition: opacity 0.2s var(--ease-out, ease-out), transform 0.2s var(--ease-out, ease-out);
 }
 
-.preview-enter-from {
+.preview-leave-active {
+  transition: opacity 0.15s var(--ease-out, ease-out), transform 0.15s var(--ease-out, ease-out);
+}
+
+.preview-enter-from,
+.preview-leave-to {
   opacity: 0;
   transform: scale(0.96);
 }
@@ -778,6 +788,13 @@ html.dark .help-text {
 @media (prefers-reduced-motion: reduce) {
   .upload-ico.spinning {
     animation: none;
+  }
+
+  .msg-enter-active,
+  .msg-leave-active,
+  .preview-enter-active,
+  .preview-leave-active {
+    transition: none;
   }
 }
 

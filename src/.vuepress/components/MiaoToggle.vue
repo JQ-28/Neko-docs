@@ -76,6 +76,7 @@ const switchLabel = computed(() =>
 }
 
 .vp-miao-mode-switch {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,14 +93,20 @@ const switchLabel = computed(() =>
 }
 
 .miao-ico {
-  display: none;
+  position: absolute;
+  inset: 0;
+  margin: auto;
   width: 1em;
   height: 1em;
   font-size: 1.15rem;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.2s var(--ease-out, ease-out), transform 0.2s var(--ease-out, ease-out);
 }
 
 .miao-ico.show {
-  display: block;
+  opacity: 1;
+  transform: scale(1);
 }
 
 .vp-miao-mode-switch[aria-pressed="true"] {
@@ -124,6 +131,18 @@ const switchLabel = computed(() =>
 
   .miao-ico {
     font-size: 1.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-miao-mode-switch,
+  .miao-ico {
+    transition: none;
+  }
+
+  .miao-ico,
+  .miao-ico.show {
+    transform: none;
   }
 }
 </style>

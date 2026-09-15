@@ -84,7 +84,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: opacity 0.2s var(--ease-out, ease-out), transform 160ms var(--ease-out, ease-out);
   min-width: 100px;
   user-select: none;
   padding: 2px 0;
@@ -92,6 +92,7 @@ onUnmounted(() => {
 
 .qq-voice-bubble:active {
   opacity: 0.8;
+  transform: scale(0.97);
 }
 
 /* 播放图标 */
@@ -170,6 +171,20 @@ onUnmounted(() => {
   font-weight: 400;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qq-voice-bubble {
+    transition: none;
+  }
+
+  .qq-voice-bubble:active {
+    transform: none;
+  }
+
+  .qq-voice-bubble.playing .voice-dot {
+    animation: none;
+  }
 }
 </style>
 
