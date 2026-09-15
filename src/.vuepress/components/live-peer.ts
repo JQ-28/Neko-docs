@@ -235,8 +235,8 @@ function createWire(onMessage: (message: LiveMessage) => void): Wire | null {
   };
 }
 
-/** 不支持跨窗口通信（或跑在服务端）时给个空壳，调用方不用到处判空 */
-function createIdleLink(): PeerLink {
+/** 不支持跨窗口通信（或跑在服务端、或者用户把互动关了）时给个空壳，调用方不用到处判空 */
+export function idlePeerLink(): PeerLink {
   return {
     peerCount: ref(0),
     peerSides: ref({ ...NO_PEER_SIDES }),
@@ -262,7 +262,7 @@ function createIdleLink(): PeerLink {
 }
 
 export function startPeerLink(): PeerLink {
-  if (typeof window === "undefined") return createIdleLink();
+  if (typeof window === "undefined") return idlePeerLink();
 
   const selfId = randomId();
   const joinedAt = Date.now();
@@ -455,7 +455,10 @@ export function startPeerLink(): PeerLink {
   // 窗口被搬动时没有任何事件，只能隔一阵看一眼坐标有没有变，变了就立刻告诉别人
   let seenX = Math.round(window.screenX);
   let seenY = Math.round(window.screenY);
+  // 没有邻居时没人关心我摆在屏幕哪儿，这一轮连坐标都不用读；
+  // 有人来了靠心跳认识彼此，那时候再开始盯着自己的位置
   const moveWatch = window.setInterval(() => {
+    if (peers.size === 0) return;
     const x = Math.round(window.screenX);
     const y = Math.round(window.screenY);
     if (x === seenX && y === seenY) return;

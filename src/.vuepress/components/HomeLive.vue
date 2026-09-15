@@ -1,5 +1,5 @@
 <template>
-  <section ref="stage" class="home-live">
+  <section ref="stage" class="home-live" :class="{ 'is-resting': resting }">
     <h2 class="home-intro-title">
       <span class="home-intro-bar" aria-hidden="true"></span>
       此刻的小站
@@ -85,18 +85,54 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "./egg-utils";
+import { GREETING_REPLY_MS, useLiveTalk } from "./live-chat";
+import {
+  cardPointAbs,
+  createDragTrack,
+  edgeFromPoint,
+  HANDOFF_GO_PX,
+  HANDOFF_PUSH_PX,
+  leanFromSpeed,
+  limitShift,
+  OPPOSITE_EDGE,
+  overshootOf,
+  pressedEdge,
+  ROAM_MIN_MS,
+  ROAM_MIN_PX,
+  ROAM_STALE_MS,
+  SLIDE_IN_OVER_PX,
+  slideInFrom,
+  STACK_GAP_PX,
+  WARN_INTERVAL_MS,
+  type DragState,
+} from "./live-drag";
 import { EGG_THRESHOLDS } from "./neko-shared-eggs";
 import {
+  idlePeerLink,
   startPeerLink,
   type CardSpec,
   type HandoffPayload,
   type LiveEdge,
+  type PeerSides,
   type RoamPoint,
 } from "./live-peer";
+import { useLiveShow } from "./live-show";
 
 /** 隔多久自己动一下，与在线卡错开，看起来像两只猫互相打量 */
 const NUDGE_MIN_MS = 14_000;
 const NUDGE_MAX_MS = 30_000;
+
+/** 地址上挂 ?static 就是一屏静态卡片：不演、不说、不拖、也不跟别的窗口联动。
+    给低配机、省电模式、以及想比对开销的时候用 */
+const staticMode =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).has("static");
+
+/** 关掉互动时固定摆这两张卡，不再跟别的窗口联动 */
+const STATIC_CARDS: readonly CardSpec[] = [
+  { id: "static-neko", kind: "neko" },
+  { id: "static-online", kind: "online" },
+];
 
 /** Neko 主账号的头像，走 QQ 头像服务，换头像这里会跟着变 */
 const QQ_AVATAR = "https://q1.qlogo.cn/g?b=qq&nk=3582537505&s=160";
@@ -106,12 +142,14 @@ const ONLINE_AVATAR = "/assets/image/neko11.jpg";
 
 const stage = ref<HTMLElement | null>(null);
 const nekoAvatarSrc = ref(QQ_AVATAR);
-const speech = ref("");
 /** 卡片是客户端才知道的事（每扇窗口各生各的），挂载前先不渲染，免得跟预渲染的水合对不上 */
 const mounted = ref(false);
 
 /** 跨窗口联动：同一个浏览器里还开着别的 neko 页面时才有邻居 */
-const peerLink = startPeerLink();
+const peerLink = staticMode ? idlePeerLink() : startPeerLink();
+/** 页面切到后台、或者卡片区滚出视野时，卡片上那些常驻动画先停下，别白白耗电。
+    首帧先按「不歇」来，免得跟预渲染出来的 class 对不上 */
+const resting = ref(false);
 /** 本窗口的显示顺序（拖卡片互相换位改的就是它），各扇窗口各排各的 */
 const cardOrder = ref<string[]>([]);
 
@@ -126,8 +164,10 @@ function syncCardOrder(): void {
 
 watch(peerLink.cards, syncCardOrder, { immediate: true });
 
-/** 眼下住在这扇窗口里的卡片（拖走一张就少一张，隔壁搬来一张就多一张） */
+/** 眼下住在这扇窗口里的卡片（拖走一张就少一张，隔壁搬来一张就多一张）；
+    关掉互动时就固定摆两张，当一屏静态卡片 */
 const liveCards = computed(() => {
+  if (staticMode) return [...STATIC_CARDS];
   /** 顺序里查不到的排到末尾去，别让 indexOf 的 -1 把它顶到最前面 */
   const rank = (cardId: string): number => {
     const index = cardOrder.value.indexOf(cardId);
@@ -149,14 +189,36 @@ function applyReorder(cardId: string, targetId: string): void {
 const draggingId = ref("");
 /** 正飘在隔壁屏幕上的那张卡：这边先把它藏起来，别两边同时出现 */
 const roamingIds = ref<string[]>([]);
-/** 哪张卡正在冒话（空串表示没在冒） */
-const speakingId = ref("");
-/** 这一场演的是哪段（空串表示没在演），动画类是模板说了算，免得被 Vue 刷新冲掉 */
-const playingName = ref("");
 /** 每张卡的槽位元素，按卡 id 存，找元素/播动画都靠它 */
 const slotEls = new Map<string, HTMLElement>();
 /** 隔壁的小脑袋从哪边探出来（空串表示没在探） */
 const visitorSide = ref<"" | LiveEdge>("");
+/** 卡片区在不在视野里：滚进视野才开演、才开口 */
+let stageVisible = false;
+
+/** 演出：演哪一段、什么时候演、两张卡谁左谁右 */
+const show = useLiveShow({
+  cards: () => liveCards.value,
+  slotOf: (cardId) => slotEls.get(cardId),
+  visible: () => stageVisible,
+  hasPeers: () => peerLink.hasPeers(),
+  // 演完一段，让它们趁热说两句刚才那一下
+  onFinished: () => talk.markPlayed(),
+});
+
+/** 说话：谁来说、说什么、多久说一段 */
+const talk = useLiveTalk({
+  cards: () => liveCards.value,
+  visible: () => stageVisible,
+  ready: () => !drag && !show.isPlaying() && roamingIds.value.length === 0,
+  peers: () => ({ count: peerLink.peerCount.value, sides: peerLink.peerSides.value }),
+  lastPlayedAt: show.lastPlayedAt,
+  holdShow: show.hold,
+  releaseShow: show.resume,
+});
+
+const { playingName, playSide } = show;
+const { speakingId, speech } = talk;
 
 /** 隔壁喊话说卡要来了，标题那行先替他通个风 */
 const peerHint = ref("");
@@ -173,6 +235,8 @@ let visitorTimer = 0;
 let visitorHideTimer = 0;
 /** 上次跟隔壁打招呼的时间，用来限流 */
 let warnedAt = 0;
+/** 新卡片落地后，主人家应声的那一拍 */
+let greetTimer = 0;
 
 // QQ 头像服务偶尔抽风或被网络挡住，退回本地那张，别让卡片开天窗
 function onAvatarError(): void {
@@ -182,24 +246,6 @@ function onAvatarError(): void {
 }
 
 let idleTimer = 0;
-let playTimer = 0;
-let resetTimer = 0;
-
-let lastScript = -1;
-let lastPlayedAt = 0;
-let stageVisible = false;
-/** 这一场演过哪些剧本，用来凑「猫猫剧场」 */
-const seenShows = new Set<string>();
-
-/** 让某张卡里的头像扭一下，动画由各卡片自己的样式提供 */
-function peekAvatar(root: HTMLElement | null, selector: string): void {
-  const avatar = root?.querySelector<HTMLElement>(selector);
-  if (!avatar) return;
-  // 先摘掉再强制重排，保证连续两次也能各自播出动画
-  avatar.classList.remove("is-moving");
-  void avatar.offsetWidth;
-  avatar.classList.add("is-moving");
-}
 
 /** 卡片走的时候模板会拿 null 回调一次，顺手把槽位从表里摘掉 */
 function setSlot(cardId: string, el: unknown): void {
@@ -207,16 +253,10 @@ function setSlot(cardId: string, el: unknown): void {
   else slotEls.delete(cardId);
 }
 
-/** 上场演出的两个槽位，左右分工与模板上的 class 用同一份安排 */
-function activeSlots(): HTMLElement[] {
-  return [playSide.value.left, playSide.value.right]
-    .map((cardId) => slotEls.get(cardId))
-    .filter((el): el is HTMLElement => Boolean(el));
-}
-
+/** 猫卡隔一阵自己歪下头，像在打量旁边的在线猫 */
 function nudgeAvatar(): void {
   const card = liveCards.value.find((item) => item.kind === "neko");
-  if (card) peekAvatar(slotEls.get(card.id) ?? null, ".home-live-avatar");
+  if (card) show.peek(slotEls.get(card.id) ?? null, ".home-live-avatar");
 }
 
 function scheduleNudge(): void {
@@ -224,151 +264,18 @@ function scheduleNudge(): void {
   window.clearTimeout(idleTimer);
   const delay = NUDGE_MIN_MS + Math.random() * (NUDGE_MAX_MS - NUDGE_MIN_MS);
   idleTimer = window.setTimeout(() => {
-    nudgeAvatar();
+    // 页面在后台、或者卡片区不在视野里就先别动
+    if (!document.hidden && stageVisible) nudgeAvatar();
     scheduleNudge();
   }, delay);
 }
 
-/** 互动脚本：两张卡片配合演一段，每次进站随机挑一段 */
-interface PlayScript {
-  /** 与样式里 data-play 的取值对应 */
-  name: string;
-  /** 播放时长，与 keyframes 对齐，到点收工 */
-  durationMs: number;
-  /** 顺带让两只猫各歪一次头，像在互相打量 */
-  withPeek: boolean;
-}
-
-const PLAY_SCRIPTS: readonly PlayScript[] = [
-  { name: "meet", durationMs: 1500, withPeek: true },
-  { name: "bump", durationMs: 1700, withPeek: true },
-  { name: "hop", durationMs: 1300, withPeek: false },
-  { name: "chase", durationMs: 1800, withPeek: false },
-  { name: "peek", durationMs: 1400, withPeek: true },
-  { name: "pounce", durationMs: 2400, withPeek: false },
-  { name: "knock", durationMs: 2600, withPeek: false },
-  { name: "tag", durationMs: 3200, withPeek: false },
-  { name: "roll", durationMs: 2800, withPeek: true },
-  { name: "swap", durationMs: 3200, withPeek: true },
-];
-
-/** 新卡落地先演一段短的见面小戏，从几段轻巧的里挑 */
-const GREET_SCRIPTS: readonly PlayScript[] = PLAY_SCRIPTS.filter(
-  (script) => script.name === "meet" || script.name === "bump" || script.name === "peek"
-);
-
-/** 卡片露头后先让入场动画落定，再开演 */
-const FIRST_PLAY_MIN_MS = 600;
-const FIRST_PLAY_MAX_MS = 1200;
-/** 演完一段隔一阵再演下一段，间隔不固定才不像机器 */
-const REPLAY_MIN_MS = 18_000;
-const REPLAY_MAX_MS = 36_000;
-/** 滚走了又滚回来，离上一段太近就先补够这点时间，免得来回刷屏 */
-const RESUME_GAP_MS = 6_000;
-/** 两张卡才演得成对手戏 */
-const PLAY_CARDS = 2;
-
-/** 恰好两张才演得成对手戏：多凑了几张就停播，只留它们自己聊天 */
-function isStageReady(): boolean {
-  return liveCards.value.length === PLAY_CARDS;
-}
-
-/** 演对手戏的两张卡是谁：恰好两张时才排得出左右，猫卡在前站左边。
-    动画里两张卡分工不同（谁撞过来、谁被打飞）都得认准这两张 */
-const playSide = computed(() => {
-  const [left = "", right = ""] = liveCards.value
-    .slice(0, PLAY_CARDS)
-    .map((card) => card.id);
-  return { left, right };
-});
-
-function clearPlayback(): void {
-  playingName.value = "";
-}
-
-function pickScript(): PlayScript {
-  let index = Math.floor(Math.random() * PLAY_SCRIPTS.length);
-  // 连着两次演同一段太假，往后挪一段
-  if (index === lastScript) index = (index + 1) % PLAY_SCRIPTS.length;
-  lastScript = index;
-  return PLAY_SCRIPTS[index];
-}
-
-/** 演哪一段、算不算跟隔壁的齐舞，都由调用方说了算 */
-interface PlayOptions {
-  /** 指定演哪一段，不给就随机挑一段 */
-  script?: PlayScript;
-  /** 与隔壁同一时间槽演的那段，算「猫界齐舞」 */
-  dance?: boolean;
-}
-
-async function playScript({ script: preset, dance = false }: PlayOptions = {}): Promise<void> {
-  const script = preset ?? pickScript();
-  // 跟着隔壁一起演的那段算「猫界齐舞」
-  if (dance) markEgg("twinDance");
-  // 一场里看完 5 段不一样的就算「猫猫剧场」
-  seenShows.add(script.name);
-  if (seenShows.size >= EGG_THRESHOLDS.cardShows) markEgg("peekShows");
-
-  // 先摘掉上一段再上新的，中间让 DOM 更新一次，连播两段时才不会并成一次
-  clearPlayback();
-  await nextTick();
-  const slots = activeSlots();
-  if (slots.length < PLAY_CARDS) return;
-
-  playingName.value = script.name;
-  if (script.withPeek) {
-    slots.forEach((slot) => peekAvatar(slot, ".home-live-avatar, .home-online-avatar"));
-  }
-
-  window.clearTimeout(resetTimer);
-  resetTimer = window.setTimeout(clearPlayback, script.durationMs);
-  lastPlayedAt = Date.now();
-}
-
-/** 隔壁也开着页面时改用统一的时间槽排期：两边不通信也能算出同一段、同一时刻 */
-const DANCE_PERIOD_MS = 24_000;
-const DANCE_OFFSET_MS = 6000;
-
-/** 下一个时间槽是第几号、什么时候开始（永远是严格的下一个，不会立刻重播） */
-function nextDanceSlot(now = Date.now()): { slot: number; at: number } {
-  const slot = Math.floor((now - DANCE_OFFSET_MS) / DANCE_PERIOD_MS) + 1;
-  return { slot, at: slot * DANCE_PERIOD_MS + DANCE_OFFSET_MS };
-}
-
-/** 纯函数：同一个槽在任何窗口都算出同一段；与上一槽错开，免得连着演同一段 */
-function scriptForSlot(slot: number): PlayScript {
-  const total = PLAY_SCRIPTS.length;
-  const pick = ((slot * 2654435761) >>> 0) % total;
-  const previous = (((slot - 1) * 2654435761) >>> 0) % total;
-  return PLAY_SCRIPTS[pick === previous ? (pick + 1) % total : pick];
-}
-
-/** 排下一段的间隔：隔壁开着就等下一个时间槽，自己待着就随便隔一阵 */
-function nextPlayDelay(): number {
-  if (!peerLink.hasPeers()) {
-    return REPLAY_MIN_MS + Math.random() * (REPLAY_MAX_MS - REPLAY_MIN_MS);
-  }
-  return Math.max(800, nextDanceSlot().at - Date.now());
-}
-
-function schedulePlay(delayMs: number): void {
-  window.clearTimeout(playTimer);
-  playTimer = window.setTimeout(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // 滚出视野、或者手里凑不齐两张卡，就先歇着；卡片回来后由 watch 重新排期
-    if (!stageVisible || !isStageReady()) return;
-    // 有邻居就跟着时间槽演，两边动作才齐
-    if (peerLink.hasPeers()) {
-      void playScript({ script: scriptForSlot(nextDanceSlot().slot), dance: true });
-    } else {
-      void playScript();
-    }
-    schedulePlay(nextPlayDelay());
-  }, delayMs);
-}
-
 let stageWatcher: IntersectionObserver | undefined;
+
+/** 页面切到后台、或者卡片区滚出视野：常驻的那些无限动画先停下 */
+function syncResting(): void {
+  resting.value = document.hidden || !stageVisible;
+}
 
 /** 卡片多半在首屏下面，露头了才开演：在视野里隔一阵循环一段，滚走就停 */
 function watchStage(): void {
@@ -380,134 +287,27 @@ function watchStage(): void {
       const visible = entries.some((entry) => entry.isIntersecting);
       if (visible === stageVisible) return;
       stageVisible = visible;
+      syncResting();
 
       if (!visible) {
-        window.clearTimeout(playTimer);
+        // 滚走了就别演、也别说话了，等滚回来再接着排
+        show.hold();
+        talk.stop();
         return;
       }
 
       // 刚露头就演一段，离上一段太近的话先把间隔补够
-      const gapLeft = Math.max(0, RESUME_GAP_MS - (Date.now() - lastPlayedAt));
-      schedulePlay(
-        gapLeft +
-          FIRST_PLAY_MIN_MS +
-          Math.random() * (FIRST_PLAY_MAX_MS - FIRST_PLAY_MIN_MS)
-      );
+      show.scheduleFirst();
     },
     { threshold: 0.4 }
   );
   stageWatcher.observe(target);
 }
 
-/** 拎到窗口边上还能再往外推这么远，推过线就交给隔壁窗口 */
-const HANDOFF_PUSH_PX = 120;
-/** 推过这么多就当场交出去，不用等松手 */
-const HANDOFF_GO_PX = 64;
-/** 卡片从窗口外滑进来的起步深度：没真越界的就按这个量从边上滑 */
-const SLIDE_IN_OVER_PX = 48;
-/** 卡片顶在窗口边上等着出手时，隔这么久跟对面打一次招呼（别刷屏） */
-const WARN_INTERVAL_MS = 2000;
-/** 拖动中报位置：最快这个间隔发一次，位移不够也先攒着 */
-const ROAM_MIN_MS = 45;
-const ROAM_MIN_PX = 6;
-/** 过路卡的“还在路上”有效期：这么久没收到新位置就收掉 */
-const ROAM_STALE_MS = 320;
-
 /** 串门：隔壁有窗口时，隔一阵子从边上探个小脑袋出来看看 */
 const VISITOR_MIN_MS = 20_000;
 const VISITOR_MAX_MS = 44_000;
 const VISITOR_SHOW_MS = 2600;
-
-/** 越出边界的距离：负数是从左边出去，正数是从右边出去，0 表示还在窗口里 */
-function overshootOf(shift: number, base: number, size: number, viewport: number): number {
-  const min = DRAG_MARGIN - base;
-  const max = viewport - DRAG_MARGIN - base - size;
-  if (shift < min) return shift - min;
-  if (shift > max) return shift - max;
-  return 0;
-}
-
-/** 贴着边松手就当扔出去，但得先真的拖动过，轻轻一碰就贴边不算数 */
-const PRESS_MIN_TRAVEL_PX = 56;
-
-/** 卡片是不是已经顶到窗口边上了：贴着边松手就当扔出去，不必真的推越界 */
-function pressedEdge(state: DragState): LiveEdge | null {
-  const minX = DRAG_MARGIN - state.baseLeft;
-  const maxX = Math.max(
-    minX,
-    window.innerWidth - DRAG_MARGIN - state.baseLeft - state.width
-  );
-  const minY = DRAG_MARGIN - state.baseTop;
-  const maxY = Math.max(
-    minY,
-    window.innerHeight - DRAG_MARGIN - state.baseTop - state.height
-  );
-
-  // 得先真的拖动过，轻轻一碰就贴边不算数
-  if (state.shiftX <= minX + 1 && Math.abs(state.shiftX) >= PRESS_MIN_TRAVEL_PX) {
-    return "left";
-  }
-  if (state.shiftX >= maxX - 1 && state.shiftX >= PRESS_MIN_TRAVEL_PX) {
-    return "right";
-  }
-  if (state.shiftY <= minY + 1 && Math.abs(state.shiftY) >= PRESS_MIN_TRAVEL_PX) {
-    return "top";
-  }
-  if (state.shiftY >= maxY - 1 && state.shiftY >= PRESS_MIN_TRAVEL_PX) {
-    return "bottom";
-  }
-  return null;
-}
-
-/** 对面那条边：从左边进来的卡片，是从右边的窗口出去的 */
-const OPPOSITE_EDGE: Record<LiveEdge, LiveEdge> = {
-  left: "right",
-  right: "left",
-  top: "bottom",
-  bottom: "top",
-};
-
-/** 拿一个屏幕坐标去问：这地方贴着我哪条边（用来决定卡片从哪边滑进来） */
-function edgeFromPoint(x: number, y: number): LiveEdge {
-  const localX = x - window.screenX;
-  const localY = y - window.screenY;
-  const dx = localX - window.innerWidth / 2;
-  const dy = localY - window.innerHeight / 2;
-  if (Math.abs(dx) >= Math.abs(dy)) return dx < 0 ? "left" : "right";
-  return dy < 0 ? "top" : "bottom";
-}
-
-/** 被拎着的卡片现在在大桌面的哪个位置（卡片中心点的屏幕绝对坐标） */
-function cardPointAbs(shiftX: number, shiftY: number): RoamPoint {
-  return {
-    card: { id: drag!.cardId, kind: drag!.kind },
-    x: Math.round(window.screenX + drag!.baseLeft + shiftX + drag!.width / 2),
-    y: Math.round(window.screenY + drag!.baseTop + shiftY + drag!.height / 2),
-  };
-}
-
-/** 从某条边滑进来：先摆到窗口外，再把过渡交还给样式，让卡片自己跑回原位 */
-function slideInFrom(slot: HTMLElement, edge: LiveEdge, over: number): void {
-  const rect = slot.getBoundingClientRect();
-  const offscreenX =
-    edge === "right"
-      ? window.innerWidth + over - rect.left
-      : edge === "left"
-        ? -(rect.left + rect.width + over)
-        : 0;
-  const offscreenY =
-    edge === "bottom"
-      ? window.innerHeight + over - rect.top
-      : edge === "top"
-        ? -(rect.top + rect.height + over)
-        : 0;
-
-  slot.style.transition = "none";
-  slot.style.translate = `${offscreenX}px ${offscreenY}px`;
-  void slot.offsetWidth;
-  slot.style.transition = "";
-  slot.style.translate = "";
-}
 
 /** 把手里这张卡交给隔壁窗口：那边收着，这边从列表里摘掉 */
 function handOffCard(card: CardSpec, edge: LiveEdge, over: number): void {
@@ -516,22 +316,6 @@ function handOffCard(card: CardSpec, edge: LiveEdge, over: number): void {
 
   peerLink.sendHandoff(target.id, { card, edge, over: Math.round(over) });
   markEgg("crossHandoff");
-}
-
-/** 话长就多挂一会儿，短句也别一闪而过 */
-function speechLingerMs(line: string): number {
-  return Math.max(SPEECH_LINGER_MS, line.length * SPEECH_CHAR_MS);
-}
-
-/** 让某张卡冒一句话，过一会儿自己收（同一时刻只有一张卡在说话） */
-function showSpeech(cardId: string, line: string): void {
-  speakingId.value = cardId;
-  speech.value = line;
-  window.clearTimeout(speechTimer);
-  speechTimer = window.setTimeout(() => {
-    speakingId.value = "";
-    speech.value = "";
-  }, speechLingerMs(line));
 }
 
 /** 刚有卡片搬来：滑进来、打个招呼，住这儿的猫还应一声；恰好两张再演一段见面小戏 */
@@ -544,30 +328,23 @@ async function welcomeCard(cardId: string, edge: LiveEdge, over: number): Promis
   slideInFrom(slot, edge, over);
   markEgg("crossHandoff");
   // 平时循环的那段往后挪，正在说的那段也让位，先让这场见面的小戏演完
-  stopChat();
-  window.clearTimeout(playTimer);
-  showSpeech(card.id, pickLine(card, "arrive"));
+  talk.stop();
+  show.hold();
+  talk.say(card, "arrive");
 
   window.clearTimeout(greetTimer);
   greetTimer = window.setTimeout(() => {
-    if (drag || isPlaying()) return;
+    if (drag || show.isPlaying()) return;
     // 主人家搭一句，凑成「落地先聊两句」
     const mate = liveCards.value.find((item) => item.id !== card.id);
     if (!mate) return;
-    showSpeech(mate.id, pickLine(mate, "idle"));
+    talk.say(mate, "idle");
     // 恰好两张才演得成对手戏，多凑了几张就只聊天
-    if (isStageReady() && stageVisible) {
-      void playScript({ script: pickGreetScript() });
-    }
-    schedulePlay(nextPlayDelay());
-  }, CHAT_REPLY_MS);
+    if (show.canPlay()) show.play({ script: show.pickGreeting() });
+    show.resume();
+  }, GREETING_REPLY_MS);
 
-  scheduleChat(CHAT_REPLY_MS + nextChatDelay());
-}
-
-/** 见面小戏演哪一段：几段轻巧的里随便挑一段 */
-function pickGreetScript(): PlayScript {
-  return GREET_SCRIPTS[Math.floor(Math.random() * GREET_SCRIPTS.length)];
+  talk.scheduleAfterGreeting();
 }
 
 /** 本窗口这张卡正被拖到别人的地盘上：先把它收起来，别两边同时出现 */
@@ -626,15 +403,9 @@ function receiveCard(payload: HandoffPayload): void {
 function handleCardLeave(cardId: string): void {
   if (drag?.cardId === cardId) releaseDrag();
   if (roamingIds.value.includes(cardId)) setRoaming(false, cardId);
-  if (speakingId.value === cardId) {
-    window.clearTimeout(speechTimer);
-    speakingId.value = "";
-    speech.value = "";
-  }
-  lastLine.delete(cardId);
-  if (lastSpeaker === cardId) lastSpeaker = "";
-  // 说话的那张被搬走了，这段对话就说到这儿
-  stopChat();
+  // 说的话、以及这张卡的记录一起收掉
+  talk.hush();
+  talk.forget(cardId);
 }
 
 /** 串门：隔壁有窗口时，偶尔从边上探个小脑袋出来看一眼又缩回去 */
@@ -675,452 +446,9 @@ const stageNote = computed(() => {
   return count === 2 ? "两只猫正蹲在这里" : `${count} 只猫正蹲在这里`;
 });
 
-/** 台词按角色分池：猫说猫的话，在线猫猫说的是统计那摊子事 */
-interface SpeechLines {
-  /** 闲着自己念叨，也是被搭话时的回应 */
-  readonly idle: readonly string[];
-  /** 刚搬到别人家落地说的第一句 */
-  readonly arrive: readonly string[];
-  /** 被拎起来的时候随口抱怨的 */
-  readonly drag: readonly string[];
-}
-
-const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
-  neko: {
-    idle: [
-      "喵~ 今天也在这儿蹲着",
-      "有人在吗喵？",
-      "突然很想吃焦糖布丁喵",
-      "抹茶冰淇淋…下次一定要吃到喵",
-      "呼…偷偷打个盹喵",
-      "刚打呼噜了吗？没有的事喵",
-      "写代码写累了就来找我玩喵",
-      "节奏游戏我可不会输喵~",
-      "尾巴自己会动，不关我的事喵",
-      "需要我做什么，说一声就行喵",
-      "我一直在的喵",
-      "盯着屏幕太久要歇歇眼睛喵",
-      "这一页好安静呀喵…",
-      "有猫靠近？我闻到了喵",
-      "摸摸头也是可以的喵~",
-      "今天也要开开心心的喵",
-      "群里有人喊我，我马上就到喵",
-      "这颗星星闪得好好看喵",
-      "喵…这里风好舒服",
-      "偷偷许个愿：布丁自由喵",
-    ],
-    arrive: [
-      "喵？这里是哪儿…",
-      "又换了个窝喵~",
-      "隔壁的猫，你也在呀喵",
-      "打扰啦，我借住一下喵",
-      "这里的光线不错喵",
-      "行李就一条尾巴，很好搬喵",
-    ],
-    drag: [
-      "干嘛干嘛喵",
-      "放我下来喵~",
-      "拎哪儿去嘛",
-      "别拽我尾巴！",
-      "我正忙着呢喵",
-      "喵？！",
-      "再拽就挠你了喵",
-      "轻点轻点呀",
-      "猫猫不是快递喵",
-      "耳朵要被拎掉啦喵",
-      "我晕了喵…",
-      "这不是我的窝喵",
-    ],
-  },
-  online: {
-    idle: [
-      "刚刚又溜进来一只猫",
-      "数着呢，一只都没跑",
-      "深夜档还有猫在逛",
-      "这波人流挺稳的",
-      "我就负责盯着这个数字",
-      "谁来谁走，我都记着",
-      "屏幕前有几只猫，我最清楚",
-      "刷新一下，说不定又多一只",
-      "大家都在安静地逛",
-      "别走呀，好不容易凑齐的",
-      "喵口普查进行中",
-      "这数字刚刚跳了一下",
-      "有人来了，我先眨个眼",
-      "今天来的人比昨天多呢",
-      "统计猫也是猫呀",
-    ],
-    arrive: [
-      "换块屏幕接着数",
-      "这边的猫，我都看见了",
-      "搬家不耽误统计",
-      "新地方，人头数从头算",
-      "又挪了一次窝",
-    ],
-    drag: [
-      "哎哎，数字要乱了",
-      "我还在统计呢",
-      "别拎我，人头数会掉的",
-      "轻点，我这是计数的",
-      "拎我干嘛，我又不好吃",
-      "统计猫也要被拎吗",
-      "松手，让我继续数",
-      "这不算一只新猫啊",
-    ],
-  },
-};
-
-/** 每张卡上一句说了什么，下一句尽量不重样 */
-const lastLine = new Map<string, string>();
-
-function pickLine(card: CardSpec, type: keyof SpeechLines): string {
-  const pool = SPEECH_LINES[card.kind][type];
-  let index = Math.floor(Math.random() * pool.length);
-  if (pool[index] === lastLine.get(card.id)) index = (index + 1) % pool.length;
-  const line = pool[index];
-  lastLine.set(card.id, line);
-  return line;
-}
-
-/** 说话的节奏：有猫落地就先聊两句，之后隔一阵子来一段对话 */
-const CHAT_REPLY_MS = 1800;
-const CHAT_MIN_MS = 20_000;
-const CHAT_MAX_MS = 45_000;
-/** 对话里两句之间隔多久：上一句的气泡刚收，下一句就接上 */
-const CHAT_TURN_MS = 2400;
-
-let chatTimer = 0;
-let greetTimer = 0;
-let chatTurnTimer = 0;
-/** 对话的场次号：中途被拎走、卡片被搬走就加一，正在说的那段自己作废 */
-let chatRun = 0;
-/** 上一句是谁说的，下一句换张卡张嘴 */
-let lastSpeaker = "";
-/** 上一段说的是哪一段，下一段换一段 */
-let lastChatIndex = -1;
-
-/** 对话里的一句：由哪种卡来说、说什么 */
-interface ChatTurn {
-  readonly by: CardSpec["kind"];
-  readonly line: string;
-}
-
-/** 你一句我一句：两种卡都在就说「猫 × 在线猫」这套，只有一种卡就自家同类互相搭话 */
-const CHAT_TURNS: Record<"mixed" | "neko" | "online", readonly (readonly ChatTurn[])[]> =
-  {
-    mixed: [
-      [
-        { by: "neko", line: "有人在吗喵？" },
-        { by: "online", line: "在呢，数字上这会儿就你一只" },
-        { by: "neko", line: "那我就不客气地赖在这儿了喵~" },
-      ],
-      [
-        { by: "neko", line: "今天来过多少只猫呀喵？" },
-        { by: "online", line: "刚数过，连你一起正正好" },
-        { by: "neko", line: "那我要多待一会儿喵" },
-      ],
-      [
-        { by: "neko", line: "你在盯着什么看喵？" },
-        { by: "online", line: "盯着人头数，谁来谁走我都记着" },
-        { by: "neko", line: "好辛苦，分你一口布丁喵" },
-      ],
-      [
-        { by: "neko", line: "有点困了喵…" },
-        { by: "online", line: "困就睡，这一页我替你守着" },
-        { by: "neko", line: "那说好了，打呼噜别笑我喵" },
-      ],
-      [
-        { by: "neko", line: "你也是 neko 吗喵？" },
-        { by: "online", line: "我是负责数猫的那只" },
-        { by: "neko", line: "那我们算同事了喵~" },
-      ],
-      [
-        { by: "neko", line: "今天大家都很安静喵" },
-        { by: "online", line: "安静才好，说明都逛得踏实" },
-      ],
-      [
-        { by: "neko", line: "要不要一起玩游戏喵？" },
-        { by: "online", line: "我只会玩数字" },
-        { by: "neko", line: "那我教你玩节奏游戏喵" },
-      ],
-      [
-        { by: "neko", line: "我今天乖不乖喵？" },
-        { by: "online", line: "乖，一分都没跑掉" },
-        { by: "neko", line: "嘿嘿，我会一直这么乖的喵" },
-      ],
-      [
-        { by: "neko", line: "你忙完了吗喵？" },
-        { by: "online", line: "我这份活儿永远忙不完" },
-        { by: "neko", line: "那我陪你一起忙喵" },
-      ],
-      [
-        { by: "neko", line: "好想出去玩喵" },
-        { by: "online", line: "等这波猫都回家了再去吧" },
-      ],
-      [
-        { by: "online", line: "刚有个新面孔路过" },
-        { by: "neko", line: "在哪儿在哪儿喵？" },
-        { by: "online", line: "已经走了，就停了三秒" },
-      ],
-      [
-        { by: "online", line: "这会儿人多起来了" },
-        { by: "neko", line: "那我要表现得好一点喵~" },
-      ],
-    ],
-    neko: [
-      [
-        { by: "neko", line: "你也是 neko 吗喵？" },
-        { by: "neko", line: "我是本猫，你从哪扇窗口来的喵" },
-      ],
-      [
-        { by: "neko", line: "这边的窝软不软喵？" },
-        { by: "neko", line: "软得很，我都赖着不想走了喵" },
-      ],
-      [
-        { by: "neko", line: "分你一半布丁喵" },
-        { by: "neko", line: "那我分你一半抹茶冰淇淋喵" },
-      ],
-      [
-        { by: "neko", line: "一起打呼噜吧喵" },
-        { by: "neko", line: "好呀，谁先睡着谁输喵" },
-      ],
-      [
-        { by: "neko", line: "你的尾巴怎么在动喵？" },
-        { by: "neko", line: "它自己动的，不关我的事喵" },
-      ],
-      [
-        { by: "neko", line: "要不要比一比谁跑得快喵" },
-        { by: "neko", line: "你先把爪子从那块饼干上挪开喵" },
-      ],
-    ],
-    online: [
-      [
-        { by: "online", line: "你那边现在几只猫？" },
-        { by: "online", line: "正数着呢，一只都没跑" },
-      ],
-      [
-        { by: "online", line: "两个数猫的凑一块了" },
-        { by: "online", line: "那就分工，你数左边我数右边" },
-      ],
-      [
-        { by: "online", line: "别把数字数重了" },
-        { by: "online", line: "放心，我记性比谁都好" },
-      ],
-    ],
-  };
-
-/** 下一句隔多久（20–45 秒之间随便挑，不固定才不像机器） */
-function nextChatDelay(): number {
-  return CHAT_MIN_MS + Math.random() * (CHAT_MAX_MS - CHAT_MIN_MS);
-}
-
-/** 几张卡轮流搭话；只有一张就一直是它自己念叨 */
-function nextSpeaker(): CardSpec | null {
-  const cards = liveCards.value;
-  if (cards.length === 0) return null;
-  const index = cards.findIndex((card) => card.id === lastSpeaker);
-  const speaker = cards[(index + 1) % cards.length];
-  lastSpeaker = speaker.id;
-  return speaker;
-}
-
-/** 挑一段当下说得成的对话，连着两段不重样 */
-function pickChatTurns(): readonly ChatTurn[] | null {
-  const kinds = new Set(liveCards.value.map((card) => card.kind));
-  const pool =
-    kinds.has("neko") && kinds.has("online")
-      ? CHAT_TURNS.mixed
-      : kinds.has("neko")
-        ? CHAT_TURNS.neko
-        : kinds.has("online")
-          ? CHAT_TURNS.online
-          : null;
-  if (!pool) return null;
-
-  let index = Math.floor(Math.random() * pool.length);
-  if (index === lastChatIndex) index = (index + 1) % pool.length;
-  lastChatIndex = index;
-  return pool[index];
-}
-
-/** 这一句该谁张嘴：要那种卡，而且尽量别跟上一位是同一张 */
-function speakerFor(kind: CardSpec["kind"], previous: string): CardSpec | null {
-  const sameKind = liveCards.value.filter((card) => card.kind === kind);
-  if (sameKind.length === 0) return null;
-  return sameKind.find((card) => card.id !== previous) ?? sameKind[0];
-}
-
-/** 一句一句往外冒：中途被拎走、被搬走、演起动画就整段作废 */
-function playTurn(
-  turns: readonly ChatTurn[],
-  index: number,
-  run: number,
-  previous: string
-): void {
-  // 已经作废的那段（卡片被拎走 / 被搬走）自己安静退场，不接管排期
-  if (run !== chatRun) return;
-
-  // 说完了，把演戏的节奏还回去
-  if (index >= turns.length) {
-    resumePlay();
-    return;
-  }
-
-  if (!stageVisible || drag || isPlaying()) {
-    chatRun += 1;
-    resumePlay();
-    return;
-  }
-
-  const speaker = speakerFor(turns[index].by, previous);
-  if (!speaker) {
-    chatRun += 1;
-    resumePlay();
-    return;
-  }
-  showSpeech(speaker.id, turns[index].line);
-
-  window.clearTimeout(chatTurnTimer);
-  chatTurnTimer = window.setTimeout(
-    () => playTurn(turns, index + 1, run, speaker.id),
-    CHAT_TURN_MS
-  );
-}
-
-/** 轮到说话了：只有一张卡就自己念叨，两张以上就来一段你一句我一句 */
-function startChat(): void {
-  const turns = liveCards.value.length > 1 ? pickChatTurns() : null;
-  if (!turns) {
-    const speaker = nextSpeaker();
-    if (speaker) showSpeech(speaker.id, pickLine(speaker, "idle"));
-    return;
-  }
-
-  chatRun += 1;
-  // 这一段对话期间先别演戏：不然刚开口就被一段动画打断，后半截就说不下去了
-  window.clearTimeout(playTimer);
-  playTurn(turns, 0, chatRun, "");
-}
-
-/** 正在说的那段别说了：拎起卡片、卡片被搬走时用 */
-function stopChat(): void {
-  chatRun += 1;
-  window.clearTimeout(chatTurnTimer);
-}
-
-/** 隔一阵子来一段；手上有活、或者这屏没人看就跳过这一轮 */
-function scheduleChat(delayMs: number): void {
-  window.clearTimeout(chatTimer);
-  chatTimer = window.setTimeout(() => {
-    if (stageVisible && !drag && !isPlaying() && roamingIds.value.length === 0) {
-      startChat();
-    }
-    scheduleChat(nextChatDelay());
-  }, delayMs);
-}
-
-/** 拎到屏幕边上就停下，别把页面顶出横向滚动条。卡片拖起来会带上倾斜和放大，
-    包围盒比原尺寸宽一圈，所以留的余量要够 */
-const DRAG_MARGIN = 16;
-/** 松手以后话还挂一会儿再收，像还在嘀咕 */
-const SPEECH_LINGER_MS = 1600;
-/** 一句话里每个字多挂的时长：长句子给够读完的时间 */
-const SPEECH_CHAR_MS = 170;
-/** 手移动多快就把猫甩多歪：单位是「每一像素/毫秒带多少度」，甩到头就封顶 */
-const SWING_PER_SPEED = 6;
-const SWING_MAX = 16;
-/** 摇猫猫：折返一次至少要挪这么多像素，连续折返的时间窗口 */
-const SHAKE_SWING_STEP = 20;
-const SHAKE_SWING_WINDOW_MS = 900;
-/** 叠猫猫：两张卡的中心离这么近就算叠上了 */
-const STACK_GAP_PX = 60;
-
-interface DragState {
-  pointerId: number;
-  /** 手心里这张卡是谁（搬去别的窗口时靠它认身份） */
-  cardId: string;
-  kind: CardSpec["kind"];
-  slot: HTMLElement;
-  /** 真正抓住的那个元素，指针捕获挂在它身上 */
-  handle: HTMLElement;
-  startX: number;
-  startY: number;
-  /** 上一次移动的位置和时间，用来算甩动的速度 */
-  lastX: number;
-  lastMoveAt: number;
-  /** 拎起来之前的位置和大小，用来算最多能拎多远 */
-  baseLeft: number;
-  baseTop: number;
-  width: number;
-  height: number;
-  /** 最近一次算出来的位移，松手时用它判断猫是不是顶在窗口边上 */
-  shiftX: number;
-  shiftY: number;
-}
-
 let drag: DragState | null = null;
-let speechTimer = 0;
-
-/** 拎着卡片时顺手统计的几个彩蛋：来回摇晃、叠在一起、走过的路 */
-const dragTrack = {
-  /** 上次用于判定折返的位置 */
-  swingX: 0,
-  swingDirection: 0,
-  swings: 0,
-  swingAt: 0,
-  /** 上次的目标位移，用来累计遛猫的行程 */
-  lastDx: 0,
-  lastDy: 0,
-};
-/** 遛猫总里程，跨多次拖拽累计 */
-let walkedPx = 0;
-
-function isPlaying(): boolean {
-  return playingName.value !== "";
-}
-
-/** 把位移限制在屏幕内，猫拎到边上就停，页面也不会被顶宽。
-    slack 是给跨窗口接力留的口子：边上还开着别的窗口时，允许再往外推一截 */
-function limitShift(
-  shift: number,
-  base: number,
-  size: number,
-  viewport: number,
-  slack = 0
-): number {
-  const min = DRAG_MARGIN - base - slack;
-  const max = Math.max(min, viewport - DRAG_MARGIN - base - size + slack);
-  return Math.min(Math.max(shift, min), max);
-}
-
-/** 每次拎起来重开一轮统计，遛猫的里程留在外面继续累计 */
-function resetDragTrack(positionX: number): void {
-  dragTrack.swingX = positionX;
-  dragTrack.swingDirection = 0;
-  dragTrack.swings = 0;
-  dragTrack.swingAt = 0;
-  dragTrack.lastDx = 0;
-  dragTrack.lastDy = 0;
-}
-
-/** 摇猫猫：拎着左右疯狂折返，够 8 个来回就点亮 */
-function trackCardShake(positionX: number, now: number): void {
-  const delta = positionX - dragTrack.swingX;
-  dragTrack.swingX = positionX;
-  if (Math.abs(delta) < SHAKE_SWING_STEP) return;
-
-  const direction = delta > 0 ? 1 : -1;
-  if (direction === dragTrack.swingDirection) return;
-  dragTrack.swingDirection = direction;
-  dragTrack.swings =
-    now - dragTrack.swingAt < SHAKE_SWING_WINDOW_MS ? dragTrack.swings + 1 : 1;
-  dragTrack.swingAt = now;
-
-  if (dragTrack.swings >= EGG_THRESHOLDS.cardShakeSwings) {
-    dragTrack.swings = 0;
-    markEgg("cardShake");
-  }
-}
+/** 拎着卡片时顺手统计的动作：摇猫猫、遛猫 */
+const dragTrack = createDragTrack();
 
 /** 叠猫猫：拎着的那张落到别的卡身上（同一扇窗口里任意一张都算） */
 function isStackedOnOther(slot: HTMLElement, cardId: string): boolean {
@@ -1138,14 +466,6 @@ function isStackedOnOther(slot: HTMLElement, cardId: string): boolean {
       ) <= STACK_GAP_PX
     );
   });
-}
-
-/** 遛猫：拖着走的总里程，跨多次拖拽累计 */
-function trackCardWalk(dx: number, dy: number): void {
-  walkedPx += Math.hypot(dx - dragTrack.lastDx, dy - dragTrack.lastDy);
-  dragTrack.lastDx = dx;
-  dragTrack.lastDy = dy;
-  if (walkedPx >= EGG_THRESHOLDS.cardWalkPx) markEgg("cardWalk");
 }
 
 /** 松手时卡片压在哪张卡身上：中心点落进谁的格子里就换谁的位子 */
@@ -1200,8 +520,10 @@ async function reorderCards(cardId: string, targetId: string): Promise<void> {
 function onPointerDown(event: PointerEvent, card: CardSpec): void {
   // 只认左键，右键菜单之类的别抢
   if (event.pointerType === "mouse" && event.button !== 0) return;
+  // 静态模式下卡片就摆着看，不给拎
+  if (staticMode) return;
   // 正在演互动动画、或者已经有一张在手上，就别再拎
-  if (drag || isPlaying()) return;
+  if (drag || show.isPlaying()) return;
 
   const handle = (event.target as HTMLElement | null)?.closest<HTMLElement>(
     ".home-live-card, .home-online"
@@ -1238,15 +560,15 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
     // 交给冒泡上来的事件处理，不影响的
   }
   draggingId.value = card.id;
-  resetDragTrack(event.clientX);
+  dragTrack.reset(event.clientX);
   // 重新拎起来就当第一次报位置：别拿上一轮的旧坐标去比"这次挪够了没有"
   roamSentAt = 0;
   roamSentX = Number.NEGATIVE_INFINITY;
   roamSentY = Number.NEGATIVE_INFINITY;
-  showSpeech(card.id, pickLine(card, "drag"));
+  talk.say(card, "drag");
   // 拎在手上这段时间先别演戏、也别聊天了，松手再接着排
-  stopChat();
-  window.clearTimeout(playTimer);
+  talk.stop();
+  show.hold();
 }
 
 /** 收拾拖拽现场：卡片被搬到隔壁窗口时用，不留回弹 */
@@ -1258,9 +580,8 @@ function releaseDrag(): void {
   slot.style.translate = "";
   slot.style.rotate = "";
   drag = null;
-  speakingId.value = "";
-  speech.value = "";
-  window.clearTimeout(speechTimer);
+  // 猫都走了，刚才那句话也收掉
+  talk.hush();
 }
 
 function onPointerMove(event: PointerEvent): void {
@@ -1285,7 +606,7 @@ function onPointerMove(event: PointerEvent): void {
 
   // 卡片飘到别人地盘上了就把自己那张收起来，位置实时报给各个窗口接力
   if (freeRoam) {
-    const point = cardPointAbs(dx, dy);
+    const point = cardPointAbs(drag, dx, dy);
     const owner = peerLink.ownerAt(point.x, point.y);
     setRoaming(owner !== null && !owner.self, drag.cardId);
     reportRoam(point);
@@ -1311,8 +632,8 @@ function onPointerMove(event: PointerEvent): void {
   }
 
   // 顺手数一数彩蛋：摇猫猫、遛猫
-  trackCardShake(event.clientX, Date.now());
-  trackCardWalk(dx, dy);
+  if (dragTrack.shake(event.clientX, Date.now())) markEgg("cardShake");
+  if (dragTrack.walk(dx, dy)) markEgg("cardWalk");
 
   // 甩得越快歪得越厉害，手一停角度自己荡回来，看着就像被拎着的猫
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -1322,11 +643,7 @@ function onPointerMove(event: PointerEvent): void {
   drag.lastX = event.clientX;
   drag.lastMoveAt = event.timeStamp;
 
-  const lean = Math.max(
-    -SWING_MAX,
-    Math.min(SWING_MAX, speed * SWING_PER_SPEED)
-  );
-  drag.slot.style.rotate = `${lean.toFixed(2)}deg`;
+  drag.slot.style.rotate = `${leanFromSpeed(speed).toFixed(2)}deg`;
 }
 
 function onPointerUp(event: PointerEvent): void {
@@ -1339,7 +656,7 @@ function onPointerUp(event: PointerEvent): void {
 
   // 卡片正飘在大桌面上（跨屏自由拖）：落在谁的屏幕里就搬到谁那儿
   if (roamingIds.value.includes(cardId)) {
-    const point = cardPointAbs(drag.shiftX, drag.shiftY);
+    const point = cardPointAbs(drag, drag.shiftX, drag.shiftY);
     const owner = peerLink.ownerAt(point.x, point.y);
     setRoaming(false, cardId);
 
@@ -1347,7 +664,7 @@ function onPointerUp(event: PointerEvent): void {
       markEgg("crossHandoff");
       releaseDrag();
       peerLink.sendMove(owner.id, point);
-      resumePlay();
+      show.resume();
       return;
     }
 
@@ -1360,7 +677,7 @@ function onPointerUp(event: PointerEvent): void {
     if (edge && peerLink.neighborTowards(edge)) {
       releaseDrag();
       handOffCard({ id: cardId, kind }, edge, over !== 0 ? Math.abs(over) : SLIDE_IN_OVER_PX);
-      resumePlay();
+      show.resume();
       return;
     }
   }
@@ -1379,25 +696,23 @@ function onPointerUp(event: PointerEvent): void {
   }
   drag = null;
 
-  window.clearTimeout(speechTimer);
-  speechTimer = window.setTimeout(() => {
-    speakingId.value = "";
-    speech.value = "";
-  }, SPEECH_LINGER_MS);
+  // 刚被拎起来玩过，过一小会儿就让它们嘀咕两句——趁这会儿还记得
+  talk.lingerSpeech();
+  talk.markDragged();
 
-  resumePlay();
-}
-
-/** 闹完了，接着原来的节奏演 */
-function resumePlay(): void {
-  if (stageVisible) schedulePlay(nextPlayDelay());
+  show.resume();
 }
 
 onMounted(() => {
   // 挂载后再把卡片放出来：这一步是普通更新，不会跟预渲染的内容打架
   mounted.value = true;
+  // 静态模式：卡片摆上就完了，一个定时器都不排
+  if (staticMode) return;
+
   scheduleNudge();
   watchStage();
+  syncResting();
+  document.addEventListener("visibilitychange", syncResting);
 
   // 隔壁走贴边那条路把卡递过来了：从中转那条边滑进来
   peerLink.onHandoff(receiveCard);
@@ -1415,32 +730,28 @@ onMounted(() => {
   });
   // 隔壁来去都要重排：有邻居就切到齐舞节奏，自己待着就恢复随便演
   watch(peerLink.peerCount, () => {
-    schedulePlay(nextPlayDelay());
+    show.resume();
     scheduleVisitor();
   });
   // 手里卡片数变了（搬来一张 / 搬走一张 / 被销毁）就重排：
-  // 凑不齐两张就先歇着，人手换了闲聊的顺序也跟着重来
+  // 凑不齐两张就先歇着，人手换了说话的顺序也跟着重来
   watch(
     () => liveCards.value.length,
     () => {
-      clearPlayback();
-      window.clearTimeout(playTimer);
-      if (stageVisible) schedulePlay(nextPlayDelay());
-      scheduleChat(nextChatDelay());
+      show.hold();
+      if (stageVisible) show.resume();
+      talk.scheduleNext();
     }
   );
   scheduleVisitor();
-  scheduleChat(nextChatDelay());
+  talk.scheduleNext();
 });
 
 onBeforeUnmount(() => {
+  if (staticMode) return;
+  document.removeEventListener("visibilitychange", syncResting);
   stageWatcher?.disconnect();
   window.clearTimeout(idleTimer);
-  window.clearTimeout(playTimer);
-  window.clearTimeout(resetTimer);
-  window.clearTimeout(speechTimer);
-  window.clearTimeout(chatTimer);
-  window.clearTimeout(chatTurnTimer);
   window.clearTimeout(greetTimer);
   window.clearTimeout(visitorTimer);
   window.clearTimeout(visitorHideTimer);
@@ -2413,6 +1724,15 @@ html.dark .home-live-avatar {
     white-space: normal;
     line-height: 1.35;
   }
+}
+
+/* 页面切到后台、或者卡片区滚出视野：卡片上的浮动、呼吸灯这些常驻动画先停下，
+   别在没人看的时候还占着合成器；滚回来会接着跑（入场动画也是那时才演） */
+.home-live.is-resting .home-live-card,
+.home-live.is-resting .home-live-card *,
+.home-live.is-resting :deep(.home-online),
+.home-live.is-resting :deep(.home-online *) {
+  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {
