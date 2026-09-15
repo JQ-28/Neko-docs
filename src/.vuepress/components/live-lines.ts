@@ -80,6 +80,10 @@ export interface ChatMood {
   readonly weekend: boolean;
   /** 工作日的上班时段 */
   readonly workHours: boolean;
+  /** 此刻真实的在线人数（接口给的，还没拿到就是 0） */
+  readonly online: number;
+  /** 今天第几次打开这个页面（本机记的，头一回是 1） */
+  readonly visitTimes: number;
 }
 
 /** 专门为某个光景写的对话：眼下正赶上就说这一档，赶不上就回落到常备的那几套 */
@@ -430,7 +434,8 @@ export const LINE_GESTURES: Record<string, GestureName> = {
   "我刚才去了隔壁标签页喵": "peek",
   "小声一点，别让别人听见喵": "leanIn",
   // 这几句只有在线猫猫卡会说（数据里 by 就是 online），配的是它自己那点小动作
-  "当前在线人数：六六六": "tick",
+  "当前在线人数：我就不报了": "tick",
+  "报出来你会失望。所以我先把数字写好看了一点": "tick",
   "已记录一次裂开，情绪值下降": "tick",
   "本月预算剩——": "tick",
   "停留时长已经在涨了": "tick",
@@ -538,7 +543,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
   mixed: [
     [
       { by: "neko", line: "有人在吗喵？" },
-      { by: "online", line: "在呢，数字上这会儿就你一只" },
+      { by: "online", line: "在呢。我这边的数字一直亮着" },
       { by: "neko", line: "那我就不客气地赖在这儿了喵~" },
     ],
     [
@@ -652,10 +657,10 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "neko", line: "啊？那不是刚放上去的吗喵！" },
     ],
     [
-      { by: "online", line: "当前在线人数：六六六" },
-      { by: "neko", line: "666！我们好厉害喵！" },
-      { by: "online", line: "其实是我把数字写得好看了点" },
-      { by: "neko", line: "你居然会撒娇式报数喵" },
+      { by: "online", line: "当前在线人数：我就不报了" },
+      { by: "neko", line: "为什么不报喵" },
+      { by: "online", line: "报出来你会失望。所以我先把数字写好看了一点" },
+      { by: "neko", line: "那我替你报：六六六！我们好厉害喵！" },
     ],
     [
       { by: "neko", line: "emmm，抹茶冰淇淋还是焦糖布丁呢喵" },
@@ -762,7 +767,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
     ],
     [
       { by: "neko", line: "现在有几个人在线呀喵？" },
-      { by: "online", line: "三个。其中一个是刚来的" },
+      { by: "online", line: "数着呢。其中一个是刚来的" },
       { by: "neko", line: "那我轻点说话，别吵到他喵" },
       { by: "online", line: "他正在看你。音量保持即可" },
     ],
@@ -780,7 +785,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
     ],
     [
       { by: "neko", line: "周末了，今天可以慢一点点喵" },
-      { by: "online", line: "周末访问量下降百分之十二" },
+      { by: "online", line: "周末的访问量通常不太好看" },
       { by: "neko", line: "人少了，但留下来的更可爱喵" },
       { by: "online", line: "同意。这句话我不加引号" },
     ],
@@ -1049,7 +1054,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     when: (mood) => mood.period === "morning",
     turns: [
       { by: "neko", line: "早上好喵~" },
-      { by: "online", line: "今天第一只来的猫就是你" },
+      { by: "online", line: "今天的第一声早上好，我收下了" },
     ],
   },
   {
@@ -2072,7 +2077,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   ...([
     [
       { by: "neko", line: "我起了，一枪秒了，有什么好说的喵" },
-      { by: "online", line: "本轮停留时长加零点三秒，来源不明" },
+      { by: "online", line: "本轮停留时长又加了一点，来源不明" },
       { by: "neko", line: "那一枪是替观众打的喵！" },
       { by: "online", line: "绩效不予认定" },
     ],
@@ -2089,7 +2094,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
     [
       { by: "neko", line: "人跑光了，问题不大喵" },
-      { by: "online", line: "首页访问下降百分之八十七，问题很大" },
+      { by: "online", line: "首页访问在掉，问题很大" },
       { by: "neko", line: "那猫猫陪着你喵" },
       { by: "online", line: "这条数据我留着" },
     ],
@@ -2184,7 +2189,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
     [
       { by: "neko", line: "深夜也要看文档吗？哈基观众，你这家伙……" },
-      { by: "online", line: "停留时长四分十二秒，正当用途" },
+      { by: "online", line: "停留时长还在计，用途正当" },
       { by: "neko", line: "那猫猫也要被看了吗喵？" },
       { by: "online", line: "你已经在被看了" },
     ],
@@ -2211,8 +2216,8 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
     [
       { by: "neko", line: "参差多态，乃是幸福的本源，喵" },
-      { by: "online", line: "本卡今日在线四人，形态各异，符合该论断" },
-      { by: "neko", line: "那这四个人里，有人想吃布丁吗？" },
+      { by: "online", line: "本卡此刻在线若干，形态各异，符合该论断" },
+      { by: "neko", line: "那这几位里，有人想吃布丁吗？" },
       { by: "online", line: "抽样结果：百分百。样本量虽小，但很整齐" },
       { by: "neko", line: "那我们分着吃，喵！" },
     ],
@@ -2248,7 +2253,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "我们听过无数的道理，却仍旧过不好这一生，喵" },
       { by: "online", line: "本卡没听过道理。本卡只有数字" },
       { by: "neko", line: "那你过得好吗？" },
-      { by: "online", line: "不确定。但昨天在线零人，今天有一人" },
+      { by: "online", line: "不确定。但刚才还空着，现在有你" },
       { by: "neko", line: "那就是变好了，喵。道理不用听了" },
     ],
     [
@@ -2267,7 +2272,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     [
       { by: "neko", line: "我认真地想过了，喵" },
       { by: "neko", line: "人生大概没有意义" },
-      { by: "online", line: "本卡统计：此刻在线一人。这就是意义的最小单位" },
+      { by: "online", line: "本卡统计：此刻在线。这就可以是意义的最小单位" },
       { by: "neko", line: "那这个单位现在想吃布丁，喵" },
     ],
     [
@@ -2343,7 +2348,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
     [
       { by: "neko", line: "哪有什么胜利可言，挺住意味着一切，喵", act: "lean" },
-      { by: "online", line: "说得好。今天你挺住了。在线两人，其中一人是你" },
+      { by: "online", line: "说得好。今天你挺住了。在线名单里有你" },
       { by: "neko", line: "那我算赢了吗？" },
       { by: "online", line: "不算赢。算挺住。这两个字更省电" },
       { by: "neko", line: "那我挺住，顺便吃个布丁，喵" },
@@ -2365,13 +2370,13 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   ...([
     [
       { by: "neko", line: "六七？六七是什么呀喵？", act: "mimic" },
-      { by: "online", line: "无定义。本周搜索量上升百分之六十七" },
+      { by: "online", line: "无定义。但本周搜索量在涨，涨得很具体" },
       { by: "neko", line: "六——七——喵！我念对了吗喵？" },
       { by: "online", line: "没有对错。这就是全部用法" },
     ],
     [
       { by: "neko", line: "特啦啦泪落——特啦啦啦喵！" },
-      { by: "online", line: "该名字十八个字符，无实义" },
+      { by: "online", line: "该名字长度超标，无实义" },
       { by: "neko", line: "它三只脚都穿耐克，超厉害喵！" },
       { by: "online", line: "形象没有版权，但别商用，会被找" },
     ],
@@ -2458,7 +2463,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     [
       { by: "neko", line: "今天的布丁还有剩吗喵？" },
       { by: "neko", line: "冰箱第二格，我数过，两块" },
-      { by: "online", line: "当前在线三人，停留时长十二分四十秒" },
+      { by: "online", line: "当前在线三人，停留时长我就不报了" },
       { by: "neko", line: "……我的尾巴为什么会自己动呀" },
       { by: "neko", line: "别盯着看，它会以为自己自由了" },
       { by: "online", line: "该行为不在统计口径内" },
@@ -2489,7 +2494,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "投票总数三，两人弃权。……你们两个" },
     ],
     [
-      { by: "online", line: "页面停留时长较昨日上涨百分之十四" },
+      { by: "online", line: "页面停留时长比昨天长一点" },
       { by: "neko", line: "翻译一下喵" },
       { by: "online", line: "说明大家舍不得走" },
       { by: "neko", line: "说明有人趴在键盘上睡着了" },
@@ -2550,7 +2555,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     [
       { by: "neko", line: "只剩我们两个了喵" },
       { by: "neko", line: "还有一个在数数" },
-      { by: "online", line: "当前在线两人，其中一人不会说话" },
+      { by: "online", line: "在线名单里有一个不会说话" },
       { by: "neko", line: "它算人吗喵" },
       { by: "online", line: "按统计口径，算一" },
       { by: "neko", line: "那我们就是一加一加一，三只猫" },
@@ -2571,6 +2576,128 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "我提议改成谁先醒谁赢" },
       { by: "neko", line: "那不一样吗喵" },
       { by: "neko", line: "不一样。这样我可以先睡" },
+    ],
+  },
+];
+
+/** 秒数说成人话：不到一分钟报秒，过了就说几分几秒 */
+export function humanSeconds(seconds: number): string {
+  if (seconds < 60) return `${seconds} 秒`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest === 0 ? `${minutes} 分钟` : `${minutes} 分 ${rest} 秒`;
+}
+
+/** 猫卡名字下面那行小字：照着眼下的状态挑一句，别永远挂着同一句 */
+export function nekoMetaLine(emo: EmoState, count: number, hour: number): string {
+  if (emo === "shy") return "有点不好意思";
+  if (emo === "sulky") return "正在闹别扭";
+  if (emo === "hungry") return "在等布丁";
+  if (emo === "happy") return "今天心情不错";
+  if (emo === "sleepy") return "打盹中，别吵";
+  if (emo === "lost") return "一只猫值班中";
+  if (hour >= 23 || hour < 5) return "这个点还醒着的不多";
+  if (hour >= 17 && hour < 19) return "傍晚有点饿";
+  if (count >= 3) return "挤一挤也坐得下";
+  return "群里随叫随到";
+}
+
+/** 即兴档：台词要现读真实数字（在线几只、你盯了多久），数还没到就整档跳过 */
+export interface ChatImprov {
+  /** 挑它之前先问一句：这会儿说这个合适吗 */
+  readonly when: (mood: ChatMood) => boolean;
+  /** 现编台词；给不出（数字不合适）就返回 null，这一轮不算它的 */
+  readonly lines: (mood: ChatMood) => readonly ChatTurn[] | null;
+}
+
+/** 只有卡片自己知道的真话：在线几只、观众盯了多久、今天第几次来。
+    这些数字是真读出来的，所以不会出现「明明只有你一个却说在线三人」 */
+export const CHAT_IMPROV: readonly ChatImprov[] = [
+  // 盯得越久说得越离谱：一分钟、五分钟、一刻钟各一档
+  {
+    when: (mood) => mood.linger >= 60 && mood.linger < 300,
+    lines: (mood) => [
+      { by: "neko", line: `屏幕外那个人类，已经在这儿待了 ${humanSeconds(mood.linger)} 了喵` },
+      { by: "online", line: `${humanSeconds(mood.linger)}。中途没有离开，记录在案` },
+      { by: "neko", line: "要不要给他倒杯水喵" },
+    ],
+  },
+  {
+    when: (mood) => mood.linger >= 300 && mood.linger < 900,
+    lines: (mood) => [
+      { by: "online", line: `这位观众已经停留 ${humanSeconds(mood.linger)}` },
+      { by: "neko", line: `${humanSeconds(mood.linger)}？都够我睡一觉了喵` },
+      { by: "online", line: "确实够。刚才你就睡了" },
+      { by: "neko", line: "那不算，那是闭目思考喵" },
+    ],
+  },
+  {
+    when: (mood) => mood.linger >= 900,
+    lines: (mood) => [
+      { by: "neko", line: `${humanSeconds(mood.linger)}了喵！你是不是把标签页忘了` },
+      { by: "online", line: `计时 ${humanSeconds(mood.linger)}，属于本卡的历史高位` },
+      { by: "neko", line: "高位就别报了，人家会不好意思喵" },
+      { by: "online", line: "数据不评价。只是记着" },
+    ],
+  },
+  // 真实在线人数：就你一个、几个人、一堆人
+  {
+    when: (mood) => mood.online === 1,
+    lines: () => [
+      { by: "online", line: "当前在线一只。就是你" },
+      { by: "neko", line: "一只也算热闹喵" },
+      { by: "online", line: "按统计口径，一只叫「独处」" },
+    ],
+  },
+  {
+    when: (mood) => mood.online >= 2 && mood.online <= 9,
+    lines: (mood) => [
+      { by: "online", line: `当前在线 ${mood.online} 只。其中一只就在这个页面上` },
+      { by: "neko", line: `${mood.online} 只？那布丁得分几口喵` },
+      { by: "online", line: "按人头均分，你那份是零点几口" },
+    ],
+  },
+  {
+    when: (mood) => mood.online >= 10,
+    lines: (mood) => [
+      { by: "online", line: `当前在线 ${mood.online} 只。这是我见过比较热闹的一次` },
+      { by: "neko", line: `${mood.online} 只一起挤在这张小卡片上喵？！` },
+      { by: "online", line: "不挤。他们分散在各自的窗口里" },
+      { by: "neko", line: "那我不管，我就当他们都在这儿喵" },
+    ],
+  },
+  // 今天第几次来：头一回、第二次、常客、把这儿当家
+  {
+    when: (mood) => mood.visitTimes === 1,
+    lines: () => [
+      { by: "online", line: "今天头一回打开这一页，记下了" },
+      { by: "neko", line: "头一回？那得好好招待喵" },
+      { by: "online", line: "招待不在预算内" },
+      { by: "neko", line: "我拿我那份布丁招待喵" },
+    ],
+  },
+  {
+    when: (mood) => mood.visitTimes === 2,
+    lines: () => [
+      { by: "online", line: "今天第二次了。我数着的" },
+      { by: "neko", line: "第二次还来，是不是想我了喵" },
+    ],
+  },
+  {
+    when: (mood) => mood.visitTimes >= 3 && mood.visitTimes < 8,
+    lines: (mood) => [
+      { by: "online", line: `今天第 ${mood.visitTimes} 次。频率偏高` },
+      { by: "neko", line: `第 ${mood.visitTimes} 次了，你是不是舍不得走喵` },
+      { by: "online", line: "这句我没有数据支持。但我不反对" },
+    ],
+  },
+  {
+    when: (mood) => mood.visitTimes >= 8,
+    lines: (mood) => [
+      { by: "online", line: `今天第 ${mood.visitTimes} 次。刷新键还健在吗` },
+      { by: "neko", line: `第 ${mood.visitTimes} 次！你把这儿当家了喵` },
+      { by: "online", line: "家不需要刷新" },
+      { by: "neko", line: "……这句话我记住了喵" },
     ],
   },
 ];

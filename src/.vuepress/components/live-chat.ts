@@ -6,6 +6,7 @@ import { onBeforeUnmount, ref, type Ref } from "vue";
 import { markEgg } from "./egg-utils";
 import type { CardSpec, PeerSides } from "./live-peer";
 import {
+  CHAT_IMPROV,
   CHAT_MOMENTS,
   CHAT_TURNS,
   JUST_DRAGGED_MS,
@@ -30,8 +31,10 @@ import {
 export const GREETING_REPLY_MS = 1800;
 /** 一段说完隔多久再来一段（20–45 秒之间随便挑，不固定才不像机器） */
 const CHAT_MIN_MS = 20_000; const CHAT_MAX_MS = 45_000;
-/** 对话里两句之间隔多久：上一句的气泡刚收，下一句就接上 */
+/** 对话里两句之间最少隔多久：上一句的气泡刚收，下一句就接上 */
 const CHAT_TURN_MS = 2400;
+/** 上一句太长时最多等这么久，别把整段对话拖成慢动作 */
+const CHAT_TURN_MAX_MS = 4600;
 /** 刚被人拎着玩过，隔这么久就嘀咕两句，趁这事还新鲜 */
 const DRAG_CHAT_MIN_MS = 6_000;
 const DRAG_CHAT_MAX_MS = 13_000;
@@ -47,6 +50,9 @@ const ACT_FALLBACK_MS = 6_000;
 const ONCE_GAP_MS = 10 * 60_000;
 /** 正赶上某种心情时，单句台词有多大概率从心情池里挑 */
 const MOOD_CHANCE = 0.55;
+/** 有即兴档可说的话时先说它的概率，以及两回之间至少隔多久（不然会揪着同一个数字反复报） */
+const IMPROV_CHANCE = 0.6;
+const IMPROV_GAP_MS = 6 * 60_000;
 /** 手里不止一张卡时，也留一点机会让它自己嘀咕一句——心情就是从这儿露出来的 */
 const MUTTER_CHANCE = 0.3;
 /** 事件带起来的心情各挂多久 */
@@ -87,6 +93,10 @@ export interface TalkHost {
   scrollDash: () => boolean;
   /** 距上一次来隔了多少天（头一回来是 0） */
   awayDays: () => number;
+  /** 此刻真实的在线人数（接口给的，还没拿到就是 0） */
+  online: () => number;
+  /** 今天第几次打开这个页面（本机记的，头一回是 1） */
+  visitTimes: () => number;
   /** 中间插一段戏（用演出脚本的名字）；演不成返回 false，好让话接着往下说 */
   act: (name: ChatAct) => boolean;
   /** 说话期间先把演戏的排期让开 */
@@ -183,6 +193,8 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   let lastStareAt = 0;
   /** 上一回说梗是什么时候：说完隔一阵才允许下一个梗 */
   let lastMemeAt = 0;
+  /** 上一回说即兴档（在线几只、你盯了多久）是什么时候 */
+  let lastImprovAt = 0;
   /** 带 once 的档（稀客才说的话）上一次是什么时候说的 */
   const lastOnce = new Map<string, number>();
   /** 一句话说完要插戏时，后半截先寄在这儿，等戏演完再接上 */
@@ -285,6 +297,11 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     return Math.max(SPEECH_LINGER_MS, line.length * SPEECH_CHAR_MS);
   }
 
+  /** 下一句等多久再说：上一句长就先让它读完，不然刚出口就被顶掉了 */
+  function turnGapMs(line: string): number {
+    return Math.min(Math.max(speechLingerMs(line) * 0.75, CHAT_TURN_MS), CHAT_TURN_MAX_MS);
+  }
+
   /** 让某张卡冒一句话，过一会儿自己收（同一时刻只有一张卡在说话） */
   function showSpeech(cardId: string, line: string): void {
     speakingId.value = cardId;
@@ -356,12 +373,18 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       awayDays: host.awayDays(),
       weekend: day === 0 || day === 6,
       workHours: day >= 1 && day <= 5 && hour >= WORK_START_HOUR && hour < WORK_END_HOUR,
+      online: host.online(),
+      visitTimes: host.visitTimes(),
     };
   }
 
   /** 挑一段当下说得成的对话：正赶上什么光景就多说几句那档的，剩下的留给常备的那几套 */
   function pickChatTurns(): PickedChat | null {
     const mood = readMood();
+    // 即兴的那几段读的是真数字，优先级最高：错过这会儿就说不成了
+    const improv = pickImprov(mood);
+    if (improv) return improv;
+
     const now = Date.now();
     const moments = CHAT_MOMENTS.filter(
       (moment) =>
@@ -385,6 +408,27 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     lastChatKey = picked.turns[0]?.line ?? "";
     markSaid(lastChatKey);
     return picked;
+  }
+
+  /** 即兴档：台词里要现读真实数字（在线几只、你盯了多久、今天第几次来）。
+      说过一次要歇一阵，否则会揪着同一个数字反复报 */
+  function pickImprov(mood: ChatMood): PickedChat | null {
+    const now = Date.now();
+    if (now - lastImprovAt < IMPROV_GAP_MS) return null;
+
+    const ready = CHAT_IMPROV.map((improv, index) => ({ improv, key: `improv:${index}` })).filter(
+      (item) => item.improv.when(mood)
+    );
+    if (ready.length === 0 || Math.random() >= IMPROV_CHANCE) return null;
+
+    const picked = pickByFreshness(ready, (item) => item.key, lastChatKey);
+    const turns = picked.improv.lines(mood);
+    if (!turns || turns.length === 0) return null;
+
+    lastImprovAt = now;
+    lastChatKey = picked.key;
+    markSaid(picked.key);
+    return { turns };
   }
 
   /** 这一句该谁张嘴：要那种卡，而且尽量别跟上一位是同一张 */
@@ -464,7 +508,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
           return;
         }
         turnTimer = window.setTimeout(resumePending, ACT_FALLBACK_MS);
-      }, CHAT_TURN_MS);
+      }, turnGapMs(turn.line));
       return;
     }
 
@@ -472,7 +516,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     turnTimer = window.setTimeout(() => {
       turnPending = false;
       playTurn(turns, index + 1, run, speaker.id);
-    }, CHAT_TURN_MS);
+    }, turnGapMs(turn.line));
   }
 
   /** 轮到说话了：偶尔只是自己嘀咕一句，多数时候两张以上就来一段你一句我一句 */

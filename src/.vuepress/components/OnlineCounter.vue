@@ -34,6 +34,10 @@ const VISITOR_KEY = "neko-visitor-id";
 const REQUEST_TIMEOUT_MS = 5_000;
 
 const count = ref(0);
+
+/** 人数也往外抛一份：卡片说话时要拿真实的在线数当梗，不能自己编 */
+const emit = defineEmits<{ count: [value: number] }>();
+watch(count, (value) => emit("count", value));
 /** 有人进来时短暂顶替的文案，几秒后让位给常态统计 */
 const hint = ref("");
 const avatarRef = ref<HTMLImageElement | null>(null);
@@ -64,10 +68,24 @@ function scheduleIdleMove(): void {
   }, delay);
 }
 
-function periodOfHour(hour: number): "night" | "morning" | "day" {
+function periodOfHour(hour: number): "night" | "morning" | "day" | "evening" {
   if (hour < 5) return "night";
   if (hour < 8) return "morning";
-  return "day";
+  if (hour < 18) return "day";
+  return "evening";
+}
+
+/** 小卡片上写「3 只猫」不如「三只猫」顺口 */
+function chineseNumber(value: number): string {
+  const digits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+  if (value < 10) return digits[value];
+  if (value < 20) return value === 10 ? "十" : `十${digits[value % 10]}`;
+  if (value < 100) {
+    const tens = Math.floor(value / 10);
+    const rest = value % 10;
+    return `${digits[tens]}十${rest === 0 ? "" : digits[rest]}`;
+  }
+  return String(value);
 }
 
 // 换个时段就换个说法，同一个小网站早中晚读起来不一样
@@ -76,15 +94,18 @@ const baseHeadline = computed(() => {
   if (total <= 0) return "";
 
   const period = periodOfHour(new Date().getHours());
+  const words = chineseNumber(total);
   if (total === 1) {
     if (period === "night") return "就剩你一只猫还没睡";
-    if (period === "morning") return "你是今天第一只来的猫";
+    if (period === "morning") return "你是今天头一只来的猫";
+    if (period === "evening") return "傍晚就你一只猫在看";
     return "现在就你一只猫在逛这个小网站";
   }
 
-  if (period === "night") return `深夜还有 ${total} 只猫没睡`;
-  if (period === "morning") return `早起的 ${total} 只猫已经在逛了`;
-  return `现在有 ${total} 只猫在逛这个小网站`;
+  if (period === "night") return `深夜还有${words}只猫没睡`;
+  if (period === "morning") return `早起的${words}只猫已经在逛了`;
+  if (period === "evening") return `傍晚有${words}只猫在这儿`;
+  return `现在有${words}只猫在逛这个小网站`;
 });
 
 const headline = computed(() => hint.value || baseHeadline.value);

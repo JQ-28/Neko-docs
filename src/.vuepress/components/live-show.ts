@@ -67,9 +67,10 @@ const GREET_SCRIPTS: readonly PlayScript[] = PLAY_SCRIPTS.filter(
 /** 卡片露头后先让入场动画落定，再开演 */
 const FIRST_PLAY_MIN_MS = 600;
 const FIRST_PLAY_MAX_MS = 1200;
-/** 演完一段隔一阵再演下一段，间隔不固定才不像机器 */
-const REPLAY_MIN_MS = 18_000;
-const REPLAY_MAX_MS = 36_000;
+/** 演完一段隔一阵再演下一段，间隔不固定才不像机器。
+    留得比对话间隔宽一点：演出期间话是说不了的，太密会把闲聊挤没 */
+const REPLAY_MIN_MS = 22_000;
+const REPLAY_MAX_MS = 42_000;
 /** 滚走了又滚回来，离上一段太近就先补够这点时间，免得来回刷屏 */
 const RESUME_GAP_MS = 6_000;
 /** 恰好两张才演得成对手戏：多凑了几张就停播，只留它们自己聊天 */

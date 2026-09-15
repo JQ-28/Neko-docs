@@ -48,14 +48,14 @@
           />
           <span class="home-live-text">
             <span class="home-live-name">Neko 本猫</span>
-            <span class="home-live-meta">群里随叫随到</span>
+            <span class="home-live-meta">{{ nekoMeta }}</span>
           </span>
           <span class="home-live-light" aria-hidden="true">
             <span class="home-live-light-ring"></span>
             <span class="home-live-light-core"></span>
           </span>
         </div>
-        <OnlineCounter v-else />
+        <OnlineCounter v-else @count="onOnlineCount" />
         <!-- 随口的嘀咕是看的东西，不是读的东西：别让读屏软件一路念下去 -->
         <span
           v-if="speakingId === card.id"
@@ -99,7 +99,7 @@ import { useRouter } from "vue-router";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "./egg-utils";
 import { GREETING_REPLY_MS, useLiveTalk } from "./live-chat";
-import { DROP_LINES, recentLine } from "./live-lines";
+import { DROP_LINES, nekoMetaLine, recentLine } from "./live-lines";
 import {
   cardPointAbs,
   createDragTrack,
@@ -269,6 +269,8 @@ const SCROLL_DASH_MS = 2_500;
 const MOMENT_FRESH_MS = 30_000;
 /** 上次来的时间戳记在这儿，隔几天再来才有「好久不见」 */
 const LAST_SEEN_KEY = "neko-live-last-seen";
+/** 今天来过几次记在这儿，换一天从头数 */
+const VISITS_KEY = "neko-live-visits";
 const DAY_MS = 86_400_000;
 
 /** 小箭头最后动过是什么时候、同一张卡连着戳了几次、什么时候戳满的、什么时候一口气滚到底的 */
@@ -281,10 +283,40 @@ let topAt = 0;
 let scrollDashAt = 0;
 /** 距上一次来隔了多少天（头一回来是 0） */
 let awayDays = 0;
+/** 今天第几次打开这一页（本机记的，头一回是 1） */
+let visitTimes = 1;
+/** 在线卡报上来的真实人数：卡片说话时要拿它当梗 */
+let onlineCount = 0;
+
+/** 在线卡报到的人数 */
+function onOnlineCount(value: number): void {
+  onlineCount = value;
+}
 
 /** 手一动（划、点、敲键盘）就重新计时：静下来三十秒才轮到那句「手放下了」 */
 function noteActivity(): void {
   cursorMovedAt = Date.now();
+}
+
+/** 被戳一下时灯亮多久 */
+const TAP_LIGHT_MS = 620;
+/** 手机上按住多久才算「拎」、以及这段时间里手指能动多少像素 */
+const TOUCH_HOLD_MS = 180;
+const TOUCH_SLOP_PX = 10;
+
+let touchHoldAt: { x: number; y: number; pointerId: number } | null = null;
+let touchHoldTimer = 0;
+
+/** 还没拎起来：手挪开了或者抬起来了，就当成想滚页面 / 想点一下 */
+function cancelHold(): void {
+  window.clearTimeout(touchHoldTimer);
+  touchHoldAt = null;
+}
+
+/** 被戳了一下：灯闪一下，让人知道手碰到了 */
+function flashTap(slot: HTMLElement): void {
+  slot.dataset.tapped = "true";
+  window.setTimeout(() => delete slot.dataset.tapped, TAP_LIGHT_MS);
 }
 
 /** 数一数这一张卡被戳了几下：五秒内戳满六下就记一笔 */
@@ -315,6 +347,20 @@ function onScroll(): void {
     return;
   }
   if (top >= max - 8 && now - topAt < SCROLL_DASH_MS) scrollDashAt = now;
+}
+
+/** 今天第几次打开这个页面：换一天就从头数，隐私模式读不到就当头一回 */
+function readVisitTimes(): number {
+  try {
+    const today = new Date().toDateString();
+    const raw = window.localStorage.getItem(VISITS_KEY);
+    const saved = raw ? (JSON.parse(raw) as { day?: string; times?: number }) : null;
+    const times = saved?.day === today ? (saved.times ?? 0) + 1 : 1;
+    window.localStorage.setItem(VISITS_KEY, JSON.stringify({ day: today, times }));
+    return times;
+  } catch {
+    return 1;
+  }
 }
 
 /** 上一次来是什么时候：读完就把此刻记下，下回再算隔了几天 */
@@ -362,6 +408,8 @@ const talk = useLiveTalk({
   tapBurst: () => tapBurstAt > 0 && Date.now() - tapBurstAt < MOMENT_FRESH_MS,
   scrollDash: () => scrollDashAt > 0 && Date.now() - scrollDashAt < MOMENT_FRESH_MS,
   awayDays: () => awayDays,
+  online: () => onlineCount,
+  visitTimes: () => visitTimes,
   act: (name) => show.playByName(name),
   holdShow: show.hold,
   releaseShow: show.resume,
@@ -369,6 +417,11 @@ const talk = useLiveTalk({
 
 const { playingName, playSide } = show;
 const { speakingId, speech, speakingGesture, mood } = talk;
+
+/** 猫卡名字下面那行小字：跟着心情、卡片数和时段换，不再永远同一句 */
+const nekoMeta = computed(() =>
+  nekoMetaLine(mood.value, liveCards.value.length, new Date().getHours())
+);
 
 /** 拎到跳转位上松手要把页面换过去 */
 const router = useRouter();
@@ -683,19 +736,64 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   if (event.pointerType === "mouse" && event.button !== 0) return;
   // 静态模式下卡片就摆着看，不给拎
   if (staticMode) return;
+
+  const slot = event.currentTarget as HTMLElement;
   // 戳猫猫的计数放在最前：戳完变拖拽也算数
   noteActivity();
   countTap(card.id);
+  // 被戳一下灯就闪一下；后面给不给拎是另一回事
+  flashTap(slot);
+
   // 正在演互动动画、或者已经有一张在手上，就别再拎
   if (drag || show.isPlaying()) return;
 
   const handle = (event.target as HTMLElement | null)?.closest<HTMLElement>(
     ".home-live-card, .home-online"
   );
-  const slot = event.currentTarget as HTMLElement;
   // 抓住的必须是这张卡本身，不能是隔壁那张
   if (!handle || !slot.contains(handle)) return;
 
+  // 手指头先按住一小会儿才算是「拎」：一压就走的话分不清是想滚页面还是想拎猫，
+  // 按住的这段时间页面本来也不会滚，等真拎起来了再把竖向滚动一并收走
+  if (event.pointerType !== "mouse") {
+    holdToDrag(event, card, slot, handle);
+    return;
+  }
+
+  beginDrag(event, card, slot, handle);
+}
+
+/** 手机上：按住不动到点才进入拖拽，这期间挪开或抬手都当成滚页面 */
+function holdToDrag(
+  event: PointerEvent,
+  card: CardSpec,
+  slot: HTMLElement,
+  handle: HTMLElement
+): void {
+  window.clearTimeout(touchHoldTimer);
+  touchHoldAt = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  touchHoldTimer = window.setTimeout(() => {
+    touchHoldAt = null;
+    if (drag) return;
+    beginDrag(event, card, slot, handle);
+    // 拎起来了就别再让页面跟着手指滚
+    slot.style.touchAction = "none";
+  }, TOUCH_HOLD_MS);
+  // 先把指针接管过来：手指滑出卡片也收得到消息，好及时判断人家其实是想滚页面
+  try {
+    handle.setPointerCapture(event.pointerId);
+  } catch {
+    // 抓不到就交给冒泡上来的事件处理，不影响的
+  }
+}
+
+/** 真的把卡片拿起来：鼠标按下、或者手指按住够久了，都走这儿 */
+function beginDrag(
+  event: PointerEvent,
+  card: CardSpec,
+  slot: HTMLElement,
+  handle: HTMLElement
+): void {
   // 拎卡前先把各家窗口的位置对一遍：刚被搬过的窗口，别拿几秒前的旧坐标去认邻居
   peerLink.refresh();
 
@@ -739,9 +837,11 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
     keepSpeech 是给落点用的 —— 刚落点说的话不能跟着「拎着时那句抱怨」一起收掉 */
 function dropRelease(keepSpeech = false): void {
   if (!drag) return;
-  const { handle, pointerId } = drag;
+  const { handle, pointerId, slot } = drag;
   if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
   draggingId.value = "";
+  // 手机上拎完，竖向滚动还给页面
+  slot.style.touchAction = "";
   drag = null;
   if (!keepSpeech) talk.hush();
   lightDrop(null);
@@ -849,6 +949,12 @@ function useDrop(el: HTMLElement, card: CardSpec): boolean {
 }
 
 function onPointerMove(event: PointerEvent): void {
+  // 还在等长按：手指挪开了就说明人家是想滚页面，这次不算拎
+  if (touchHoldAt && event.pointerId === touchHoldAt.pointerId) {
+    const moved = Math.hypot(event.clientX - touchHoldAt.x, event.clientY - touchHoldAt.y);
+    if (moved > TOUCH_SLOP_PX) cancelHold();
+    return;
+  }
   if (!drag || event.pointerId !== drag.pointerId) return;
 
   const rawX = event.clientX - drag.startX;
@@ -916,6 +1022,8 @@ function onPointerMove(event: PointerEvent): void {
 }
 
 function onPointerUp(event: PointerEvent): void {
+  // 还在等长按：抬手就是一次普通点击，不是拎
+  if (touchHoldAt && event.pointerId === touchHoldAt.pointerId) cancelHold();
   if (!drag || event.pointerId !== drag.pointerId) return;
 
   const { slot, handle, cardId, kind } = drag;
@@ -977,6 +1085,8 @@ function onPointerUp(event: PointerEvent): void {
     slot.style.rotate = "";
   }
   drag = null;
+  // 拎完了，竖向滚动还给页面（换位那条路走的是 reorderCards，同样要还）
+  slot.style.touchAction = "";
 
   // 刚被拎起来玩过，过一小会儿就让它们嘀咕两句——趁这会儿还记得
   talk.lingerSpeech();
@@ -998,6 +1108,7 @@ onMounted(() => {
 
   // 观众手上在忙什么：划、点、敲键盘都算，滚页面另外记
   awayDays = readAwayDays();
+  visitTimes = readVisitTimes();
   window.addEventListener("pointermove", noteActivity, { passive: true });
   window.addEventListener("keydown", noteActivity);
   window.addEventListener("pointerdown", noteActivity, { passive: true });
@@ -1052,6 +1163,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(roamerTimer);
   window.clearTimeout(carryTimer);
   window.clearTimeout(retireTimer);
+  window.clearTimeout(touchHoldTimer);
   peerLink.stop();
 });
 
@@ -1634,6 +1746,14 @@ html.dark .home-live-roamer {
   --live-hue: #fbbf24;
   --live-beat: 2.1s;
   --live-dim: 0.82;
+}
+
+/* 被戳了一下的那一小会儿：灯闪一下，像被手碰过 */
+.home-live-slot[data-tapped] {
+  --live-beat: 1.1s;
+  --live-glow: 6px;
+  --live-dim: 0.95;
+  --live-ring-scale: 3;
 }
 
 /* 状态档压在心情上面：演对手戏时两盏灯一起跳得更欢，开口说话时灯再亮一档，
