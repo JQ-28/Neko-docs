@@ -894,24 +894,21 @@ html.dark .neko-egg-tip-text {
   cursor: pointer;
 }
 
-// 点击刷新后按钮变转圈，等新 SW 接管重载页面
+.neko-update-card-icon {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 16px;
+  line-height: 1;
+  animation: neko-update-spin 1.6s linear infinite;
+}
+
+// 点击刷新后只挡重复点击，箭头加速表示正在换版本
 .neko-update-card-button.is-updating {
-  position: relative;
-  color: transparent;
   pointer-events: none;
 }
 
-.neko-update-card-button.is-updating::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: neko-update-spin 0.8s linear infinite;
+.neko-update-card-button.is-updating .neko-update-card-icon {
+  animation-duration: 0.4s;
 }
 
 @keyframes neko-update-spin {
