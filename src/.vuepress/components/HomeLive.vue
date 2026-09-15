@@ -130,7 +130,11 @@ const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "hop", durationMs: 1300, withPeek: false },
   { name: "chase", durationMs: 1800, withPeek: false },
   { name: "peek", durationMs: 1400, withPeek: true },
+  { name: "pounce", durationMs: 2400, withPeek: false },
+  { name: "knock", durationMs: 2600, withPeek: false },
   { name: "tag", durationMs: 3200, withPeek: false },
+  { name: "roll", durationMs: 2800, withPeek: true },
+  { name: "swap", durationMs: 3200, withPeek: true },
 ];
 
 const PLAY_CLASS = "is-playing";
@@ -794,6 +798,42 @@ html.dark .home-live-avatar {
   animation: neko-play-tag-pursue 3.2s cubic-bezier(0.45, 0, 0.55, 1);
 }
 
+/* 扑上去：左边那只跳起来扑，右边那只被扑得往后缩 */
+.home-live-slot--left.is-playing[data-play="pounce"] {
+  animation: neko-play-pounce-strike 2.4s var(--ease-play);
+}
+
+.home-live-slot--right.is-playing[data-play="pounce"] {
+  animation: neko-play-pounce-dodge 2.4s var(--ease-play);
+}
+
+/* 撞飞：右边那只一头撞过去，左边那只横着滑出去再自己滚回来 */
+.home-live-slot--right.is-playing[data-play="knock"] {
+  animation: neko-play-knock-charge 2.6s var(--ease-play);
+}
+
+.home-live-slot--left.is-playing[data-play="knock"] {
+  animation: neko-play-knock-fly 2.6s var(--ease-play);
+}
+
+/* 原地打滚：各翻一圈，右边那只慢半拍 */
+.home-live-slot.is-playing[data-play="roll"] {
+  animation: neko-play-roll 2.4s var(--ease-play);
+}
+
+.home-live-slot--right.is-playing[data-play="roll"] {
+  animation-delay: 0.35s;
+}
+
+/* 换位置：一只从上面跳过去、一只贴着下面挪过去，站一会儿再一起换回来 */
+.home-live-slot--left.is-playing[data-play="swap"] {
+  animation: neko-play-swap-right 3.2s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+.home-live-slot--right.is-playing[data-play="swap"] {
+  animation: neko-play-swap-left 3.2s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
 /* 凑近打招呼：先一起往中间靠，碰一下再退回一点点 */
 @keyframes neko-play-meet {
   0%,
@@ -991,6 +1031,210 @@ html.dark .home-live-avatar {
 
   100% {
     transform: translateX(0) rotate(0deg);
+  }
+}
+
+/* 左边那只：蹲一下高高跃起，扑到对方身上再弹回来 */
+@keyframes neko-play-pounce-strike {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  /* 蹲 */
+  10% {
+    transform: translate(0, 5px);
+  }
+
+  /* 跃起 */
+  26% {
+    transform: translate(28px, -30px);
+  }
+
+  /* 扑到 */
+  40% {
+    transform: translate(46px, -2px);
+  }
+
+  /* 弹回来再蹭两下 */
+  54% {
+    transform: translate(24px, 0);
+  }
+
+  68% {
+    transform: translate(34px, 0);
+  }
+
+  82% {
+    transform: translate(6px, 0);
+  }
+}
+
+/* 右边那只：被扑得往后缩，再左右晃两下站稳 */
+@keyframes neko-play-pounce-dodge {
+  0%,
+  30% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  44% {
+    transform: translate(16px, 3px) rotate(4deg);
+  }
+
+  58% {
+    transform: translate(4px, 0) rotate(-2deg);
+  }
+
+  72% {
+    transform: translate(9px, 0) rotate(1.6deg);
+  }
+
+  86% {
+    transform: translate(2px, 0) rotate(-0.6deg);
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+/* 右边那只：一头撞过去，撞完弹开还不忘再顶两下 */
+@keyframes neko-play-knock-charge {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  14% {
+    transform: translate(-54px, 0);
+  }
+
+  20% {
+    transform: translate(-58px, 0);
+  }
+
+  32% {
+    transform: translate(-18px, 0);
+  }
+
+  46% {
+    transform: translate(-30px, 0);
+  }
+
+  62% {
+    transform: translate(-6px, 0);
+  }
+
+  78% {
+    transform: translate(-13px, 0);
+  }
+}
+
+/* 左边那只：被撞得横着滑出去，滚一圈再爬起来 */
+@keyframes neko-play-knock-fly {
+  0%,
+  16% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  28% {
+    transform: translate(-92px, 0) rotate(-13deg);
+  }
+
+  42% {
+    transform: translate(-124px, 0) rotate(-18deg);
+  }
+
+  58% {
+    transform: translate(-72px, 0) rotate(7deg);
+  }
+
+  76% {
+    transform: translate(-18px, 0) rotate(-3deg);
+  }
+
+  88% {
+    transform: translate(-4px, 0) rotate(1deg);
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+/* 原地打滚：抬高一点翻一整圈，砸回原位 */
+@keyframes neko-play-roll {
+  0%,
+  6% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  22% {
+    transform: translateY(-14px) rotate(0deg);
+  }
+
+  56% {
+    transform: translateY(-14px) rotate(360deg);
+  }
+
+  72% {
+    transform: translateY(0) rotate(360deg);
+  }
+
+  100% {
+    transform: translateY(0) rotate(360deg);
+  }
+}
+
+/* 左边那只：抬得高高的从对面上方跳过右半边去 */
+@keyframes neko-play-swap-right {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  14% {
+    transform: translate(0, -70px);
+  }
+
+  /* 跳过去，在自己新位置上站一会儿 */
+  44%,
+  62% {
+    transform: translate(110%, -70px);
+  }
+
+  84% {
+    transform: translate(0, -70px);
+  }
+
+  /* 落地压一下 */
+  94% {
+    transform: translate(0, 2px);
+  }
+}
+
+/* 右边那只：贴着下面挪到左半边去，同样站一会儿再回来 */
+@keyframes neko-play-swap-left {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  14% {
+    transform: translate(0, 30px);
+  }
+
+  44%,
+  62% {
+    transform: translate(-110%, 30px);
+  }
+
+  84% {
+    transform: translate(0, 30px);
+  }
+
+  94% {
+    transform: translate(0, -2px);
   }
 }
 
