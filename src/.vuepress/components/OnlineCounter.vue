@@ -178,7 +178,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 视觉沿用状态页账号卡片：渐变描边玻璃层 + 圆头像 + 双层呼吸灯 */
+/* 小卡片：贴在标题行右侧，与标题成组，不另占一行 */
 .home-online {
   --online-state: #22c55e;
   --online-tilt: 0.6deg;
@@ -188,8 +188,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   min-width: 232px;
-  margin: 14px 0 20px;
-  padding: 10px 16px 10px 14px;
+  padding: 10px 18px 10px 14px;
   border: 1px solid rgba(255, 255, 255, 0.75);
   border-radius: 18px;
   background: #ffffff;
@@ -285,6 +284,19 @@ onBeforeUnmount(() => {
 .home-online-meta.is-hint {
   color: var(--vp-c-accent, #096dd9);
   font-weight: 600;
+}
+
+/* 右端补一句刷新说明，通栏右侧才不会空落落 */
+.home-online-note {
+  flex: none;
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  color: #b6adc4;
+}
+
+html.dark .home-online-note {
+  color: #7d7689;
 }
 
 .home-online-light {
