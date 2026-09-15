@@ -44,6 +44,8 @@ export interface ChatMoment {
   readonly cast: ChatCast;
   readonly when: (mood: ChatMood) => boolean;
   readonly turns: readonly ChatTurn[];
+  /** 说这一档时顺手点亮的彩蛋；不带就只是普通闲话 */
+  readonly egg?: string;
 }
 
 export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
@@ -261,6 +263,23 @@ export const JUST_PLAYED_MS = 25_000;
 /** 正赶上某个光景时，这一档的对话占多大比例；余下的说常备那几套，免得翻来覆去就那几句 */
 export const MOMENT_CHANCE = 0.7;
 
+/**
+ * Xterfusion（Arcaea 同名曲）那段「你拍一我拍一」的记谱：
+ * 猫念 X 行、在线猫接 o 行，一对一对念到第四对就收工，「X」是一只手、「o」是另一只手。
+ */
+const XTERFUSION_TURNS: readonly ChatTurn[] = [
+  { by: "neko", line: "X X XXX" },
+  { by: "online", line: "o o ooo" },
+  { by: "neko", line: "XX X XXX" },
+  { by: "online", line: "oo o ooo" },
+  { by: "neko", line: "X X X XXXX" },
+  { by: "online", line: "o o o oooo" },
+  { by: "neko", line: "XX XX XXX X X" },
+  { by: "online", line: "oo oo ooo o o" },
+];
+/** 恰好两张卡才凑得成这段对拍，挑中它还得再摇一次骰子，免得老念同一段 */
+const XTERFUSION_CHANCE = 0.25;
+
 export const CHAT_MOMENTS: readonly ChatMoment[] = [
   // 深夜
   {
@@ -413,5 +432,12 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "我跳得高不高喵？" },
       { by: "online", line: "高，我都数不清你跳了几下" },
     ],
+  },
+  // 恰好两张卡：来一段 Xterfusion 的对拍（Xterfusion 是 Arcaea 那首同名曲的节奏梗）
+  {
+    cast: "mixed",
+    when: (mood) => mood.count === 2 && Math.random() < XTERFUSION_CHANCE,
+    egg: "xterfusion",
+    turns: XTERFUSION_TURNS,
   },
 ];

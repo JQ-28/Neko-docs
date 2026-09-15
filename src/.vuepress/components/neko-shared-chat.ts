@@ -127,6 +127,9 @@ export const EMOTE_RULES = [
   [/(六六七七|六七)/, 'sixseven'],
 ];
 
+/* Xterfusion（Arcaea 同名曲）那段「你拍一我拍一」：有人起头 X 行，neko 就接 o 行。半角全角、大小写都认 */
+const XTERFUSION_TEST = /[xｘＸ]\s*[xｘＸ]\s*[xｘＸ]{2,}|[xｘＸ]{3,}|叉叉叉|xterfusion/i;
+
 /* 对话彩蛋：任意一端的任意聊天框共用这一份，命中首个即停 */
 export const DIALOG_EGGS = [
   { test: /(喵|meow|nyaa)/i, replies: ['喵喵喵？你在叫我吗喵！✨', '听到有人喵喵叫了喵～我在这儿呢！', '喵呜～是要摸摸头吗呀？'] },
@@ -146,6 +149,8 @@ export const DIALOG_EGGS = [
   { egg: 'hungry', test: /(饿了|好饿|肚子饿)/, replies: HUNGRY_LINES, emote: 'spray' },
   { egg: 'fishFood', test: /^🐟+$/, replies: FISH_EMOJI_LINES, emote: 'nod' },
   { egg: 'sixSeven', test: /(^|[^0-9])67([^0-9]|$)|六七|six\s*seven/i, replies: SIX_SEVEN_LINES, emote: 'sixseven' },
+  /* Xterfusion（Arcaea 同名曲）那段「你拍一我拍一」：有人起头 X 行，neko 就接 o 行 */
+  { egg: 'xterfusion', test: XTERFUSION_TEST, replies: ['o o ooo'], emote: null },
 ];
 
 /* 表情 id → 图床原始文件名；两端共用同一套 id，功能站本地没有的图回落到这里 */

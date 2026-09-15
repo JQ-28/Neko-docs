@@ -3,6 +3,7 @@
 // 说话期间会让开演戏的排期，中途有人拎卡、搬卡就整段作废。
 
 import { onBeforeUnmount, ref, type Ref } from "vue";
+import { markEgg } from "./egg-utils";
 import type { CardSpec, PeerSides } from "./live-peer";
 import {
   CHAT_MOMENTS,
@@ -75,6 +76,12 @@ export interface LiveTalk {
   markPlayed(): void;
   /** 重整下一次说话的排期（挂载、卡片数变了时调） */
   scheduleNext(): void;
+}
+
+/** 挑中的这一段：台词本身，外加要不要顺手点亮某个彩蛋 */
+interface PickedChat {
+  readonly turns: readonly ChatTurn[];
+  readonly egg?: string;
 }
 
 /** 几点算什么时候：跟在线猫卡片的分法一致，傍晚以后单独算一档 */
@@ -168,15 +175,15 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   }
 
   /** 挑一段当下说得成的对话：正赶上什么光景就多说几句那档的，剩下的留给常备的那几套 */
-  function pickChatTurns(): readonly ChatTurn[] | null {
+  function pickChatTurns(): PickedChat | null {
     const mood = readMood();
     const moments = CHAT_MOMENTS.filter(
       (moment) => moment.cast === mood.cast && moment.when(mood)
     );
-    const pool: readonly (readonly ChatTurn[])[] =
+    const pool: readonly PickedChat[] =
       moments.length > 0 && Math.random() < MOMENT_CHANCE
-        ? moments.map((moment) => moment.turns)
-        : CHAT_TURNS[mood.cast];
+        ? moments
+        : CHAT_TURNS[mood.cast].map((turns) => ({ turns }));
     if (pool.length === 0) return null;
 
     let index = Math.floor(Math.random() * pool.length);
@@ -231,17 +238,19 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
 
   /** 轮到说话了：只有一张卡就自己念叨，两张以上就来一段你一句我一句 */
   function startChat(): void {
-    const turns = host.cards().length > 1 ? pickChatTurns() : null;
-    if (!turns) {
+    const picked = host.cards().length > 1 ? pickChatTurns() : null;
+    if (!picked) {
       const speaker = nextSpeaker();
       if (speaker) showSpeech(speaker.id, pickLine(speaker, "solo"));
       return;
     }
 
+    // 说这一档的同时顺手把彩蛋记上（比如那两句 Xterfusion 的对拍）
+    if (picked.egg) markEgg(picked.egg);
     chatRun += 1;
     // 这一段对话期间先别演戏：不然刚开口就被一段动画打断，后半截就说不下去了
     host.holdShow();
-    playTurn(turns, 0, chatRun, "");
+    playTurn(picked.turns, 0, chatRun, "");
   }
 
   function schedule(delayMs: number): void {
