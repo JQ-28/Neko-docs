@@ -1,13 +1,12 @@
 <template>
   <section class="home-intro" :class="{ entered }">
-    <div class="home-intro-head">
-      <h2 class="home-intro-title">
-        <span class="home-intro-bar" aria-hidden="true"></span>
-        Neko 能做什么？
-        <span class="home-intro-sub">挑几个代表性的看看，全部功能在指令速查</span>
-      </h2>
-      <OnlineCounter />
-    </div>
+    <HomeLive />
+
+    <h2 class="home-intro-title">
+      <span class="home-intro-bar" aria-hidden="true"></span>
+      Neko 能做什么？
+      <span class="home-intro-sub">挑几个代表性的看看，全部功能在指令速查</span>
+    </h2>
 
     <div class="home-feats">
       <div v-for="(feat, index) in feats" :key="feat.link" class="home-feat" :style="{ '--i': index }">
@@ -81,7 +80,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { copyText, showTip } from "./copy-utils";
-import OnlineCounter from "./OnlineCounter.vue";
+import HomeLive from "./HomeLive.vue";
 
 interface HomeFeat {
   name: string;
@@ -264,26 +263,14 @@ onBeforeUnmount(() => {
   animation-delay: 0.52s;
 }
 
-/* 标题与在线卡同一行：卡片落在标题行右端，不另占一行也就不会显得孤单 */
-.home-intro-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  margin: 0 0 16px;
-  flex-wrap: wrap;
-}
-
 .home-intro-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  min-width: 0;
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: 1px;
-  margin: 0;
+  margin: 0 0 16px;
   line-height: 1.4;
 }
 
