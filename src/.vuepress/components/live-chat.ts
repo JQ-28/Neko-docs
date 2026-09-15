@@ -53,6 +53,12 @@ const SHY_HOLD_MS = 120_000;
 /** 上班时段：工作日九点到十八点 */
 const WORK_START_HOUR = 9;
 const WORK_END_HOUR = 18;
+/** 说过的话记在本地：越久没说的越容易被挑中，一台机器上尽量不重样 */
+const SAID_KEY = "neko-live-said";
+const SAID_KEEP_MS = 30 * 86_400_000;
+const SAID_LIMIT = 400;
+const SAID_FRESH_MS = 45 * 60_000;
+const SAID_MAX_WEIGHT = 10;
 
 /** 说话要用到的几件外界情况，都由组件喂进来 */
 export interface TalkHost {
@@ -156,8 +162,6 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   let chatRun = 0;
   /** 上一句是谁说的，下一句换张卡张嘴 */
   let lastSpeaker = "";
-  /** 上一段说的是哪一段，下一段换一段 */
-  let lastChatIndex = -1;
   /** 上一回被人拎着玩是什么时候，卡片会拿它嘀咕两句 */
   let lastDragAt = 0;
   /** 「屏幕外面那个人类」说到第几段了、上一段是什么时候说的 */
@@ -171,9 +175,76 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   let pending: PendingTurn | null = null;
   /** 每张卡上一句说了什么，下一句尽量不重样 */
   const lastLine = new Map<string, string>();
+  /** 这台机器上说过的话 → 上次说的时间；越久没说的越容易被挑中 */
+  const saidAt = new Map<string, number>();
+  /** 上一段对话是哪一段，下一段换一段 */
+  let lastChatKey = "";
   /** 眼下的心情，以及它挂到什么时候（事件带起来的，过一会儿自己回落） */
   let emo: EmoState = "normal";
   let emoUntil = 0;
+
+  /** 把本地记的「听过哪些话」捡回来：隐私模式下读不到就当没记过 */
+  function loadSaid(): void {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(SAID_KEY);
+      if (!raw) return;
+      const stored = JSON.parse(raw) as Record<string, number>;
+      const now = Date.now();
+      for (const [line, at] of Object.entries(stored)) {
+        if (typeof at === "number" && now - at < SAID_KEEP_MS) saidAt.set(line, at);
+      }
+    } catch {
+      /* 隐私模式等存储异常静默跳过 */
+    }
+  }
+
+  /** 把记的账写回去：只留最近说的那几条，够用就行 */
+  function saveSaid(): void {
+    if (typeof window === "undefined") return;
+    try {
+      const entries = [...saidAt.entries()].sort((a, b) => b[1] - a[1]).slice(0, SAID_LIMIT);
+      saidAt.clear();
+      for (const [line, at] of entries) saidAt.set(line, at);
+      window.localStorage.setItem(SAID_KEY, JSON.stringify(Object.fromEntries(entries)));
+    } catch {
+      /* 存储异常静默跳过 */
+    }
+  }
+
+  /** 这句话多久没说了：没说过的按最久算 */
+  function freshnessWeight(line: string): number {
+    const at = saidAt.get(line);
+    if (!at) return SAID_MAX_WEIGHT;
+    return 1 + Math.min((Date.now() - at) / SAID_FRESH_MS, SAID_MAX_WEIGHT - 1);
+  }
+
+  /** 按「越久没说越容易被挑中」抽一条；刚说过的那条先排除掉 */
+  function pickByFreshness<T>(
+    pool: readonly T[],
+    keyOf: (item: T) => string,
+    skipKey: string
+  ): T {
+    const weights = pool.map((item) => {
+      const key = keyOf(item);
+      return key === skipKey ? 0 : freshnessWeight(key);
+    });
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    if (total <= 0) return pool[Math.floor(Math.random() * pool.length)];
+    let roll = Math.random() * total;
+    for (let index = 0; index < pool.length; index += 1) {
+      roll -= weights[index];
+      if (roll <= 0) return pool[index];
+    }
+    return pool[pool.length - 1];
+  }
+
+  /** 这段话说出去了，记一笔（顺手把旧账清一清） */
+  function markSaid(line: string): void {
+    if (!line) return;
+    saidAt.set(line, Date.now());
+    saveSaid();
+  }
 
   /** 记一笔心情：被人拎过就闹别扭、演完一段就得意、被盯着看就害羞 */
   function holdEmo(next: EmoState, holdMs: number): void {
@@ -207,7 +278,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     }, speechLingerMs(line));
   }
 
-  /** 从这张卡的池子里挑一句，连着两句不重样；自己待着或顺口搭话时，先照着眼下的心情说 */
+  /** 从这张卡的池子里挑一句；自己待着或顺口搭话时，先照着眼下的心情说 */
   function pickLine(card: CardSpec, type: keyof SpeechLines): string {
     const moodPool =
       type === "solo" || type === "idle"
@@ -215,10 +286,9 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
         : undefined;
     const pool =
       moodPool && Math.random() < MOOD_CHANCE ? moodPool : SPEECH_LINES[card.kind][type];
-    let index = Math.floor(Math.random() * pool.length);
-    if (pool[index] === lastLine.get(card.id)) index = (index + 1) % pool.length;
-    const line = pool[index];
+    const line = pickByFreshness(pool, (item) => item, lastLine.get(card.id) ?? "");
     lastLine.set(card.id, line);
+    markSaid(line);
     return line;
   }
 
@@ -289,10 +359,11 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
           : CHAT_TURNS[mood.cast].map((turns) => ({ turns }));
     if (pool.length === 0) return null;
 
-    let index = Math.floor(Math.random() * pool.length);
-    if (index === lastChatIndex) index = (index + 1) % pool.length;
-    lastChatIndex = index;
-    return pool[index];
+    // 久没说过的排前面，刚说过的那段先让开
+    const picked = pickByFreshness(pool, (item) => item.turns[0]?.line ?? "", lastChatKey);
+    lastChatKey = picked.turns[0]?.line ?? "";
+    markSaid(lastChatKey);
+    return picked;
   }
 
   /** 这一句该谁张嘴：要那种卡，而且尽量别跟上一位是同一张 */
@@ -411,6 +482,9 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     window.clearTimeout(chatTimer);
     window.clearTimeout(turnTimer);
   });
+
+  // 这台机器上已经听过哪些话，从本地捡回来
+  loadSaid();
 
   return {
     speakingId,

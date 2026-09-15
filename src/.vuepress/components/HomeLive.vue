@@ -49,7 +49,12 @@
           </span>
         </div>
         <OnlineCounter v-else />
-        <span v-if="speakingId === card.id" class="home-live-bubble">{{ speech }}</span>
+        <!-- 随口的嘀咕是看的东西，不是读的东西：别让读屏软件一路念下去 -->
+        <span
+          v-if="speakingId === card.id"
+          class="home-live-bubble"
+          aria-hidden="true"
+        >{{ speech }}</span>
       </div>
 
       <span

@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "sync": "node neko-shared/sync.mjs && node scripts/build-command-catalog.mjs",
+    "lint:lines": "node scripts/check-lines.mjs",
     "docs:build": "npm run sync && vuepress-vite build src",
     "docs:clean-dev": "npm run sync && vuepress-vite dev src --clean-cache",
     "docs:dev": "npm run sync && vuepress-vite dev src",
