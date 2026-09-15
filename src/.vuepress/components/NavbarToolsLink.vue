@@ -7,7 +7,13 @@
       title="问问neko（Ctrl+Shift+K）"
       @click="openRouter"
     >
-      <img class="vp-action-neko" src="/assets/image/neko.webp" alt="问问neko" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.21 1.48 20.72 20.72" aria-hidden="true">
+        <path
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M19.505 1.935a.88.88 0 0 1 .955-.19V1.74c.33.14.54.455.54.81v4.2c0 1.58-.665 3.11-1.82 4.195a5.7 5.7 0 0 1-3.925 1.555c-.125 0-.255 0-.385-.01c-3.01-.195-5.37-2.79-5.37-5.91V2.555a.877.877 0 0 1 1.495-.62L13.06 4h4.38zm-6.585 18.93l-.515-5.66V15.2l-1.495.095l.61 6.705H3c-.55 0-1-.45-1-1s.45-1 1-1h2v-4.75c0-2.465 1.565-4.57 3.755-5.385c1.12 2.305 3.365 3.95 6.02 4.12c.165.015.325.015.485.015a7.21 7.21 0 0 0 5.885-3.035l-.615 9.865A1.256 1.256 0 0 1 19.28 22H17.5v-5.5H16V22h-1.835a1.25 1.25 0 0 1-1.245-1.135"
+        />
+      </svg>
     </button>
     <a
       class="vp-action-link"
@@ -67,15 +73,6 @@ function openRouter(): void {
   cursor: pointer;
 }
 
-.vp-action-neko {
-  display: block;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 50%;
-  object-fit: cover;
-  transition: transform 150ms var(--ease-out);
-}
-
 .vp-action-link svg {
   display: block;
   width: 1.25rem;
@@ -85,8 +82,7 @@ function openRouter(): void {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .vp-action-link:hover svg,
-  .vp-action-link:hover .vp-action-neko {
+  .vp-action-link:hover svg {
     transform: translateY(-1px);
   }
 }
@@ -102,11 +98,6 @@ function openRouter(): void {
   }
 
   .vp-action-link svg {
-    width: 1.15rem;
-    height: 1.15rem;
-  }
-
-  .vp-action-neko {
     width: 1.15rem;
     height: 1.15rem;
   }
