@@ -185,10 +185,13 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
   display: inline-flex;
+  /* 这张卡在 Neko 卡右边，内部整体镜像：头像靠右、指示灯靠左，两张卡像面对面坐着 */
+  flex-direction: row-reverse;
   align-items: center;
   gap: 10px;
   min-width: 232px;
-  padding: 10px 18px 10px 14px;
+  /* 左右内边距跟着镜像，头像一侧留白小、指示灯一侧留白大 */
+  padding: 10px 14px 10px 18px;
   border: 1px solid rgba(255, 255, 255, 0.75);
   border-radius: 18px;
   background: #ffffff;
@@ -262,7 +265,10 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   flex-direction: column;
+  /* 文字整体靠右，贴着右侧的头像，与左边那张卡的左对齐互为镜像 */
+  align-items: flex-end;
   gap: 1px;
+  text-align: right;
 }
 
 .home-online-name {
@@ -276,6 +282,8 @@ onBeforeUnmount(() => {
   font-size: 11px;
   letter-spacing: 0.2px;
   white-space: nowrap;
+  /* 右对齐后文字块是收缩宽度，这里限死上限，人数涨到三位数时仍然截得住 */
+  max-width: 100%;
   /* 卡片窄，人数涨到三位数时不让文案把卡片撑破 */
   overflow: hidden;
   text-overflow: ellipsis;

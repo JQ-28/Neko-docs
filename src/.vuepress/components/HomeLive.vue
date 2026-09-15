@@ -124,12 +124,13 @@ html.dark .home-intro-sub {
   gap: 22px;
 }
 
-/* 让在线卡与左边的 Neko 卡取同一个宽度，并排才整齐 */
+/* 让在线卡与右边的 Neko 卡取同一个宽度，并排才整齐。
+   Neko 卡在左，在线卡在右，内边距取 Neko 卡的镜像值 */
 .home-live-cards :deep(.home-online) {
   box-sizing: border-box;
   flex: 0 1 264px;
   max-width: 264px;
-  padding: 10px 14px 10px 12px;
+  padding: 10px 12px 10px 14px;
 }
 
 /* 视觉与在线卡保持一致：渐变描边玻璃层 + 圆头像 + 双层呼吸灯 */
