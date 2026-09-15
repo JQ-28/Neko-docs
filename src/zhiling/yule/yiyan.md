@@ -9,6 +9,21 @@ tag:
   - 一言
 copyright: false
 footer: 总有一句话能打动你的心
+commands:
+  - "/一言"
+  - "/一言收藏"
+  - "/一言收藏列表"
+  - "/一言查看收藏"
+  - "/一言删除收藏"
+  - "/一言帮助"
+commandMain: "/一言"
+commandHints:
+  "/一言帮助": "查看一言指令帮助"
+commandKeywords:
+  - "一言"
+  - "语录"
+  - "收藏"
+commandOrder: 15
 ---
 
 ```component VPCard

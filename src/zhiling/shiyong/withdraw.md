@@ -11,6 +11,12 @@ tag:
 star: true
 copyright: false
 footer: Neko docs - 撤回插件
+commands:
+  - "撤回"
+commandKeywords:
+  - "撤回"
+  - "撤"
+commandOrder: 40
 ---
 
 ```component VPCard

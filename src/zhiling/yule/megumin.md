@@ -11,6 +11,16 @@ tag:
   - 爆裂
 copyright: false
 footer: EXPLOSION！！！
+commands:
+  - "爆裂魔法"
+  - "补魔"
+  - "补魔帮助"
+commandKeywords:
+  - "爆裂"
+  - "魔法"
+  - "爆炎"
+  - "补魔"
+commandOrder: 12
 ---
 
 ```component VPCard

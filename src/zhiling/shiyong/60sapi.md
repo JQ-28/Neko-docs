@@ -10,6 +10,22 @@ tag:
   - 壁纸
 copyright: false
 footer: 数据来自 60s API
+commands:
+  - "天气"
+  - "查天气"
+  - "天气预报"
+  - "健康分析"
+  - "必应壁纸"
+commandHints:
+  "查天气": "查询指定城市天气"
+  "必应壁纸": "获取必应每日壁纸"
+commandKeywords:
+  - "天气"
+  - "健康"
+  - "壁纸"
+  - "必应"
+  - "60s"
+commandOrder: 36
 ---
 
 

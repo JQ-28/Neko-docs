@@ -12,6 +12,25 @@ tag:
 star: true
 copyright: false
 footer: 原来，你也...
+commands:
+  - "#面板帮助"
+  - "#雷神面板"
+  - "#更新面板"
+  - "#更新抽卡记录"
+  - "#扫码登录"
+  - "#图鉴帮助"
+  - "#原神黄历"
+commandHints:
+  "#雷神面板": "查询雷神角色面板"
+  "#更新抽卡记录": "更新原神抽卡记录"
+commandKeywords:
+  - "原神"
+  - "genshin"
+  - "面板"
+  - "抽卡"
+  - "雷神"
+  - "黄历"
+commandOrder: 54
 ---
 
 ## **主要功能如下**  

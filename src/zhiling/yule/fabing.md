@@ -9,6 +9,12 @@ tag:
   - 发病
 copyright: false
 footer: 😎+😭=？
+commands:
+  - "发病"
+commandKeywords:
+  - "发病"
+  - "语录"
+commandOrder: 13
 ---
 
 ```component VPCard

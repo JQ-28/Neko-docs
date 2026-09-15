@@ -15,6 +15,16 @@ tag:
   - 历史上的今天
 copyright: false
 footer: 不错
+commands:
+  - "日报"
+  - "日报详情"
+  - "日报列表"
+  - "定时日报"
+commandKeywords:
+  - "日报"
+  - "新闻"
+  - "每日"
+commandOrder: 37
 ---
 
   ```component VPCard

@@ -11,6 +11,15 @@ tag:
   - 翻译
 copyright: false
 footer: 图片/漫画翻译插件
+commands:
+  - "图片翻译"
+  - "多图片翻译"
+  - "切换翻译api"
+commandKeywords:
+  - "翻译"
+  - "图片翻译"
+  - "漫画翻译"
+commandOrder: 51
 ---
   ```component VPCard
   title: nonebot-plugin-manga-translator

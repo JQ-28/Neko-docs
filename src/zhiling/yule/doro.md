@@ -10,6 +10,16 @@ tag:
   - 哦润据
 copyright: false
 footer: doro~
+commands:
+  - "今日doro结局"
+  - "列出doro结局"
+  - "添加doro结局"
+  - "删除doro结局"
+commandKeywords:
+  - "doro"
+  - "多罗"
+  - "结局"
+commandOrder: 4
 ---
 
 ## 📖 使用方法

@@ -12,6 +12,13 @@ tag:
 star: true
 copyright: false
 footer: 你有权保持沉默，但你所说的一切，都将进入《崩坏：星穹铁道》！！！
+commands:
+  - "#星铁帮助"
+commandKeywords:
+  - "星铁"
+  - "星穹"
+  - "崩坏"
+commandOrder: 55
 ---
 
   ```component VPCard

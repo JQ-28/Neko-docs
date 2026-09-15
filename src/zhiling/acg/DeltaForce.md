@@ -10,6 +10,18 @@ tag:
 star: true
 copyright: false
 footer: 你掉入陷阱了！
+commands:
+  - "#三角洲帮助"
+  - "^帮助"
+  - "开始跑刀"
+  - "还要吃"
+commandHints:
+  "^帮助": "查看三角洲指令帮助"
+commandKeywords:
+  - "三角洲"
+  - "三角洲行动"
+  - "跑刀"
+commandOrder: 61
 ---
 ## **✨ 三角洲助手插件 ✨**
 

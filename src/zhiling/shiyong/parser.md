@@ -11,6 +11,19 @@ tag:
 star: true
 copyright: false
 footer: Neko docs - 视频链接解析
+commands:
+  - "bm"
+  - "开启解析"
+  - "关闭解析"
+commandHints:
+  "bm": "解析并发送视频链接信息"
+commandKeywords:
+  - "解析"
+  - "视频"
+  - "链接"
+  - "b站"
+  - "bm"
+commandOrder: 35
 ---
 
 ```component VPCard

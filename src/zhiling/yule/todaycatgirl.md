@@ -9,6 +9,14 @@ tag:
   - 猫娘
 copyright: false
 footer: 嘿嘿嘿~~
+commands:
+  - "今日猫娘"
+  - "今日猫娘帮助"
+  - "今日猫娘信息"
+commandKeywords:
+  - "猫娘"
+  - "今日猫娘"
+commandOrder: 25
 ---
 
 :::warning 注意

@@ -12,6 +12,26 @@ tag:
 star: true
 copyright: false
 footer: 多练​
+commands:
+  - "更新b50"
+  - "水鱼绑定"
+  - "mai2_pcount_help"
+  - "pcount on"
+  - "pcount off"
+  - "添加机厅"
+commandHints:
+  "更新b50": "更新 maimai b50 成绩"
+  "水鱼绑定": "绑定水鱼查分账号"
+  "mai2_pcount_help": "查看局数统计帮助"
+  "pcount on": "开启局数统计"
+  "pcount off": "关闭局数统计"
+  "添加机厅": "添加常去的机厅"
+commandKeywords:
+  - "maimai"
+  - "b50"
+  - "水鱼"
+  - "机厅"
+commandOrder: 69
 ---
 
   ```component VPCard

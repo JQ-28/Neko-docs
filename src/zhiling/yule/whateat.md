@@ -11,6 +11,21 @@ tag:
 star: true
 copyright: false
 footer: Neko docs - 今天吃什么
+commands:
+  - "今天早上吃什么"
+  - "今天早上喝什么"
+  - "查看菜单"
+  - "查看全部菜单"
+  - "添加菜单"
+  - "删除菜单"
+commandHints:
+  "删除菜单": "删除已有菜单"
+commandKeywords:
+  - "吃"
+  - "菜单"
+  - "今天吃什么"
+  - "喝什么"
+commandOrder: 7
 ---
 
 ```component VPCard

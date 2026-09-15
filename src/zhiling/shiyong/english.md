@@ -10,6 +10,13 @@ tag:
   - 背单词
 copyright: false
 footer: 哥们哥们，背单词么？哥们！
+commands:
+  - "不背单词"
+commandKeywords:
+  - "单词"
+  - "英语"
+  - "背单词"
+commandOrder: 47
 ---
   ```component VPCard
   title: nonebot_plugin_wordsnorote

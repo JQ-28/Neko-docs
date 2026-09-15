@@ -12,6 +12,21 @@ tag:
 star: true
 copyright: false
 footer: 他们敢推进，我们就推回去！
+commands:
+  - "bf help"
+  - "bf init"
+  - "[game] [玩家id]"
+  - "bf1 senpai"
+commandHints:
+  "bf help": "查看战地指令帮助"
+  "bf init": "初始化战地账号绑定"
+  "[game] [玩家id]": "查询指定游戏与玩家的战绩"
+  "bf1 senpai": "查询 bf1 玩家 senpai 的战绩（示例）"
+commandKeywords:
+  - "战地"
+  - "bf"
+  - "战绩"
+commandOrder: 62
 ---
 
   ```component VPCard

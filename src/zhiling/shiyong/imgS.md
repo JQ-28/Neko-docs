@@ -11,6 +11,17 @@ tag:
   - 搜源
 copyright: false
 footer: 以图搜源
+commands:
+  - "#搜图"
+  - "#imgS帮助"
+commandHints:
+  "#搜图": "以图搜图，查找图片来源"
+commandKeywords:
+  - "搜图"
+  - "以图搜"
+  - "图片来源"
+  - "找图"
+commandOrder: 50
 ---
   ```component VPCard
   title: IMGS-PLUGIN 🌰

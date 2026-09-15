@@ -10,6 +10,27 @@ tag:
   - jrrp
 copyright: false
 footer: 查询人品值
+commands:
+  - "jrrp"
+  - "zrrp"
+  - "weekjrrp"
+  - "monthjrrp"
+  - "alljrrp"
+  - "运势趋势"
+commandHints:
+  "jrrp": "今日人品值"
+  "zrrp": "昨日人品值"
+  "weekjrrp": "本周人品概览"
+  "monthjrrp": "本月人品概览"
+  "alljrrp": "历史人品总览"
+  "运势趋势": "近期人品走势"
+commandKeywords:
+  - "运势"
+  - "人品"
+  - "今日人品"
+  - "测"
+  - "运"
+commandOrder: 1
 ---
 
 ## **指令**

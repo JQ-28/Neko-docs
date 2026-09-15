@@ -11,6 +11,13 @@ tag:
 star: true
 copyright: false
 footer: 我们未能穿透他们的装甲
+commands:
+  - "wot帮助"
+commandKeywords:
+  - "坦克世界"
+  - "wot"
+  - "坦克"
+commandOrder: 64
 ---
 
 :::warning 注意

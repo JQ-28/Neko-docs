@@ -9,6 +9,14 @@ tag:
   - 啊啊啊哦哦齁哦哦哦
 copyright: false
 footer: 呃啊哈哼～唔呃咕唔唔～齁呃咕唔哈～～呃啊哈哼～唔呃呼唔哼～哦
+commands:
+  - "齁语加密"
+  - "齁语解密"
+commandKeywords:
+  - "齁语"
+  - "加密"
+  - "解密"
+commandOrder: 31
 ---
 
 ## 指令

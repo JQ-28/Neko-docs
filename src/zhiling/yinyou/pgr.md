@@ -12,6 +12,31 @@ tag:
 star: true
 copyright: false
 footer: 多练​.webp
+commands:
+  - "#p帮助"
+  - "#p rks"
+  - "#p b30"
+  - "#p 绑定 <token>"
+  - "#p 更新存档"
+  - "#p 单曲成绩 <曲名>"
+  - "#p 曲 <曲名>"
+  - "#p 推分"
+commandMain: "#p rks"
+commandHints:
+  "#p帮助": "查看 Phigros 指令帮助"
+  "#p rks": "查询 Phigros RKS 值"
+  "#p b30": "查询 Phigros 最佳 30 首成绩"
+  "#p 绑定 <token>": "绑定 Phigros 存档数据"
+  "#p 更新存档": "刷新本地存档数据"
+  "#p 单曲成绩 <曲名>": "查询指定曲目的成绩"
+  "#p 曲 <曲名>": "查询曲目信息"
+  "#p 推分": "查询推分建议"
+commandKeywords:
+  - "phigros"
+  - "rks"
+  - "b30"
+  - "推分"
+commandOrder: 67
 ---
 
   ```component VPCard

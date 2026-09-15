@@ -9,6 +9,13 @@ tag:
   - book
 copyright: false
 footer: 愿一切无解都有解！解除你的迷惑，终结你的纠结！
+commands:
+  - "答案之书"
+commandKeywords:
+  - "答案"
+  - "答案之书"
+  - "占卜"
+commandOrder: 18
 ---
 
 ## 🎉 使用

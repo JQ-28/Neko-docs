@@ -11,6 +11,13 @@ tag:
   - 查询
 copyright: false
 footer: 又是一个只买不玩的夜晚(
+commands:
+  - "#steam帮助"
+commandKeywords:
+  - "steam"
+  - "蒸汽"
+  - "游戏库存"
+commandOrder: 34
 ---
 
 ```component VPCard

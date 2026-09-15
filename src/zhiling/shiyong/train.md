@@ -12,6 +12,19 @@ tag:
   - "12306"
 copyright: false
 footer: 常回家看看~回家看~看~
+commands:
+  - "train"
+  - "列车信息"
+  - "查询列车"
+commandHints:
+  "train": "按车次查询 12306 时刻表"
+commandKeywords:
+  - "火车"
+  - "列车"
+  - "12306"
+  - "车次"
+  - "时刻表"
+commandOrder: 41
 ---
 
   ```component VPCard

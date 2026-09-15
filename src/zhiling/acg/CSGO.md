@@ -10,6 +10,21 @@ tag:
 star: true
 copyright: false
 footer: GOGOGO出发咯
+commands:
+  - "#cs 帮助"
+  - "#cs 开箱"
+  - "#cs 签到"
+  - "#cs 商城"
+  - "#cs 仓库"
+  - "#cs 记录"
+commandHints:
+  "#cs 帮助": "查看 CSGO 指令帮助"
+commandKeywords:
+  - "csgo"
+  - "cs"
+  - "开箱"
+  - "反恐"
+commandOrder: 53
 ---
 
 

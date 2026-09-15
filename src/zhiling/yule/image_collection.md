@@ -11,6 +11,17 @@ tag:
 star: true
 copyright: false
 footer: Neko docs - 综合搜图
+commands:
+  - "鉴赏帮助"
+  - "鉴赏菜单"
+  - "我的鉴赏次数"
+  - "鉴赏一下"
+commandKeywords:
+  - "搜图"
+  - "找图"
+  - "图片"
+  - "鉴赏"
+commandOrder: 19
 ---
 
 :::warning 注意

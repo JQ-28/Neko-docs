@@ -11,6 +11,26 @@ tag:
 star: true
 copyright: false
 footer: 你的双手是为了osu服务的而不是你的一生
+commands:
+  - "/osu info"
+  - "/osu bind"
+  - "/osu bp"
+  - "/osu bl"
+  - "/osu re"
+  - "/osu sc"
+commandHints:
+  "/osu info": "查询 osu! 玩家信息"
+  "/osu bind": "绑定 osu! 账号"
+  "/osu bp": "查询最佳成绩（BP）"
+  "/osu bl": "查询最佳成绩列表"
+  "/osu re": "查询最近成绩"
+  "/osu sc": "查询指定谱面成绩"
+commandKeywords:
+  - "osu"
+  - "查分"
+  - "音游"
+  - "bp"
+commandOrder: 68
 ---
 
   ```component VPCard

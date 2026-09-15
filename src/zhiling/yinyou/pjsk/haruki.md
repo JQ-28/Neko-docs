@@ -11,6 +11,26 @@ tag:
 star: true
 copyright: false
 footer: 一緒に歌おう！
+commands:
+  - "/绑定"
+  - "/个人信息"
+  - "/sk"
+  - "/活动组卡"
+  - "/查卡"
+commandMain: "/绑定"
+commandHints:
+  "/绑定": "绑定 Haruki Bot 账号"
+  "/个人信息": "查询 pjsk 个人信息"
+  "/sk": "查询歌曲信息"
+  "/活动组卡": "查询活动组卡推荐"
+  "/查卡": "查询卡牌信息"
+commandKeywords:
+  - "haruki"
+  - "pjsk"
+  - "查卡"
+  - "绑定"
+  - "组卡"
+commandOrder: 74
 ---
 
 ## **harukibot文档**

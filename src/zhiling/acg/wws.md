@@ -12,6 +12,13 @@ tag:
 star: true
 copyright: false
 footer: 你是我军最后的希望
+commands:
+  - "wws help"
+commandKeywords:
+  - "战舰世界"
+  - "wws"
+  - "战舰"
+commandOrder: 65
 ---
 
 ## **:tada: 使用**

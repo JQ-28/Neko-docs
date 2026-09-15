@@ -10,6 +10,19 @@ tag:
   - V50
 copyright: false
 footer: 谁请我吃
+commands:
+  - "疯狂星期四"
+  - "疯狂星期一"
+  - "疯狂星期天"
+  - "狂乱X曜日"
+commandTitle: "疯狂星期四"
+commandKeywords:
+  - "疯狂"
+  - "星期四"
+  - "KFC"
+  - "肯德基"
+  - "v我50"
+commandOrder: 16
 ---
 
 ```component VPCard

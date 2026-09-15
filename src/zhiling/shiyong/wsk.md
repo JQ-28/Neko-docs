@@ -11,6 +11,13 @@ tag:
 star: true
 copyright: false
 footer: 那我问你
+commands:
+  - "谁问我了"
+commandKeywords:
+  - "谁问"
+  - "谁问我"
+  - "wsk"
+commandOrder: 43
 ---
 
 ```component VPCard

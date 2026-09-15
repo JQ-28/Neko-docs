@@ -10,6 +10,14 @@ tag:
   - 毒鸡汤
 copyright: false
 footer: 来一碗心灵鸡汤吧。
+commands:
+  - "鸡汤"
+  - "毒鸡汤"
+commandKeywords:
+  - "鸡汤"
+  - "毒鸡汤"
+  - "励志"
+commandOrder: 14
 ---
 
 ```component VPCard

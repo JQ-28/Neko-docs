@@ -11,6 +11,21 @@ tag:
   - 背景消除
 copyright: false
 footer: 图片背景消除
+commands:
+  - "/去背景"
+  - "/rm_bg"
+  - "/自定义去背景"
+  - "自定义去背景帮助"
+commandHints:
+  "/rm_bg": "去除图片背景"
+  "/自定义去背景": "自定义去背景的提示词"
+commandKeywords:
+  - "去背景"
+  - "抠图"
+  - "去底"
+  - "rm_bg"
+  - "透明"
+commandOrder: 44
 ---
   ```component VPCard
   title: nonebot_plugin_remove_bg

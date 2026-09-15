@@ -12,6 +12,13 @@ tag:
 star: true
 copyright: false
 footer: 温暖的灵魂 终将相遇
+commands:
+  - "光遇菜单"
+  - "光遇娱乐菜单"
+commandKeywords:
+  - "光遇"
+  - "sky"
+commandOrder: 60
 ---
 
   ```component VPCard

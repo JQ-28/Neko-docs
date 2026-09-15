@@ -11,6 +11,29 @@ tag:
 star: true
 copyright: false
 footer: 你吃灰的VR有救了！
+commands:
+  - "BS帮助"
+  - "BS绑定"
+  - "SS查分"
+  - "BL查分"
+  - "BS查分"
+  - "BS search"
+  - "BS查歌"
+commandHints:
+  "BS帮助": "查看 Beat Saber 指令帮助"
+  "BS绑定": "绑定 Beat Saber 成绩账号"
+  "SS查分": "查询 ScoreSaber 成绩"
+  "BL查分": "查询 BeatLeader 成绩"
+  "BS查分": "查询 Beat Saber 成绩"
+  "BS search": "搜索 Beat Saber 曲目"
+  "BS查歌": "搜索 Beat Saber 曲目"
+commandKeywords:
+  - "beat saber"
+  - "bs"
+  - "查分"
+  - "ss"
+  - "bl"
+commandOrder: 71
 ---
 
   ```component VPCard

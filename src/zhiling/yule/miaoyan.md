@@ -10,6 +10,12 @@ tag:
   - 猫娘
 copyright: false
 footer: 喵言喵语~
+commands:
+  - "喵言喵语"
+commandKeywords:
+  - "喵"
+  - "猫语"
+commandOrder: 3
 ---
 
 ## 📖 使用方法

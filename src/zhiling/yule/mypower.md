@@ -10,6 +10,12 @@ tag:
   - 超能力
 copyright: false
 footer: 抛瓦！！！
+commands:
+  - "我的超能力"
+commandKeywords:
+  - "超能力"
+  - "能力"
+commandOrder: 11
 ---
 
 ```component VPCard

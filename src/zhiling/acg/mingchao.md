@@ -12,6 +12,28 @@ tag:
 star: true
 copyright: false
 footer: XX是这样的，XX只要XX就可以，可是XX要考虑的事情就多了
+commands:
+  - "~登录"
+  - "~签到"
+  - "~卡片"
+  - "~体力"
+  - "~面板"
+  - "~抽卡记录"
+  - "~十连"
+  - "~帮助"
+commandHints:
+  "~卡片": "生成鸣潮角色卡片"
+  "~体力": "查询当前体力"
+  "~面板": "查询角色面板"
+  "~十连": "模拟十连抽卡"
+  "~帮助": "查看鸣潮指令帮助"
+commandKeywords:
+  - "鸣潮"
+  - "体力"
+  - "卡片"
+  - "抽卡"
+  - "面板"
+commandOrder: 59
 ---
 
  ```component VPCard

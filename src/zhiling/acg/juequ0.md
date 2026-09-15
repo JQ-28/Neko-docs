@@ -12,6 +12,13 @@ tag:
 star: true
 copyright: false
 footer: 刀刀烈火刀刀爆，玛卡巴卡十一号！
+commands:
+  - "%绑定设备帮助"
+  - "%更新展柜面板"
+commandKeywords:
+  - "绝区零"
+  - "zzz"
+commandOrder: 56
 ---
 
   ```component VPCard

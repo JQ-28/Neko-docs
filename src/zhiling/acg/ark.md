@@ -13,6 +13,32 @@ tag:
 star: true
 copyright: false
 footer: ✟ALL门✟
+commands:
+  - "skland"
+  - "skland bind"
+  - "skland qrcode"
+  - "skland unbind"
+  - "skland rogue"
+  - "skland gacha"
+  - "arkstart"
+  - "方舟抽卡"
+commandHints:
+  "skland": "森空岛每日签到"
+  "skland bind": "绑定森空岛账号"
+  "skland qrcode": "扫码登录森空岛"
+  "skland unbind": "解绑森空岛账号"
+  "skland rogue": "查询集成战略战绩"
+  "skland gacha": "查询抽卡记录"
+  "arkstart": "明日方舟抽卡开局"
+  "方舟抽卡": "模拟抽取卡池"
+commandKeywords:
+  - "明日方舟"
+  - "方舟"
+  - "终末地"
+  - "抽卡"
+  - "森空岛"
+  - "skland"
+commandOrder: 58
 ---
 
   ```component VPCard

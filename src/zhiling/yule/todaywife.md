@@ -9,6 +9,16 @@ tag:
   - 老婆
 copyright: false
 footer: 老婆老婆老婆老婆~~
+commands:
+  - "今日老婆"
+  - "换老婆"
+  - "今日老婆帮助"
+  - "今日老婆信息"
+commandKeywords:
+  - "老婆"
+  - "今日老婆"
+  - "换老婆"
+commandOrder: 24
 ---
 
 ```component VPCard

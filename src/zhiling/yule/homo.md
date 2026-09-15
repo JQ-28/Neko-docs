@@ -11,6 +11,22 @@ tag:
   - "114514"
 copyright: false
 footer: 哼 哼 哼 哼啊啊啊啊啊啊啊啊啊
+commands:
+  - "臭数字"
+  - "homonumber"
+  - "找规律"
+  - "lag"
+commandHints:
+  "homonumber": "恶臭数字论证"
+  "lag": "寻找数列规律"
+commandKeywords:
+  - "恶臭"
+  - "臭数字"
+  - "homo"
+  - "数字论证"
+  - "找规律"
+  - "lag"
+commandOrder: 22
 ---
 
 ```component VPCard

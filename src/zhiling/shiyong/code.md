@@ -9,6 +9,17 @@ tag:
   - code
 copyright: false
 footer: 在线运行代码
+commands:
+  - "code"
+commandHints:
+  "code": "在线运行代码片段"
+commandKeywords:
+  - "代码"
+  - "运行"
+  - "code"
+  - "编程"
+  - "执行"
+commandOrder: 48
 ---
 
   ```component VPCard

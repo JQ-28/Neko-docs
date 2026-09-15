@@ -12,6 +12,24 @@ tag:
 star: true
 copyright: false
 footer: 多练​
+commands:
+  - "/dc login"
+  - "/dc myrt"
+  - "/dc myrtall"
+  - "/dc ap30"
+  - "/dc song"
+commandHints:
+  "/dc login": "登录 dancecube 账号"
+  "/dc myrt": "查询我的 RT 值"
+  "/dc myrtall": "查询全部模式 RT 值"
+  "/dc ap30": "查询 AP 30 首成绩"
+  "/dc song": "查询曲目信息"
+commandKeywords:
+  - "dancecube"
+  - "dc"
+  - "rt"
+  - "ap30"
+commandOrder: 70
 ---
 
   ```component VPCard

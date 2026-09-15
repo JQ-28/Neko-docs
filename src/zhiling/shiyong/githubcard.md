@@ -10,6 +10,16 @@ tag:
 star: true
 copyright: false
 footer: Neko docs - GitHub卡片
+commands:
+  - "https://github.com/用户名/仓库名"
+commandMain: "https://github.com/用户名/仓库名"
+commandHints:
+  "https://github.com/用户名/仓库名": "发送 GitHub 链接生成仓库卡片"
+commandKeywords:
+  - "github"
+  - "仓库"
+  - "卡片"
+commandOrder: 52
 ---
 
 ```component VPCard

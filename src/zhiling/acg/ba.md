@@ -12,6 +12,13 @@ tag:
 star: true
 copyright: false
 footer: → ← 嗯→哼↗哼～ 噢黑咯诺尼~球多亿罢休瓦多阔戛纳♪～​
+commands:
+  - "ba帮助"
+commandKeywords:
+  - "蔚蓝档案"
+  - "ba"
+  - "blue archive"
+commandOrder: 57
 ---
 
   ```component VPCard

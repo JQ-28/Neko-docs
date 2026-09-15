@@ -11,6 +11,16 @@ tag:
 star: true
 copyright: false
 footer: Neko docs - 断连通知
+commands:
+  - "/掉线测试"
+commandHints:
+  "/掉线测试": "测试掉线通知是否生效"
+commandKeywords:
+  - "掉线"
+  - "断连"
+  - "通知"
+  - "上线"
+commandOrder: 42
 ---
 
 ```component VPCard

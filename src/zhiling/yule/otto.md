@@ -10,6 +10,20 @@ tag:
   - 哇袄
 copyright: false
 footer: 卧槽！冰！
+commands:
+  - "hzys"
+  - "hzys -h"
+  - "hzys 哇袄"
+commandHints:
+  "hzys": "生成 otto 语录"
+  "hzys -h": "查看 otto 语录指令帮助"
+  "hzys 哇袄": "生成 otto 语录"
+commandKeywords:
+  - "otto"
+  - "语录"
+  - "哇袄"
+  - "动物园"
+commandOrder: 20
 ---
   ```component VPCard
   title: NoneBot-Plugin-ottoHzys

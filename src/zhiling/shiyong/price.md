@@ -10,6 +10,21 @@ tag:
   - 油价
 copyright: false
 footer: 绿水青山就是金山银山(
+commands:
+  - "金价"
+  - "今日油价"
+  - "油价推送+设置"
+  - "油价推送+状态"
+  - "油价推送+取消"
+commandHints:
+  "油价推送+状态": "查看油价推送状态"
+  "油价推送+取消": "取消油价推送"
+commandKeywords:
+  - "金价"
+  - "油价"
+  - "黄金"
+  - "价格"
+commandOrder: 39
 ---
 
 ```component VPCard

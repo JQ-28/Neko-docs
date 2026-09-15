@@ -10,6 +10,18 @@ tag:
   - 状态
 copyright: false
 footer: 猫脑过载.webp
+commands:
+  - "#状态"
+  - "/status"
+commandHints:
+  "#状态": "查看 Bot 运行状态"
+  "/status": "查看 Bot 运行状态"
+commandKeywords:
+  - "状态"
+  - "运行状态"
+  - "bot状态"
+  - "status"
+commandOrder: 49
 ---
 
   ```component VPCard

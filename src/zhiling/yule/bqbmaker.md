@@ -10,6 +10,12 @@ tag:
   - 制作
 copyright: false
 footer: 表情包制作
+commands:
+  - "表情包制作"
+commandKeywords:
+  - "表情包"
+  - "制作表情"
+commandOrder: 17
 ---
 
 ```component VPCard

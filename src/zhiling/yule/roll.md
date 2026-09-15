@@ -11,6 +11,22 @@ tag:
 star: true
 copyright: false
 footer: Neko docs - Roll
+commands:
+  - "/roll"
+  - "/roll 100"
+  - "/roll 吃饭 睡觉"
+commandMain: "/roll"
+commandHints:
+  "/roll": "1-100 中随机取数"
+  "/roll 100": "1-100 中随机取数"
+  "/roll 吃饭 睡觉": "从给定选项中随机选一个"
+commandKeywords:
+  - "随机"
+  - "roll"
+  - "抽"
+  - "选择"
+  - "选项"
+commandOrder: 8
 ---
 
 ```component VPCard

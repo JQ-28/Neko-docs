@@ -11,6 +11,24 @@ tag:
 star: true
 copyright: false
 footer: Neko docs - 幻影坦克
+commands:
+  - "幻影坦克"
+  - "miragetank"
+  - "合成幻影坦克"
+  - "生成幻影坦克"
+  - "分离幻影坦克"
+  - "取消"
+commandHints:
+  "miragetank": "合成幻影坦克"
+  "合成幻影坦克": "合成黑白背景下显示不同图的幻影坦克"
+  "生成幻影坦克": "合成黑白背景下显示不同图的幻影坦克"
+  "取消": "取消幻影坦克合成"
+commandKeywords:
+  - "幻影坦克"
+  - "图片"
+  - "合成"
+  - "miragetank"
+commandOrder: 38
 ---
 
 ```component VPCard

@@ -10,6 +10,26 @@ tag:
   - CP
 copyright: false
 footer: 娶群友，做CP~~
+commands:
+  - "娶群友"
+  - "强娶"
+  - "分手"
+  - "离婚"
+  - "本群cp"
+  - "透群友"
+  - "涩涩记录"
+commandHints:
+  "离婚": "解除群友婚约"
+  "涩涩记录": "查看涩涩记录"
+commandKeywords:
+  - "娶"
+  - "老婆"
+  - "结婚"
+  - "cp"
+  - "婚约"
+  - "离婚"
+  - "涩涩"
+commandOrder: 6
 ---
 
 ```component VPCard

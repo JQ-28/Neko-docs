@@ -10,6 +10,12 @@ tag:
   - 仓库
 copyright: false
 footer: 表情包仓库
+commands:
+  - "表情包仓库"
+commandKeywords:
+  - "表情包"
+  - "仓库"
+commandOrder: 26
 ---
 
 ## **使用**
