@@ -36,6 +36,8 @@ export interface PeerLink {
   hasPeers(): boolean;
   /** 屏幕上就在那一侧、离自己最近的那个窗口 */
   neighborTowards(edge: LiveEdge): PeerInfo | null;
+  /** 报一次自己现在的位置，并请大家都报一遍（拎猫前调，免得用着几秒前的旧位置找人） */
+  refresh(): void;
   /** 把卡片交给某个窗口 */
   sendHandoff(target: string, payload: HandoffPayload): void;
   /** 收到别人递过来的卡片 */
@@ -53,6 +55,8 @@ const PEER_TIMEOUT_MS = 12_000;
 type LiveMessage =
   | { kind: "hello"; peer: PeerInfo }
   | { kind: "bye"; id: string }
+  /** 有人要拎猫了，问一句大家现在都在屏幕哪儿 */
+  | { kind: "where" }
   | { kind: "handoff"; from: string; to: string; payload: HandoffPayload };
 
 interface PeerRecord {
@@ -71,6 +75,7 @@ function createIdleLink(): PeerLink {
     peerCount: ref(0),
     hasPeers: () => false,
     neighborTowards: () => null,
+    refresh: () => undefined,
     sendHandoff: () => undefined,
     onHandoff: () => undefined,
     onPeerGone: () => undefined,
@@ -83,12 +88,15 @@ export function startPeerLink(): PeerLink {
     return createIdleLink();
   }
 
-  const self: PeerInfo = {
-    id: randomId(),
+  const selfId = randomId();
+  const joinedAt = Date.now();
+  /** 窗口位置每次现读：用户把窗口摆到新位置以后，排位不能还按打开时那会儿算 */
+  const selfInfo = (): PeerInfo => ({
+    id: selfId,
     x: Math.round(window.screenX),
     y: Math.round(window.screenY),
-    at: Date.now(),
-  };
+    at: joinedAt,
+  });
   const peers = new Map<string, PeerRecord>();
   const handoffListeners: Array<(payload: HandoffPayload) => void> = [];
   const goneListeners: Array<(id: string) => void> = [];
@@ -110,18 +118,26 @@ export function startPeerLink(): PeerLink {
     goneListeners.forEach((listener) => listener(id));
   };
 
+  const postHello = (): void => post({ kind: "hello", peer: selfInfo() });
+
   channel.onmessage = (event: MessageEvent<LiveMessage>) => {
     const message = event.data;
     if (!message || typeof message !== "object") return;
 
     if (message.kind === "hello") {
       const peer = message.peer;
-      if (!peer || peer.id === self.id) return;
+      if (!peer || peer.id === selfId) return;
       const known = peers.has(peer.id);
       peers.set(peer.id, { info: peer, seen: Date.now() });
       peerCount.value = peers.size;
       // 头一次见就自报家门，让对面也把我记上；已经认识就不用再回，免得互相刷
-      if (!known) post({ kind: "hello", peer: self });
+      if (!known) postHello();
+      return;
+    }
+
+    // 有人要拎猫了，赶紧报一下自己现在的位置
+    if (message.kind === "where") {
+      postHello();
       return;
     }
 
@@ -132,7 +148,7 @@ export function startPeerLink(): PeerLink {
 
     if (message.kind === "handoff") {
       // 递猫是点名给某个窗口的，别人收到只当没看见
-      if (message.to !== self.id) return;
+      if (message.to !== selfId) return;
       handoffListeners.forEach((listener) => listener(message.payload));
     }
   };
@@ -142,17 +158,17 @@ export function startPeerLink(): PeerLink {
     [...peers.entries()].forEach(([id, record]) => {
       if (now - record.seen > PEER_TIMEOUT_MS) dropPeer(id);
     });
-    post({ kind: "hello", peer: self });
+    postHello();
   }, BEAT_MS);
 
-  const sayBye = (): void => post({ kind: "bye", id: self.id });
+  const sayBye = (): void => post({ kind: "bye", id: selfId });
   // 窗口真关掉时来不及发消息，能发就发
   window.addEventListener("pagehide", sayBye);
-  post({ kind: "hello", peer: self });
+  postHello();
 
   /** 所有窗口按「屏幕上从左到右」排队 */
   const line = (): PeerInfo[] =>
-    [self, ...Array.from(peers.values(), (record) => record.info)].sort(
+    [selfInfo(), ...Array.from(peers.values(), (record) => record.info)].sort(
       (a, b) => a.x - b.x || a.y - b.y || a.at - b.at
     );
 
@@ -161,13 +177,17 @@ export function startPeerLink(): PeerLink {
     hasPeers: () => peers.size > 0,
     neighborTowards: (edge) => {
       const queue = line();
-      const index = queue.findIndex((peer) => peer.id === self.id);
+      const index = queue.findIndex((peer) => peer.id === selfId);
       if (index < 0) return null;
       const next = edge === "right" ? queue[index + 1] : queue[index - 1];
       return next ?? null;
     },
+    refresh: () => {
+      postHello();
+      post({ kind: "where" });
+    },
     sendHandoff: (target, payload) =>
-      post({ kind: "handoff", from: self.id, to: target, payload }),
+      post({ kind: "handoff", from: selfId, to: target, payload }),
     onHandoff: (listener) => handoffListeners.push(listener),
     onPeerGone: (listener) => goneListeners.push(listener),
     stop: () => {

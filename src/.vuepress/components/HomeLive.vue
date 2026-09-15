@@ -612,6 +612,9 @@ function onPointerDown(event: PointerEvent, index: number): void {
   const slot = event.currentTarget as HTMLElement;
   if (!card || !slot.contains(card)) return;
 
+  // 拎猫前先把各家窗口的位置对一遍：刚被搬过的窗口，别拿几秒前的旧坐标去认邻居
+  peerLink.refresh();
+
   const rect = slot.getBoundingClientRect();
   drag = {
     pointerId: event.pointerId,
