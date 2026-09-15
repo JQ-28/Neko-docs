@@ -12,11 +12,12 @@
         <img
           ref="nekoAvatar"
           class="home-live-avatar"
-          src="/assets/image/neko.webp"
+          :src="nekoAvatarSrc"
           alt=""
           width="34"
           height="34"
           aria-hidden="true"
+          @error="onAvatarError"
         />
         <span class="home-live-text">
           <span class="home-live-name">Neko 本猫</span>
@@ -41,7 +42,19 @@ import OnlineCounter from "./OnlineCounter.vue";
 const NUDGE_MIN_MS = 14_000;
 const NUDGE_MAX_MS = 30_000;
 
+/** Neko 主账号的头像，走 QQ 头像服务，换头像这里会跟着变 */
+const QQ_AVATAR = "https://q1.qlogo.cn/g?b=qq&nk=3582537505&s=160";
+const FALLBACK_AVATAR = "/assets/image/neko.webp";
+
 const nekoAvatar = ref<HTMLImageElement | null>(null);
+const nekoAvatarSrc = ref(QQ_AVATAR);
+
+// QQ 头像服务偶尔抽风或被网络挡住，退回本地那张，别让卡片开天窗
+function onAvatarError(): void {
+  if (nekoAvatarSrc.value !== FALLBACK_AVATAR) {
+    nekoAvatarSrc.value = FALLBACK_AVATAR;
+  }
+}
 
 let idleTimer = 0;
 
