@@ -9,6 +9,7 @@
       width="34"
       height="34"
       aria-hidden="true"
+      draggable="false"
     />
     <span class="home-online-text">
       <span class="home-online-name">在线猫猫</span>
