@@ -166,7 +166,7 @@ export default hopeTheme({
       cacheHTML: false,
       cacheImage: true,
       appendBase: true,
-      update: "force",
+      update: "ready",
       generateSWConfig: {
         globIgnores: ["index.html", "404.html"],
         navigateFallback: null,
