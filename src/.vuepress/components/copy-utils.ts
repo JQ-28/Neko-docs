@@ -1,9 +1,11 @@
 import ClipboardJS from "clipboard";
 
 import { countEggCopy } from "./egg-utils";
+import { scheduleToastDismiss } from "./toast-utils";
 
 const TIP_TITLE = "提示";
 const TIP_TIME = 3000;
+const TIP_LEAVE_MS = 300;
 
 export function copyText(text: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -46,8 +48,5 @@ export function showTip(contentText: string): void {
   content.appendChild(paragraph);
   tip.append(title, content);
   list.appendChild(tip);
-  setTimeout(() => {
-    tip.classList.add("v-notification__leave");
-    setTimeout(() => tip.remove(), 300);
-  }, TIP_TIME);
+  scheduleToastDismiss(tip, "v-notification__leave", TIP_TIME, TIP_LEAVE_MS);
 }

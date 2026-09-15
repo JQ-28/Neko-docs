@@ -79,7 +79,7 @@ function listenMotionPermission(): Cleanup {
   const ask = (): void => {
     if (asked) return;
     asked = true;
-    void motionEvent.requestPermission?.().catch(() => {
+    void motionEvent.requestPermission().catch(() => {
       /* 用户拒绝就拉倒喵 */
     });
   };
@@ -253,10 +253,10 @@ function listenIdleSleep(): Cleanup {
     idleTimer = window.setTimeout(sleep, IDLE_MS);
   };
   const events = ["pointermove", "pointerdown", "keydown", "wheel"] as const;
-  events.forEach((name) => document.addEventListener(name, wake, { passive: true }));
+  const cleanups = events.map((name) => onDocumentEvent(name, wake, { passive: true }));
   return () => {
     window.clearTimeout(idleTimer);
-    events.forEach((name) => document.removeEventListener(name, wake));
+    cleanups.forEach((cleanup) => cleanup());
   };
 }
 

@@ -70,7 +70,8 @@ function miaoBurst(): void {
 /* 与功能站同款摸鱼倒计时：周末劝玩、下班劝退、在班报剩余时间 */
 function moyerLine(): string {
   const now = new Date();
-  if (now.getDay() === 0 || now.getDay() === 6) return pickLine(MOYER_WEEKEND_LINES);
+  const day = now.getDay();
+  if (day === 0 || day === 6) return pickLine(MOYER_WEEKEND_LINES);
   const minutes = now.getHours() * 60 + now.getMinutes();
   if (minutes >= 18 * 60) return pickLine(MOYER_OFF_LINES);
   const left = 18 * 60 - minutes;

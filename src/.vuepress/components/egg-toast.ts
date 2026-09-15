@@ -1,3 +1,5 @@
+import { scheduleToastDismiss } from "./toast-utils";
+
 const EGG_TIP_ROOT_ID = "neko-egg-tips";
 const EGG_TIP_DURATION = 3400;
 const EGG_TIP_LEAVE_MS = 320;
@@ -22,8 +24,5 @@ export function showEggTip(text: string): void {
   body.textContent = text;
   card.append(tag, body);
   root.appendChild(card);
-  window.setTimeout(() => {
-    card.classList.add("is-leaving");
-    window.setTimeout(() => card.remove(), EGG_TIP_LEAVE_MS);
-  }, EGG_TIP_DURATION);
+  scheduleToastDismiss(card, "is-leaving", EGG_TIP_DURATION, EGG_TIP_LEAVE_MS);
 }
