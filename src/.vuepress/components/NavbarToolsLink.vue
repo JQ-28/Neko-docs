@@ -17,16 +17,9 @@
       aria-label="功能网站"
       title="功能网站"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 1024 1024"
-        style="width: 1.25rem; height: 1.25rem; vertical-align: middle"
-        fill="currentColor"
-      >
-        <path d="M0 0h1024v1024H0z" fill="none" />
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="125 117 778 778" aria-hidden="true">
         <path
-          fill="currentColor"
-          d="M876.6 239.5c-.5-.9-1.2-1.8-2-2.5c-5-5-13.1-5-18.1 0L684.2 409.3l-67.9-67.9L788.7 169c.8-.8 1.4-1.6 2-2.5c3.6-6.1 1.6-13.9-4.5-17.5c-98.2-58-226.8-44.7-311.3 39.7c-67 67-89.2 162-66.5 247.4l-293 293c-3 3-2.8 7.9.3 11l169.7 169.7c3.1 3.1 8.1 3.3 11 .3l292.9-292.9c85.5 22.8 180.5.7 247.6-66.4c84.4-84.5 97.7-213.1 39.7-311.5zM786 499.8c-58.1 58.1-145.3 69.3-214.6 33.6l-8.8 8.8l-.1-.1l-274 274.1l-79.2-79.2l230.1-230.1s0 .1.1.1l52.8-52.8c-35.7-69.3-24.5-156.5 33.6-214.6a184.2 184.2 0 0 1 144-53.5L537 318.9a32.05 32.05 0 0 0 0 45.3l124.5 124.5a32.05 32.05 0 0 0 45.3 0l132.8-132.8c3.7 51.8-14.4 104.8-53.6 143.9"
+          d="M865.3 244.7c-.3-.3-61.1 59.8-182.1 180.6l-84.9-84.9l180.9-180.9c-95.2-57.3-217.5-42.6-296.8 36.7A244.42 244.42 0 0 0 419 432l1.8 6.7l-283.5 283.4c-6.2 6.2-6.2 16.4 0 22.6l141.4 141.4c6.2 6.2 16.4 6.2 22.6 0l283.3-283.3l6.7 1.8c83.7 22.3 173.6-.9 236-63.3c79.4-79.3 94.1-201.6 38-296.6"
         />
       </svg>
     </a>
@@ -38,15 +31,8 @@
       aria-label="喵喵信箱"
       title="喵喵信箱"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 512 512"
-        style="width: 1.25rem; height: 1.25rem; vertical-align: middle"
-        fill="currentColor"
-        aria-hidden="true"
-      >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 64 512 384" aria-hidden="true">
         <path
-          fill="currentColor"
           d="M48 64C21.5 64 0 85.5 0 112c0 15.1 7.1 29.3 19.2 38.4L236.8 313.6c11.4 8.5 27 8.5 38.4 0L492.8 150.4c12.1-9.1 19.2-23.3 19.2-38.4c0-26.5-21.5-48-48-48H48zM0 176V384c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V176L294.4 339.2c-22.8 17.1-54 17.1-76.8 0L0 176z"
         />
       </svg>
@@ -83,8 +69,8 @@ function openRouter(): void {
 
 .vp-action-neko {
   display: block;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 50%;
   object-fit: cover;
   transition: transform 150ms var(--ease-out);
@@ -92,6 +78,9 @@ function openRouter(): void {
 
 .vp-action-link svg {
   display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
   transition: transform 150ms var(--ease-out);
 }
 
@@ -118,8 +107,8 @@ function openRouter(): void {
   }
 
   .vp-action-neko {
-    width: 1.2rem;
-    height: 1.2rem;
+    width: 1.15rem;
+    height: 1.15rem;
   }
 }
 </style>

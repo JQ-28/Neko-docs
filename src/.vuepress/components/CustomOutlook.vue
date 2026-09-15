@@ -13,7 +13,7 @@
     >
       <svg
         class="icon"
-        viewBox="0 0 1024 1024"
+        viewBox="123 74 780 880"
         xmlns="http://www.w3.org/2000/svg"
         fill="currentColor"
         aria-hidden="true"
