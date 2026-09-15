@@ -543,7 +543,8 @@ async function welcomeCard(cardId: string, edge: LiveEdge, over: number): Promis
 
   slideInFrom(slot, edge, over);
   markEgg("crossHandoff");
-  // 平时循环的那段往后挪，先让这场见面的小戏演完
+  // 平时循环的那段往后挪，正在说的那段也让位，先让这场见面的小戏演完
+  stopChat();
   window.clearTimeout(playTimer);
   showSpeech(card.id, pickLine(card, "arrive"));
 
@@ -632,6 +633,8 @@ function handleCardLeave(cardId: string): void {
   }
   lastLine.delete(cardId);
   if (lastSpeaker === cardId) lastSpeaker = "";
+  // 说话的那张被搬走了，这段对话就说到这儿
+  stopChat();
 }
 
 /** 串门：隔壁有窗口时，偶尔从边上探个小脑袋出来看一眼又缩回去 */
@@ -779,15 +782,132 @@ function pickLine(card: CardSpec, type: keyof SpeechLines): string {
   return line;
 }
 
-/** 说话的节奏：有猫落地就先聊两句，之后隔一阵子再说一句 */
+/** 说话的节奏：有猫落地就先聊两句，之后隔一阵子来一段对话 */
 const CHAT_REPLY_MS = 1800;
 const CHAT_MIN_MS = 20_000;
 const CHAT_MAX_MS = 45_000;
+/** 对话里两句之间隔多久：上一句的气泡刚收，下一句就接上 */
+const CHAT_TURN_MS = 2400;
 
 let chatTimer = 0;
 let greetTimer = 0;
+let chatTurnTimer = 0;
+/** 对话的场次号：中途被拎走、卡片被搬走就加一，正在说的那段自己作废 */
+let chatRun = 0;
 /** 上一句是谁说的，下一句换张卡张嘴 */
 let lastSpeaker = "";
+/** 上一段说的是哪一段，下一段换一段 */
+let lastChatIndex = -1;
+
+/** 对话里的一句：由哪种卡来说、说什么 */
+interface ChatTurn {
+  readonly by: CardSpec["kind"];
+  readonly line: string;
+}
+
+/** 你一句我一句：两种卡都在就说「猫 × 在线猫」这套，只有一种卡就自家同类互相搭话 */
+const CHAT_TURNS: Record<"mixed" | "neko" | "online", readonly (readonly ChatTurn[])[]> =
+  {
+    mixed: [
+      [
+        { by: "neko", line: "有人在吗喵？" },
+        { by: "online", line: "在呢，数字上这会儿就你一只" },
+        { by: "neko", line: "那我就不客气地赖在这儿了喵~" },
+      ],
+      [
+        { by: "neko", line: "今天来过多少只猫呀喵？" },
+        { by: "online", line: "刚数过，连你一起正正好" },
+        { by: "neko", line: "那我要多待一会儿喵" },
+      ],
+      [
+        { by: "neko", line: "你在盯着什么看喵？" },
+        { by: "online", line: "盯着人头数，谁来谁走我都记着" },
+        { by: "neko", line: "好辛苦，分你一口布丁喵" },
+      ],
+      [
+        { by: "neko", line: "有点困了喵…" },
+        { by: "online", line: "困就睡，这一页我替你守着" },
+        { by: "neko", line: "那说好了，打呼噜别笑我喵" },
+      ],
+      [
+        { by: "neko", line: "你也是 neko 吗喵？" },
+        { by: "online", line: "我是负责数猫的那只" },
+        { by: "neko", line: "那我们算同事了喵~" },
+      ],
+      [
+        { by: "neko", line: "今天大家都很安静喵" },
+        { by: "online", line: "安静才好，说明都逛得踏实" },
+      ],
+      [
+        { by: "neko", line: "要不要一起玩游戏喵？" },
+        { by: "online", line: "我只会玩数字" },
+        { by: "neko", line: "那我教你玩节奏游戏喵" },
+      ],
+      [
+        { by: "neko", line: "我今天乖不乖喵？" },
+        { by: "online", line: "乖，一分都没跑掉" },
+        { by: "neko", line: "嘿嘿，我会一直这么乖的喵" },
+      ],
+      [
+        { by: "neko", line: "你忙完了吗喵？" },
+        { by: "online", line: "我这份活儿永远忙不完" },
+        { by: "neko", line: "那我陪你一起忙喵" },
+      ],
+      [
+        { by: "neko", line: "好想出去玩喵" },
+        { by: "online", line: "等这波猫都回家了再去吧" },
+      ],
+      [
+        { by: "online", line: "刚有个新面孔路过" },
+        { by: "neko", line: "在哪儿在哪儿喵？" },
+        { by: "online", line: "已经走了，就停了三秒" },
+      ],
+      [
+        { by: "online", line: "这会儿人多起来了" },
+        { by: "neko", line: "那我要表现得好一点喵~" },
+      ],
+    ],
+    neko: [
+      [
+        { by: "neko", line: "你也是 neko 吗喵？" },
+        { by: "neko", line: "我是本猫，你从哪扇窗口来的喵" },
+      ],
+      [
+        { by: "neko", line: "这边的窝软不软喵？" },
+        { by: "neko", line: "软得很，我都赖着不想走了喵" },
+      ],
+      [
+        { by: "neko", line: "分你一半布丁喵" },
+        { by: "neko", line: "那我分你一半抹茶冰淇淋喵" },
+      ],
+      [
+        { by: "neko", line: "一起打呼噜吧喵" },
+        { by: "neko", line: "好呀，谁先睡着谁输喵" },
+      ],
+      [
+        { by: "neko", line: "你的尾巴怎么在动喵？" },
+        { by: "neko", line: "它自己动的，不关我的事喵" },
+      ],
+      [
+        { by: "neko", line: "要不要比一比谁跑得快喵" },
+        { by: "neko", line: "你先把爪子从那块饼干上挪开喵" },
+      ],
+    ],
+    online: [
+      [
+        { by: "online", line: "你那边现在几只猫？" },
+        { by: "online", line: "正数着呢，一只都没跑" },
+      ],
+      [
+        { by: "online", line: "两个数猫的凑一块了" },
+        { by: "online", line: "那就分工，你数左边我数右边" },
+      ],
+      [
+        { by: "online", line: "别把数字数重了" },
+        { by: "online", line: "放心，我记性比谁都好" },
+      ],
+    ],
+  };
 
 /** 下一句隔多久（20–45 秒之间随便挑，不固定才不像机器） */
 function nextChatDelay(): number {
@@ -804,13 +924,96 @@ function nextSpeaker(): CardSpec | null {
   return speaker;
 }
 
-/** 隔一阵子让某张卡说一句；手上有活、或者这屏没人看就跳过这一轮 */
+/** 挑一段当下说得成的对话，连着两段不重样 */
+function pickChatTurns(): readonly ChatTurn[] | null {
+  const kinds = new Set(liveCards.value.map((card) => card.kind));
+  const pool =
+    kinds.has("neko") && kinds.has("online")
+      ? CHAT_TURNS.mixed
+      : kinds.has("neko")
+        ? CHAT_TURNS.neko
+        : kinds.has("online")
+          ? CHAT_TURNS.online
+          : null;
+  if (!pool) return null;
+
+  let index = Math.floor(Math.random() * pool.length);
+  if (index === lastChatIndex) index = (index + 1) % pool.length;
+  lastChatIndex = index;
+  return pool[index];
+}
+
+/** 这一句该谁张嘴：要那种卡，而且尽量别跟上一位是同一张 */
+function speakerFor(kind: CardSpec["kind"], previous: string): CardSpec | null {
+  const sameKind = liveCards.value.filter((card) => card.kind === kind);
+  if (sameKind.length === 0) return null;
+  return sameKind.find((card) => card.id !== previous) ?? sameKind[0];
+}
+
+/** 一句一句往外冒：中途被拎走、被搬走、演起动画就整段作废 */
+function playTurn(
+  turns: readonly ChatTurn[],
+  index: number,
+  run: number,
+  previous: string
+): void {
+  // 已经作废的那段（卡片被拎走 / 被搬走）自己安静退场，不接管排期
+  if (run !== chatRun) return;
+
+  // 说完了，把演戏的节奏还回去
+  if (index >= turns.length) {
+    resumePlay();
+    return;
+  }
+
+  if (!stageVisible || drag || isPlaying()) {
+    chatRun += 1;
+    resumePlay();
+    return;
+  }
+
+  const speaker = speakerFor(turns[index].by, previous);
+  if (!speaker) {
+    chatRun += 1;
+    resumePlay();
+    return;
+  }
+  showSpeech(speaker.id, turns[index].line);
+
+  window.clearTimeout(chatTurnTimer);
+  chatTurnTimer = window.setTimeout(
+    () => playTurn(turns, index + 1, run, speaker.id),
+    CHAT_TURN_MS
+  );
+}
+
+/** 轮到说话了：只有一张卡就自己念叨，两张以上就来一段你一句我一句 */
+function startChat(): void {
+  const turns = liveCards.value.length > 1 ? pickChatTurns() : null;
+  if (!turns) {
+    const speaker = nextSpeaker();
+    if (speaker) showSpeech(speaker.id, pickLine(speaker, "idle"));
+    return;
+  }
+
+  chatRun += 1;
+  // 这一段对话期间先别演戏：不然刚开口就被一段动画打断，后半截就说不下去了
+  window.clearTimeout(playTimer);
+  playTurn(turns, 0, chatRun, "");
+}
+
+/** 正在说的那段别说了：拎起卡片、卡片被搬走时用 */
+function stopChat(): void {
+  chatRun += 1;
+  window.clearTimeout(chatTurnTimer);
+}
+
+/** 隔一阵子来一段；手上有活、或者这屏没人看就跳过这一轮 */
 function scheduleChat(delayMs: number): void {
   window.clearTimeout(chatTimer);
   chatTimer = window.setTimeout(() => {
     if (stageVisible && !drag && !isPlaying() && roamingIds.value.length === 0) {
-      const speaker = nextSpeaker();
-      if (speaker) showSpeech(speaker.id, pickLine(speaker, "idle"));
+      startChat();
     }
     scheduleChat(nextChatDelay());
   }, delayMs);
@@ -1041,7 +1244,8 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   roamSentX = Number.NEGATIVE_INFINITY;
   roamSentY = Number.NEGATIVE_INFINITY;
   showSpeech(card.id, pickLine(card, "drag"));
-  // 拎在手上这段时间先别演戏了，松手再接着排
+  // 拎在手上这段时间先别演戏、也别聊天了，松手再接着排
+  stopChat();
   window.clearTimeout(playTimer);
 }
 
@@ -1236,6 +1440,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(resetTimer);
   window.clearTimeout(speechTimer);
   window.clearTimeout(chatTimer);
+  window.clearTimeout(chatTurnTimer);
   window.clearTimeout(greetTimer);
   window.clearTimeout(visitorTimer);
   window.clearTimeout(visitorHideTimer);
