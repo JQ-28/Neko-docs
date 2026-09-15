@@ -139,7 +139,8 @@ function toggleDark(): void {
   applyScheme(next);
 }
 
-function setThemeColor(index = 0): void {
+/** 只改本窗口的样子，不落盘（别的窗口改完由 storage 事件调这一半） */
+function applyThemeColor(index = 0): void {
   const classes = document.documentElement.classList;
   const themeClass = index > 0 ? `theme-${index}` : "";
   classes.forEach((name) => {
@@ -147,12 +148,32 @@ function setThemeColor(index = 0): void {
   });
   if (themeClass) classes.add(themeClass);
   activeTheme.value = themeClass;
+}
+
+function setThemeColor(index = 0): void {
+  applyThemeColor(index);
   try {
-    if (themeClass) localStorage.setItem(THEME_COLOR_KEY, themeClass);
+    if (index > 0) localStorage.setItem(THEME_COLOR_KEY, `theme-${index}`);
     else localStorage.removeItem(THEME_COLOR_KEY);
   } catch {
     // 存储不可用
   }
+}
+
+/** 从存下来的 class 名反解出第几号主题色 */
+function themeIndexOf(value: string | null): number {
+  const index = Number((value ?? "").replace(/^theme-/, ""));
+  return Number.isFinite(index) && index > 0 ? index : 0;
+}
+
+/**
+ * 别的窗口改了外观：本窗口跟着一起变。
+ * 主题自己的 useStorage 只同步 data-theme（CSS 变量那套），而项目组件的深色样式跟的是 html.dark，
+ * 不补这一刀就会出现「页面变浅了、卡片还黑着」的错乱
+ */
+function onStorage(event: StorageEvent): void {
+  if (event.key === SCHEME_KEY) applyScheme(event.newValue ?? "auto");
+  else if (event.key === THEME_COLOR_KEY) applyThemeColor(themeIndexOf(event.newValue));
 }
 
 watch(
@@ -170,11 +191,10 @@ function onDocClick(event: MouseEvent): void {
 
 onMounted(() => {
   document.addEventListener("click", onDocClick);
+  window.addEventListener("storage", onStorage);
   try {
-    const theme = localStorage.getItem(THEME_COLOR_KEY);
-    if (theme) setThemeColor(Number(theme.replace(/^theme-/, "")));
-    const scheme = localStorage.getItem(SCHEME_KEY);
-    applyScheme(scheme ?? "auto");
+    applyThemeColor(themeIndexOf(localStorage.getItem(THEME_COLOR_KEY)));
+    applyScheme(localStorage.getItem(SCHEME_KEY) ?? "auto");
   } catch {
     applyScheme("auto");
   }
@@ -182,6 +202,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", onDocClick);
+  window.removeEventListener("storage", onStorage);
 });
 </script>
 
