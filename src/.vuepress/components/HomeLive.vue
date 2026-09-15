@@ -58,6 +58,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import OnlineCounter from "./OnlineCounter.vue";
+import { markEgg } from "./egg-utils";
+import { EGG_THRESHOLDS } from "./neko-shared-eggs";
 
 /** 隔多久自己动一下，与在线卡错开，看起来像两只猫互相打量 */
 const NUDGE_MIN_MS = 14_000;
@@ -89,6 +91,8 @@ let waitTries = 0;
 let lastScript = -1;
 let lastPlayedAt = 0;
 let stageVisible = false;
+/** 这一场演过哪些剧本，用来凑「猫猫剧场」 */
+const seenShows = new Set<string>();
 
 /** 让某张卡里的头像扭一下，动画由各卡片自己的样式提供 */
 function peekAvatar(root: HTMLElement | null, selector: string): void {
@@ -178,6 +182,9 @@ function playScript(): void {
   if (!neko || !online) return;
 
   const script = pickScript();
+  // 一场里看完 5 段不一样的就算「猫猫剧场」
+  seenShows.add(script.name);
+  if (seenShows.size >= EGG_THRESHOLDS.cardShows) markEgg("peekShows");
   // 摘掉上一段的 class 再强制重排，连播两段时才不会并成一次
   clearPlayback();
   void neko.offsetWidth;
@@ -267,6 +274,11 @@ const SPEECH_LINGER_MS = 1600;
 /** 手移动多快就把猫甩多歪：单位是「每一像素/毫秒带多少度」，甩到头就封顶 */
 const SWING_PER_SPEED = 6;
 const SWING_MAX = 16;
+/** 摇猫猫：折返一次至少要挪这么多像素，连续折返的时间窗口 */
+const SHAKE_SWING_STEP = 20;
+const SHAKE_SWING_WINDOW_MS = 900;
+/** 叠猫猫：两张卡的中心离这么近就算叠上了 */
+const STACK_GAP_PX = 60;
 
 interface DragState {
   pointerId: number;
@@ -287,6 +299,20 @@ interface DragState {
 let drag: DragState | null = null;
 let speechTimer = 0;
 
+/** 拎着卡片时顺手统计的几个彩蛋：来回摇晃、叠在一起、走过的路 */
+const dragTrack = {
+  /** 上次用于判定折返的位置 */
+  swingX: 0,
+  swingDirection: 0,
+  swings: 0,
+  swingAt: 0,
+  /** 上次的目标位移，用来累计遛猫的行程 */
+  lastDx: 0,
+  lastDy: 0,
+};
+/** 遛猫总里程，跨多次拖拽累计 */
+let walkedPx = 0;
+
 function isPlaying(): boolean {
   return Boolean(
     nekoSlot.value?.classList.contains(PLAY_CLASS) ||
@@ -304,6 +330,58 @@ function limitShift(
   const min = DRAG_MARGIN - base;
   const max = Math.max(min, viewport - DRAG_MARGIN - base - size);
   return Math.min(Math.max(shift, min), max);
+}
+
+/** 每次拎起来重开一轮统计，遛猫的里程留在外面继续累计 */
+function resetDragTrack(positionX: number): void {
+  dragTrack.swingX = positionX;
+  dragTrack.swingDirection = 0;
+  dragTrack.swings = 0;
+  dragTrack.swingAt = 0;
+  dragTrack.lastDx = 0;
+  dragTrack.lastDy = 0;
+}
+
+/** 摇猫猫：拎着左右疯狂折返，够 8 个来回就点亮 */
+function trackCardShake(positionX: number, now: number): void {
+  const delta = positionX - dragTrack.swingX;
+  dragTrack.swingX = positionX;
+  if (Math.abs(delta) < SHAKE_SWING_STEP) return;
+
+  const direction = delta > 0 ? 1 : -1;
+  if (direction === dragTrack.swingDirection) return;
+  dragTrack.swingDirection = direction;
+  dragTrack.swings =
+    now - dragTrack.swingAt < SHAKE_SWING_WINDOW_MS ? dragTrack.swings + 1 : 1;
+  dragTrack.swingAt = now;
+
+  if (dragTrack.swings >= EGG_THRESHOLDS.cardShakeSwings) {
+    dragTrack.swings = 0;
+    markEgg("cardShake");
+  }
+}
+
+/** 叠猫猫：拎着的那张落到另一张身上 */
+function isStackedOnOther(slot: HTMLElement): boolean {
+  const other = slot === nekoSlot.value ? onlineSlot.value : nekoSlot.value;
+  if (!other) return false;
+
+  const held = slot.getBoundingClientRect();
+  const resting = other.getBoundingClientRect();
+  return (
+    Math.hypot(
+      held.left + held.width / 2 - (resting.left + resting.width / 2),
+      held.top + held.height / 2 - (resting.top + resting.height / 2)
+    ) <= STACK_GAP_PX
+  );
+}
+
+/** 遛猫：拖着走的总里程，跨多次拖拽累计 */
+function trackCardWalk(dx: number, dy: number): void {
+  walkedPx += Math.hypot(dx - dragTrack.lastDx, dy - dragTrack.lastDy);
+  dragTrack.lastDx = dx;
+  dragTrack.lastDy = dy;
+  if (walkedPx >= EGG_THRESHOLDS.cardWalkPx) markEgg("cardWalk");
 }
 
 function onPointerDown(event: PointerEvent, index: number): void {
@@ -339,6 +417,7 @@ function onPointerDown(event: PointerEvent, index: number): void {
     // 交给冒泡上来的事件处理，不影响的
   }
   slot.classList.add("is-dragging");
+  resetDragTrack(event.clientX);
   draggedIndex.value = index;
   speech.value = GRUMBLES[Math.floor(Math.random() * GRUMBLES.length)];
   window.clearTimeout(speechTimer);
@@ -349,18 +428,24 @@ function onPointerDown(event: PointerEvent, index: number): void {
 function onPointerMove(event: PointerEvent): void {
   if (!drag || event.pointerId !== drag.pointerId) return;
 
-  // 位置直接给到手上，拖尾和回弹交给样式里的过渡，掉帧也不会变形
-  drag.slot.style.translate = `${limitShift(
+  const dx = limitShift(
     event.clientX - drag.startX,
     drag.baseLeft,
     drag.width,
     window.innerWidth
-  )}px ${limitShift(
+  );
+  const dy = limitShift(
     event.clientY - drag.startY,
     drag.baseTop,
     drag.height,
     window.innerHeight
-  )}px`;
+  );
+  // 位置直接给到手上，拖尾和回弹交给样式里的过渡，掉帧也不会变形
+  drag.slot.style.translate = `${dx}px ${dy}px`;
+
+  // 顺手数一数彩蛋：摇猫猫、遛猫
+  trackCardShake(event.clientX, Date.now());
+  trackCardWalk(dx, dy);
 
   // 甩得越快歪得越厉害，手一停角度自己荡回来，看着就像被拎着的猫
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -370,7 +455,10 @@ function onPointerMove(event: PointerEvent): void {
   drag.lastX = event.clientX;
   drag.lastMoveAt = event.timeStamp;
 
-  const lean = Math.max(-SWING_MAX, Math.min(SWING_MAX, speed * SWING_PER_SPEED));
+  const lean = Math.max(
+    -SWING_MAX,
+    Math.min(SWING_MAX, speed * SWING_PER_SPEED)
+  );
   drag.slot.style.rotate = `${lean.toFixed(2)}deg`;
 }
 
@@ -381,6 +469,8 @@ function onPointerUp(event: PointerEvent): void {
   if (card.hasPointerCapture(event.pointerId)) {
     card.releasePointerCapture(event.pointerId);
   }
+  // 松手落在另一张卡身上就算叠猫猫（要赶在清掉位移之前量）
+  if (isStackedOnOther(slot)) markEgg("cardStack");
   // 交还样式：过渡会把猫带着惯性送回原位，顺带晃两下
   slot.classList.remove("is-dragging");
   slot.style.translate = "";

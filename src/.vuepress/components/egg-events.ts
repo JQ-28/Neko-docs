@@ -8,6 +8,8 @@ const CLEAR_BUTTON_SELECTOR = '.neko-head-btn[title="清空聊天记录"]';
 const NEKO_BUBBLE_SELECTOR = ".neko-msg.neko";
 const FOOTER_SELECTOR = ".neko-qq-footer > div";
 const FOOTER_TOUR_KEY = "neko-footer-tour";
+/* 首页的猫卡片被拎起来时挂上这个类，摇一摇要躲开它 */
+const CARD_DRAG_SELECTOR = ".home-live-slot.is-dragging";
 
 const ACCELERATION_THRESHOLD = 34;
 const SHAKE_COOLDOWN = 3000;
@@ -127,6 +129,13 @@ function listenShake(): Cleanup {
       "pointermove",
       (event) => {
         if (event.pointerType === "touch") return;
+        // 拎着首页的猫卡片摇晃是另一颗蛋（摇猫猫）的事，别让这里的折返计数跟着涨
+        if (document.querySelector(CARD_DRAG_SELECTOR)) {
+          lastX = null;
+          direction = 0;
+          swings = 0;
+          return;
+        }
         if (lastX === null) {
           lastX = event.clientX;
           return;

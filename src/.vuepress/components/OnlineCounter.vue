@@ -23,7 +23,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+
+import { markEgg } from "./egg-utils";
 
 const ENDPOINT = "/api/online";
 /** 心跳间隔，与后端判定「掉线」的窗口配套：后端容忍 3 次心跳的静默 */
@@ -86,6 +88,15 @@ const baseHeadline = computed(() => {
 });
 
 const headline = computed(() => hint.value || baseHeadline.value);
+
+// 夜深了，整个站上只剩你一只猫在逛
+const aloneLateNight = computed(
+  () => count.value === 1 && periodOfHour(new Date().getHours()) === "night"
+);
+
+watch(aloneLateNight, (alone) => {
+  if (alone) markEgg("onlineAlone");
+});
 
 // 有人来就报一声；有人走不吭声，免得像在赶客
 function applyCount(next: number): void {

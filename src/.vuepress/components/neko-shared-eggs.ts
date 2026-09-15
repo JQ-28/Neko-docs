@@ -15,6 +15,7 @@ export const TOOLS_EGGS = {
 
 export const DOCS_EGGS = {
   docsNight: '文档站夜读', docsSearchNeko: '搜索框喊猫', docsEggsSearch: '抽屉里的册子',
+  cardShake: '摇猫猫', cardStack: '叠猫猫', cardWalk: '遛猫', peekShows: '猫猫剧场', onlineAlone: '独守空站',
 };
 
 export const EGGS = { ...TOOLS_EGGS, ...DOCS_EGGS };
@@ -72,6 +73,11 @@ export const EGG_HINTS = {
   docsNight: '凌晨 0 点到 5 点之间打开页面',
   docsSearchNeko: '在搜索框里输入 neko 或 猫',
   docsEggsSearch: '在搜索框里输入 彩蛋 或 eggs，会直接翻开这本册子',
+  cardShake: '抓住首页那两只猫里的任意一只，拎起来左右疯狂摇晃 8 个来回',
+  cardStack: '把首页的一张猫卡片拖到另一张身上，叠上去再松开爪子',
+  cardWalk: '拖着首页的猫卡片到处溜达，累计走满 2000 像素',
+  peekShows: '在首页安静待着，看完 5 段不一样的猫猫小剧场',
+  onlineAlone: '深夜只剩你一只猫在逛的时候，留意一下在线猫猫说的话',
   miaoMode: '在外观或偏好设置里打开喵语模式，让整站都喵起来',
 };
 
@@ -90,6 +96,9 @@ export const EGG_THRESHOLDS = {
   idleSleepMs: 120_000,
   exploreGoal: 3,
   visitGoal: 3,
+  cardShakeSwings: 8,
+  cardWalkPx: 2000,
+  cardShows: 5,
 };
 
 /* 节日问候：短 key 每年命中，长 key 只针对特定年份，日期一律不补零 */
