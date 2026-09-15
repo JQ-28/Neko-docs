@@ -31,6 +31,7 @@ import {
 import { initEggEvents, trackPageVisit } from "./components/egg-events";
 import { EGG_THRESHOLDS } from "./components/neko-shared-eggs";
 import { SEARCH_MIRROR_EGGS, matchSearchEgg } from "./components/neko-shared-search-eggs";
+import { playSearchEggEffect } from "./components/search-egg-effects";
 import { applyMiaoTextToPage } from "./components/miao";
 
 const COPY_TEXT = "复制代码";
@@ -160,6 +161,7 @@ export default defineClientConfig({
       if (!id) return;
       markEgg(id);
       SEARCH_MIRROR_EGGS[id]?.forEach((mirrorId) => markEgg(mirrorId));
+      playSearchEggEffect(id);
       if (id === "docsEggsSearch") {
         // 收起搜索模态，避免两层弹层叠在一起
         document.querySelector<HTMLButtonElement>(".search-pro-close-button")?.click();
@@ -228,7 +230,6 @@ export default defineClientConfig({
       });
       initEggs();
       cleanupEggEvents = initEggEvents();
-      offMiao = onMiaoChange(refreshCopyButtons);
 
       document.addEventListener("input", onSearchInput, true);
       lastDark = document.documentElement.classList.contains("dark");

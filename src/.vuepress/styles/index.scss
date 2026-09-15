@@ -739,3 +739,125 @@ html.dark .neko-egg-tip-text {
     transform: none;
   }
 }
+
+// 666 数字雨：随机位置/延时/时长从顶部撒落
+.neko-six-rain {
+  position: fixed;
+  top: -2.5em;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--vp-c-accent, #096dd9);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 99998;
+  animation: neko-six-fall 1.6s ease-in-out forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes neko-six-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+
+  10%,
+  85% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translateY(105vh) rotate(24deg);
+    opacity: 0;
+  }
+}
+
+// 喵气泡：从底部摇摆上浮（--flip 随机翻转摆动方向）
+.neko-miao-rise {
+  position: fixed;
+  bottom: -2.5em;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--vp-c-accent, #096dd9);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 99998;
+  animation: neko-miao-float 2.2s ease-in-out forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes neko-miao-float {
+  0% {
+    transform: translate(0, 0) scale(0.4);
+    opacity: 0;
+  }
+
+  12% {
+    transform: translate(0, -8vh) scale(1);
+    opacity: 0.9;
+  }
+
+  30% {
+    transform: translate(calc(26px * var(--flip, 1)), -32vh) rotate(8deg);
+  }
+
+  55% {
+    transform: translate(calc(-20px * var(--flip, 1)), -60vh) rotate(-6deg);
+  }
+
+  78% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translate(calc(14px * var(--flip, 1)), -105vh) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+// 中央喵呜挤压弹出
+.neko-miao-pop {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  font-size: 44px;
+  font-weight: 800;
+  color: var(--vp-c-accent, #096dd9);
+  text-shadow: 0 2px 12px rgba(255, 105, 180, 0.35);
+  pointer-events: none;
+  z-index: 99999;
+  animation: neko-miao-squash 1.3s ease-out forwards;
+}
+
+@keyframes neko-miao-squash {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(-14deg);
+    opacity: 0;
+  }
+
+  45% {
+    transform: translate(-50%, -50%) scale(1.18) rotate(4deg);
+    opacity: 1;
+  }
+
+  62% {
+    transform: translate(-50%, -50%) scale(0.94) rotate(-2deg);
+  }
+
+  78% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1.06) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neko-six-rain,
+  .neko-miao-rise,
+  .neko-miao-pop {
+    display: none;
+  }
+}
