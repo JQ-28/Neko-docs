@@ -313,18 +313,24 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
   border: 1px solid var(--vp-c-gutter);
   border-radius: 50%;
   background: transparent;
   color: var(--vp-c-text-mute);
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
+  transition: color 0.2s, border-color 0.2s, transform 0.15s var(--ease-out, ease-out);
 }
 
-.vp-color-mode-switch:hover {
-  color: var(--vp-c-accent-bg);
-  border-color: var(--vp-c-accent);
+@media (hover: hover) and (pointer: fine) {
+  .vp-color-mode-switch:hover {
+    color: var(--vp-c-accent-bg);
+    border-color: var(--vp-c-accent);
+    transform: scale(1.06);
+  }
 }
 
 .vp-color-mode-switch .icon {
@@ -396,10 +402,12 @@ onBeforeUnmount(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .vp-outlook-dropdown,
+  .vp-color-mode-switch,
   .vp-color-mode-switch .icon {
     transition: none;
   }
 
+  .vp-color-mode-switch:hover,
   .vp-color-mode-switch .icon,
   .vp-color-mode-switch .icon.show {
     transform: none;
