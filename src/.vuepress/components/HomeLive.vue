@@ -214,7 +214,6 @@ html.dark .home-intro-sub {
 .home-live-meta {
   font-size: 11px;
   letter-spacing: 0.2px;
-  white-space: nowrap;
   color: #a397b2;
 }
 
@@ -323,6 +322,28 @@ html.dark .home-live-avatar {
   100% {
     transform: scale(2.1);
     opacity: 0;
+  }
+}
+
+/* 窄屏改两张平分，各让一半宽度就不会换行成一上一下。
+   必须放在各卡片宽度定义之后，同特异性下才覆盖得掉 */
+@media (max-width: 560px) {
+  .home-live-cards {
+    gap: 10px;
+  }
+
+  .home-live-cards :deep(.home-online),
+  .home-live-card {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    padding: 10px 10px 10px 10px;
+  }
+
+  /* 半宽放不下整句，让文案换行而不是被省略号截掉 */
+  .home-live-cards :deep(.home-online-meta) {
+    white-space: normal;
+    line-height: 1.35;
   }
 }
 
