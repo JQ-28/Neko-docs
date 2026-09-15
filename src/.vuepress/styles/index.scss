@@ -1032,3 +1032,195 @@ html.dark .neko-update-card {
     animation: none;
   }
 }
+
+// ===== 装饰动效：卡片倾斜 / 萤火虫 / 复制迸射 / 爪印轨迹 / 打字机 =====
+
+// 猫爪形状，只取造型，颜色一律由 background-color 决定
+$neko-paw-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cellipse cx='12' cy='16.4' rx='5.1' ry='4.3'/%3E%3Ccircle cx='5.7' cy='9.6' r='2.6'/%3E%3Ccircle cx='10.4' cy='5.8' r='2.5'/%3E%3Ccircle cx='15.6' cy='5.8' r='2.5'/%3E%3Ccircle cx='20.3' cy='9.6' r='2.6'/%3E%3C/svg%3E");
+
+// 指令卡倾斜：--tilt-x / --tilt-y 由 motion-tilt.ts 按指针位置写入。
+// 不设 transition，倾斜直接跟手，否则会拖出黏滞感。
+.cheatsheet-card {
+  transform: perspective(720px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+}
+
+// 高光跟着指针走，覆盖在卡片内容之上但完全不拦指针
+.cheatsheet-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgba(255, 255, 255, 0.3),
+    transparent 55%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease-out);
+}
+
+.cheatsheet-card.is-tilting::after {
+  opacity: 1;
+}
+
+html.dark .cheatsheet-card::after {
+  background: radial-gradient(
+    circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgba(255, 255, 255, 0.14),
+    transparent 55%
+  );
+}
+
+// 深色模式萤火虫：浅色模式下整块不渲染
+.neko-firefly-field {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+html.dark .neko-firefly-field {
+  display: block;
+}
+
+.neko-firefly {
+  position: absolute;
+  left: var(--firefly-x);
+  top: var(--firefly-y);
+  width: var(--firefly-size);
+  height: var(--firefly-size);
+  border-radius: 50%;
+  background: #ffe9a8;
+  box-shadow: 0 0 6px rgba(255, 226, 140, 0.85);
+  opacity: 0;
+  animation: neko-firefly-drift var(--firefly-duration) linear infinite;
+  animation-delay: var(--firefly-delay);
+  will-change: transform, opacity;
+}
+
+@keyframes neko-firefly-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+
+  20% {
+    transform: translate(calc(var(--firefly-drift) * 0.4), calc(var(--firefly-drift) * -0.5));
+    opacity: 0.9;
+  }
+
+  60% {
+    transform: translate(var(--firefly-drift), calc(var(--firefly-drift) * -1.4));
+    opacity: 0.3;
+  }
+
+  80% {
+    transform: translate(calc(var(--firefly-drift) * 0.2), calc(var(--firefly-drift) * -0.8));
+    opacity: 0.8;
+  }
+}
+
+// 复制成功迸射
+.neko-burst {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.neko-burst-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background-color: var(--accent);
+  -webkit-mask: $neko-paw-mask center / contain no-repeat;
+  mask: $neko-paw-mask center / contain no-repeat;
+  animation: neko-burst-fly 0.62s var(--ease-out) forwards;
+  animation-delay: var(--burst-delay);
+}
+
+@keyframes neko-burst-fly {
+  from {
+    transform: translate(0, 0) scale(0.4);
+    opacity: 1;
+  }
+
+  to {
+    transform: translate(var(--burst-x), var(--burst-y)) scale(var(--burst-scale));
+    opacity: 0;
+  }
+}
+
+// 鼠标轨迹爪印
+.neko-paw {
+  position: fixed;
+  z-index: 9998;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  background-color: var(--accent);
+  -webkit-mask: $neko-paw-mask center / contain no-repeat;
+  mask: $neko-paw-mask center / contain no-repeat;
+  pointer-events: none;
+  opacity: 0.85;
+  animation: neko-paw-fade 0.88s var(--ease-out) forwards;
+}
+
+@keyframes neko-paw-fade {
+  from {
+    transform: rotate(var(--paw-rotate)) scale(var(--paw-scale));
+    opacity: 0.85;
+  }
+
+  to {
+    transform: rotate(var(--paw-rotate)) scale(calc(var(--paw-scale) * 0.72));
+    opacity: 0;
+  }
+}
+
+// 首页副标题打字机光标
+.neko-typing::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  background: currentcolor;
+  vertical-align: -0.12em;
+  animation: neko-typing-caret 1s steps(1) infinite;
+}
+
+@keyframes neko-typing-caret {
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+// 脚本侧已在减少动效时不再挂载，这里再兜一层，避免样式单独生效
+@media (prefers-reduced-motion: reduce) {
+  .cheatsheet-card {
+    transform: none;
+  }
+
+  .cheatsheet-card::after,
+  .neko-firefly-field,
+  .neko-burst,
+  .neko-paw {
+    display: none;
+  }
+
+  .neko-typing::after {
+    animation: none;
+  }
+}

@@ -1,6 +1,5 @@
 import { defineClientConfig, usePageData } from "vuepress/client";
 import { createApp, nextTick, onBeforeUnmount, onMounted, watch } from "vue";
-import { Popper } from "@moefy-canvas/theme-popper";
 import { copyText, showTip } from "./components/copy-utils";
 import NavbarToolsLink from "./components/NavbarToolsLink.vue";
 import CustomOutlook from "./components/CustomOutlook.vue";
@@ -34,6 +33,11 @@ import { SEARCH_MIRROR_EGGS, matchSearchEgg } from "./components/neko-shared-sea
 import { playSearchEggEffect } from "./components/search-egg-effects";
 import { setupPwaUpdate } from "./components/pwa-update";
 import { applyMiaoTextToPage } from "./components/miao";
+import { setupCardTilt } from "./components/motion-tilt";
+import { setupFirefly } from "./components/motion-firefly";
+import { setupCopyBurst } from "./components/motion-burst";
+import { setupPawTrail } from "./components/motion-cursor";
+import { setupTypingTagline } from "./components/motion-typing";
 
 const COPY_TEXT = "复制代码";
 const TIP_CONTENT = "复制成功";
@@ -80,8 +84,6 @@ export default defineClientConfig({
   rootComponents: [CommandRouter, AnnouncementPopup, EggCollection],
 
   setup() {
-    let popper: Popper | null = null;
-    let canvas: HTMLCanvasElement | null = null;
     let observer: MutationObserver | null = null;
 
     let copyApp: ReturnType<typeof createApp> | null = null;
@@ -95,6 +97,8 @@ export default defineClientConfig({
     let copyInjectScheduled = false;
     let miaoApp: ReturnType<typeof createApp> | null = null;
     let miaoHolder: HTMLElement | null = null;
+    let cleanupMotions: Array<() => void> = [];
+    let cleanupTyping: (() => void) | null = null;
 
     // DOM 每次变动都全量重扫一遍太费，合并到下一帧统一处理
     function scheduleInjectCopyButtons(): void {
@@ -104,9 +108,17 @@ export default defineClientConfig({
         copyInjectScheduled = false;
         injectCopyButtons();
         mountMiaoToggle();
+        // 路由切回首页时 hero 是新建的，需要重新接管副标题
+        mountTypingTagline();
         // 路由切换后导航/侧边栏/正文重建，喵语模式需要对新文本补一次追加
         applyMiaoTextToPage();
       });
+    }
+
+    // 一次只接管一个副标题，离开首页时由路由监听释放
+    function mountTypingTagline(): void {
+      if (cleanupTyping) return;
+      cleanupTyping = setupTypingTagline();
     }
 
     // 移动端汉堡菜单（NavScreen）由主题 v-if 每次开合重建，
@@ -186,6 +198,8 @@ export default defineClientConfig({
         const command = pageData.value.frontmatter?.command;
         activePath = path;
         trackPageVisit(path);
+        cleanupTyping?.();
+        cleanupTyping = null;
         contentObserver?.disconnect();
         contentObserver = null;
         clearCommandCard();
@@ -204,23 +218,17 @@ export default defineClientConfig({
     );
 
     onMounted(() => {
-      // 星星光标只在支持悬停的设备上挂载（触屏无 mousemove，纯白费性能）
-      if (
-        typeof window !== "undefined" &&
-        window.matchMedia("(hover: hover) and (pointer: fine)").matches
-      ) {
-        canvas = document.createElement("canvas");
-        canvas.id = "vuepress-canvas-cursor";
-        document.body.appendChild(canvas);
-        popper = new Popper(
-          { shape: "star", size: 2 },
-          { opacity: 1, zIndex: 999999999 }
-        );
-        popper.mount(canvas);
-      }
+      // 纯装饰动效，各自内部判断设备能力（触屏没有指针轨迹）与减少动效偏好
+      cleanupMotions = [
+        setupPawTrail(),
+        setupFirefly(),
+        setupCopyBurst(),
+        setupCardTilt(),
+      ];
 
       injectCopyButtons();
       mountMiaoToggle();
+      mountTypingTagline();
       applyMiaoTextToPage();
       observer = new MutationObserver(scheduleInjectCopyButtons);
       observer.observe(document.body, { childList: true, subtree: true });
@@ -243,8 +251,10 @@ export default defineClientConfig({
     });
 
     onBeforeUnmount(() => {
-      popper?.unmount();
-      canvas?.remove();
+      cleanupMotions.forEach((dispose) => dispose());
+      cleanupMotions = [];
+      cleanupTyping?.();
+      cleanupTyping = null;
       observer?.disconnect();
       contentObserver?.disconnect();
       themeObserver?.disconnect();
