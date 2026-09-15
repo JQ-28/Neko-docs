@@ -10,7 +10,7 @@
       <div
         ref="nekoSlot"
         class="home-live-slot home-live-slot--left"
-        :class="{ 'is-away': awayIndex === 0 }"
+        :class="{ 'is-away': awayIndex === 0, 'is-dragging': draggingIndex === 0 }"
         @pointerdown="onPointerDown($event, 0)"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -44,7 +44,7 @@
       <div
         ref="onlineSlot"
         class="home-live-slot home-live-slot--right"
-        :class="{ 'is-away': awayIndex === 1 }"
+        :class="{ 'is-away': awayIndex === 1, 'is-dragging': draggingIndex === 1 }"
         @pointerdown="onPointerDown($event, 1)"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -62,6 +62,23 @@
       >
         <img :src="nekoAvatarSrc" alt="" width="28" height="28" @error="onAvatarError" />
       </span>
+
+      <!-- 隔壁有人正拎着猫拖过我这块屏幕：按屏幕坐标画一只一样的，接力得像同一只猫在走。
+           自己就是 fixed 定位，摆在这一层也不会被别的卡片挤到 -->
+      <span
+        v-if="roamer"
+        class="home-live-roamer"
+        :style="{ transform: `translate3d(${roamer.x}px, ${roamer.y}px, 0)` }"
+        aria-hidden="true"
+      >
+        <img
+          :src="roamer.card === 'neko' ? nekoAvatarSrc : ONLINE_AVATAR"
+          alt=""
+          width="34"
+          height="34"
+          @error="onAvatarError"
+        />
+      </span>
     </div>
   </section>
 </template>
@@ -76,6 +93,7 @@ import {
   type HandoffPayload,
   type LiveCardId,
   type LiveEdge,
+  type RoamPoint,
 } from "./live-peer";
 
 /** 隔多久自己动一下，与在线卡错开，看起来像两只猫互相打量 */
@@ -85,13 +103,18 @@ const NUDGE_MAX_MS = 30_000;
 /** Neko 主账号的头像，走 QQ 头像服务，换头像这里会跟着变 */
 const QQ_AVATAR = "https://q1.qlogo.cn/g?b=qq&nk=3582537505&s=160";
 const FALLBACK_AVATAR = "/assets/image/neko.webp";
+/** 过路猫画在线猫猫那张卡时用的头像，与 OnlineCounter 保持一致 */
+const ONLINE_AVATAR = "/assets/image/neko11.jpg";
 
 const nekoAvatar = ref<HTMLImageElement | null>(null);
 const nekoAvatarSrc = ref(QQ_AVATAR);
 const nekoSlot = ref<HTMLElement | null>(null);
 const onlineSlot = ref<HTMLElement | null>(null);
-/** 哪只猫正被拎着（0 左边、1 右边、-1 没人被拎） */
+/** 哪只猫正被拎着（0 左边、1 右边、-1 没人被拎）。
+    这个只能交给模板去管：命令式加的类会在 Vue 刷新 class 时被冲掉 */
 const draggedIndex = ref(-1);
+/** 手还按着的那只猫，与 draggedIndex 的区别是它只管「拎着」这个状态，松手就归位 */
+const draggingIndex = ref(-1);
 const speech = ref("");
 
 /** 跨窗口联动：同一个浏览器里还开着别的 neko 页面时才有邻居 */
@@ -104,6 +127,15 @@ const visitorSide = ref<"" | LiveEdge>("");
 /** 隔壁喊话说猫要来了，标题那行先替他通个风 */
 const peerHint = ref("");
 let peerHintTimer = 0;
+
+/** 隔壁的猫正路过我这块屏幕：按屏幕坐标画一只一样的卡片 */
+const roamer = ref<{ card: LiveCardId; x: number; y: number } | null>(null);
+let roamerTimer = 0;
+/** 本窗口正被拖出去的那只猫（-1 表示没有） */
+let roamingIndex = -1;
+let roamSentAt = 0;
+let roamSentX = 0;
+let roamSentY = 0;
 
 /** 谁把猫领走的、从哪条边出去的，它一关窗口就得把猫从原路放回来 */
 let awayTo = "";
@@ -330,6 +362,11 @@ const SLIDE_IN_OVER_PX = 48;
 const WARN_INTERVAL_MS = 2000;
 /** 猫丢出去了，隔这么久自己溜回来，免得对面不开着就一直少一只 */
 const AWAY_RETURN_MS = 45_000;
+/** 拖动中报位置：最快这个间隔发一次，位移不够也先攒着 */
+const ROAM_MIN_MS = 45;
+const ROAM_MIN_PX = 6;
+/** 过路猫的“还在路上”有效期：这么久没收到新位置就收掉 */
+const ROAM_STALE_MS = 320;
 
 /** 串门：隔壁有窗口时，隔一阵子从边上探个小脑袋出来看看 */
 const VISITOR_MIN_MS = 20_000;
@@ -359,33 +396,83 @@ const PRESS_MIN_TRAVEL_PX = 56;
 
 /** 卡片是不是已经顶到窗口边上了：贴着边松手就当扔出去，不必真的推越界 */
 function pressedEdge(state: DragState): LiveEdge | null {
-  if (Math.abs(state.shiftX) < PRESS_MIN_TRAVEL_PX) return null;
-
-  const min = DRAG_MARGIN - state.baseLeft;
-  const max = Math.max(
-    min,
+  const minX = DRAG_MARGIN - state.baseLeft;
+  const maxX = Math.max(
+    minX,
     window.innerWidth - DRAG_MARGIN - state.baseLeft - state.width
   );
-  if (state.shiftX <= min + 1) return "left";
-  if (state.shiftX >= max - 1) return "right";
+  const minY = DRAG_MARGIN - state.baseTop;
+  const maxY = Math.max(
+    minY,
+    window.innerHeight - DRAG_MARGIN - state.baseTop - state.height
+  );
+
+  // 得先真的拖动过，轻轻一碰就贴边不算数
+  if (state.shiftX <= minX + 1 && Math.abs(state.shiftX) >= PRESS_MIN_TRAVEL_PX) {
+    return "left";
+  }
+  if (state.shiftX >= maxX - 1 && state.shiftX >= PRESS_MIN_TRAVEL_PX) {
+    return "right";
+  }
+  if (state.shiftY <= minY + 1 && Math.abs(state.shiftY) >= PRESS_MIN_TRAVEL_PX) {
+    return "top";
+  }
+  if (state.shiftY >= maxY - 1 && state.shiftY >= PRESS_MIN_TRAVEL_PX) {
+    return "bottom";
+  }
   return null;
 }
 
-/** 隔壁的猫从它那条边出去，就进我这条边（我这边是相反的一侧） */
+/** 对面那条边：从左边进来的猫，是从右边的窗口出去的 */
+const OPPOSITE_EDGE: Record<LiveEdge, LiveEdge> = {
+  left: "right",
+  right: "left",
+  top: "bottom",
+  bottom: "top",
+};
+
 function incomingEdge(edge: LiveEdge): LiveEdge {
-  return edge === "right" ? "left" : "right";
+  return OPPOSITE_EDGE[edge];
+}
+
+/** 拿一个屏幕坐标去问：这地方贴着我哪条边（用来决定猫从哪边滑进来） */
+function edgeFromPoint(x: number, y: number): LiveEdge {
+  const localX = x - window.screenX;
+  const localY = y - window.screenY;
+  const dx = localX - window.innerWidth / 2;
+  const dy = localY - window.innerHeight / 2;
+  if (Math.abs(dx) >= Math.abs(dy)) return dx < 0 ? "left" : "right";
+  return dy < 0 ? "top" : "bottom";
+}
+
+/** 被拎着的猫现在在大桌面的哪个位置（卡片中心点的屏幕绝对坐标） */
+function cardPointAbs(shiftX: number, shiftY: number): { card: LiveCardId; x: number; y: number } {
+  const index = draggedIndex.value;
+  return {
+    card: cardIdOf(index),
+    x: Math.round(window.screenX + drag!.baseLeft + shiftX + drag!.width / 2),
+    y: Math.round(window.screenY + drag!.baseTop + shiftY + drag!.height / 2),
+  };
 }
 
 /** 从某条边滑进来：先摆到窗口外，再把过渡交还给样式，让猫自己跑回原位 */
 function slideInFrom(slot: HTMLElement, edge: LiveEdge, over: number): void {
   const rect = slot.getBoundingClientRect();
-  const offscreen =
+  const offscreenX =
     edge === "right"
       ? window.innerWidth + over - rect.left
-      : -(rect.left + rect.width + over);
+      : edge === "left"
+        ? -(rect.left + rect.width + over)
+        : 0;
+  const offscreenY =
+    edge === "bottom"
+      ? window.innerHeight + over - rect.top
+      : edge === "top"
+        ? -(rect.top + rect.height + over)
+        : 0;
 
   slot.style.transition = "none";
-  slot.style.translate = `${offscreen}px 0`;
+  slot.style.translate = `${offscreenX}px ${offscreenY}px`;
   void slot.offsetWidth;
   slot.style.transition = "";
   slot.style.translate = "";
@@ -446,6 +533,67 @@ function receiveCat(payload: HandoffPayload): void {
   }, SPEECH_LINGER_MS);
 }
 
+/** 本窗口这只猫正被拖到别人的地盘上：先把自己那张收起来，别两边同时出现 */
+function setRoaming(active: boolean, index: number): void {
+  if (active === (roamingIndex === index)) return;
+  roamingIndex = active ? index : -1;
+  awayIndex.value = active ? index : -1;
+}
+
+/** 拖动中把猫的位置报给隔壁窗口（节流：隔得够快或者挪得够远才发） */
+function reportRoam(point: { x: number; y: number }): void {
+  if (!peerLink.liveRoam) return;
+  const now = Date.now();
+  const moved = Math.hypot(point.x - roamSentX, point.y - roamSentY) >= ROAM_MIN_PX;
+  if (!moved || now - roamSentAt < ROAM_MIN_MS) return;
+
+  roamSentAt = now;
+  roamSentX = point.x;
+  roamSentY = point.y;
+  peerLink.sendRoam({ card: cardIdOf(draggedIndex.value), x: point.x, y: point.y });
+}
+
+/** 隔壁的猫路过我这块屏幕：落到我的地盘上就画出来，出了地盘就收掉 */
+function showRoamer(point: RoamPoint): void {
+  const x = point.x - window.screenX;
+  const y = point.y - window.screenY;
+  const inside =
+    x >= 0 && x <= window.innerWidth && y >= 0 && y <= window.innerHeight;
+  roamer.value = inside ? { card: point.card, x, y } : null;
+
+  // 拖动中断了、对面崩了，位置就不再更新，靠这个兜底把过路猫收掉
+  window.clearTimeout(roamerTimer);
+  roamerTimer = window.setTimeout(() => {
+    roamer.value = null;
+  }, ROAM_STALE_MS);
+}
+
+/** 隔壁松手了，猫落在我这块屏幕里：接住它，从落点那一侧滑回原位 */
+function catchDroppedCat(point: RoamPoint): void {
+  const index = point.card === "neko" ? 0 : 1;
+  const slot = slotOf(index);
+  if (drag || !slot) return;
+
+  // 自己那只本来在隔壁，人家丢回来了
+  if (awayIndex.value === index) {
+    awayIndex.value = -1;
+    awayTo = "";
+    window.clearTimeout(awayTimer);
+  }
+  roamer.value = null;
+  window.clearTimeout(roamerTimer);
+
+  slideInFrom(slot, edgeFromPoint(point.x, point.y), SLIDE_IN_OVER_PX);
+  markEgg("crossHandoff");
+  speech.value = "隔壁推我一把";
+  draggedIndex.value = index;
+  window.clearTimeout(speechTimer);
+  speechTimer = window.setTimeout(() => {
+    draggedIndex.value = -1;
+    speech.value = "";
+  }, SPEECH_LINGER_MS);
+}
+
 /** 串门：隔壁有窗口时，偶尔从边上探个小脑袋出来看一眼又缩回去 */
 function scheduleVisitor(): void {
   window.clearTimeout(visitorTimer);
@@ -469,11 +617,14 @@ const stageNote = computed(() => {
   if (peerHint.value) return peerHint.value;
   if (awayIndex.value >= 0) return "有只猫去隔壁串门了";
 
-  const { left, right } = peerLink.peerSides.value;
-  if (left > 0 && right > 0) return `左边 ${left} 只、右边 ${right} 只猫都在看着`;
-  if (left > 0) return `左边还有 ${left} 只猫在看着`;
-  if (right > 0) return `右边还有 ${right} 只猫在看着`;
-  return "两只猫正蹲在这里";
+  const { left, right, above, below } = peerLink.peerSides.value;
+  const around: string[] = [];
+  if (left > 0) around.push(`左边 ${left} 只`);
+  if (right > 0) around.push(`右边 ${right} 只`);
+  if (above > 0) around.push(`上边 ${above} 只`);
+  if (below > 0) around.push(`下边 ${below} 只`);
+  // 窗口摆成一排、叠着、散在四角，都能说清猫都在哪几个方向
+  return around.length > 0 ? `${around.join("、")}猫都在看着` : "两只猫正蹲在这里";
 });
 
 /** 被拎起来的时候随口抱怨的话 */
@@ -649,8 +800,12 @@ function onPointerDown(event: PointerEvent, index: number): void {
   } catch {
     // 交给冒泡上来的事件处理，不影响的
   }
-  slot.classList.add("is-dragging");
+  draggingIndex.value = index;
   resetDragTrack(event.clientX);
+  // 重新拎起来就当第一次报位置：别拿上一轮的旧坐标去比"这次挪够了没有"
+  roamSentAt = 0;
+  roamSentX = Number.NEGATIVE_INFINITY;
+  roamSentY = Number.NEGATIVE_INFINITY;
   draggedIndex.value = index;
   speech.value = GRUMBLES[Math.floor(Math.random() * GRUMBLES.length)];
   window.clearTimeout(speechTimer);
@@ -663,7 +818,7 @@ function releaseDrag(): void {
   if (!drag) return;
   const { card, pointerId, slot } = drag;
   if (card.hasPointerCapture(pointerId)) card.releasePointerCapture(pointerId);
-  slot.classList.remove("is-dragging");
+  draggingIndex.value = -1;
   slot.style.translate = "";
   slot.style.rotate = "";
   drag = null;
@@ -675,45 +830,48 @@ function releaseDrag(): void {
 function onPointerMove(event: PointerEvent): void {
   if (!drag || event.pointerId !== drag.pointerId) return;
 
-  // 左右哪边还开着另一个 neko 页面，就允许把猫往那边再推一截
-  const hasSidePeer =
-    peerLink.neighborTowards("left") !== null ||
-    peerLink.neighborTowards("right") !== null;
-  const dx = limitShift(
-    event.clientX - drag.startX,
-    drag.baseLeft,
-    drag.width,
-    window.innerWidth,
-    hasSidePeer ? HANDOFF_PUSH_PX : 0
-  );
-  const dy = limitShift(
-    event.clientY - drag.startY,
-    drag.baseTop,
-    drag.height,
-    window.innerHeight
-  );
+  const rawX = event.clientX - drag.startX;
+  const rawY = event.clientY - drag.startY;
+  // 能实时漫游时让猫跟着手真的跑出窗口（跨屏要的就是这个），
+  // 撑不住高频消息就还按老办法限制在窗口里，顶到边上再交给隔壁
+  const freeRoam = peerLink.liveRoam && peerLink.hasPeers();
+  const slack = !freeRoam && peerLink.hasPeers() ? HANDOFF_PUSH_PX : 0;
+  const dx = freeRoam
+    ? rawX
+    : limitShift(rawX, drag.baseLeft, drag.width, window.innerWidth, slack);
+  const dy = freeRoam
+    ? rawY
+    : limitShift(rawY, drag.baseTop, drag.height, window.innerHeight, slack);
   drag.shiftX = dx;
   drag.shiftY = dy;
   // 位置直接给到手上，拖尾和回弹交给样式里的过渡，掉帧也不会变形
   drag.slot.style.translate = `${dx}px ${dy}px`;
 
-  // 贴着左边还是右边：越界的看越出方向，没越界的看是不是顶到边上了
-  const over = overshootOf(dx, drag.baseLeft, drag.width, window.innerWidth);
-  const edge = over !== 0 ? (over > 0 ? "right" : "left") : pressedEdge(drag);
-  const target = edge ? peerLink.neighborTowards(edge) : null;
+  // 猫飘到别人地盘上了就把自己那张收起来，位置实时报给各个窗口接力
+  if (freeRoam) {
+    const point = cardPointAbs(dx, dy);
+    const owner = peerLink.ownerAt(point.x, point.y);
+    setRoaming(owner !== null && !owner.self, draggedIndex.value);
+    reportRoam(point);
+  } else {
+    // 贴着左边还是右边：越界的看越出方向，没越界的看是不是顶到边上了
+    const over = overshootOf(dx, drag.baseLeft, drag.width, window.innerWidth);
+    const edge = over !== 0 ? (over > 0 ? "right" : "left") : pressedEdge(drag);
+    const target = edge ? peerLink.neighborTowards(edge) : null;
 
-  // 推过头就当场把猫交给隔壁，不用等松手
-  if (edge && target && Math.abs(over) >= HANDOFF_GO_PX) {
-    const index = draggedIndex.value;
-    releaseDrag();
-    handOffCard(index, edge, Math.abs(over));
-    return;
-  }
+    // 推过头就当场把猫交给隔壁，不用等松手
+    if (edge && target && Math.abs(over) >= HANDOFF_GO_PX) {
+      const index = draggedIndex.value;
+      releaseDrag();
+      handOffCard(index, edge, Math.abs(over));
+      return;
+    }
 
-  // 猫顶在边上等着出手：先跟对面打声招呼，让它把猫叫醒准备接
-  if (edge && target && Date.now() - warnedAt > WARN_INTERVAL_MS) {
-    warnedAt = Date.now();
-    peerLink.warnIncoming(target.id, edge);
+    // 猫顶在边上等着出手：先跟对面打声招呼，让它把猫叫醒准备接
+    if (edge && target && Date.now() - warnedAt > WARN_INTERVAL_MS) {
+      warnedAt = Date.now();
+      peerLink.warnIncoming(target.id, edge);
+    }
   }
 
   // 顺手数一数彩蛋：摇猫猫、遛猫
@@ -742,19 +900,46 @@ function onPointerUp(event: PointerEvent): void {
   if (card.hasPointerCapture(event.pointerId)) {
     card.releasePointerCapture(event.pointerId);
   }
-  // 顶到窗口边上松手就当把猫扔出去（推越界的在拖动途中就已经交出去了）
-  const over = overshootOf(drag.shiftX, drag.baseLeft, drag.width, window.innerWidth);
-  const edge = over !== 0 ? (over > 0 ? "right" : "left") : pressedEdge(drag);
-  if (edge && peerLink.neighborTowards(edge)) {
-    const index = draggedIndex.value;
-    releaseDrag();
-    handOffCard(index, edge, over !== 0 ? Math.abs(over) : SLIDE_IN_OVER_PX);
-    return;
+
+  // 猫正飘在大桌面上（跨屏自由拖）：落在谁的屏幕里就归谁接
+  if (roamingIndex >= 0) {
+    const index = roamingIndex;
+    const point = cardPointAbs(drag.shiftX, drag.shiftY);
+    const owner = peerLink.ownerAt(point.x, point.y);
+
+    if (owner && !owner.self) {
+      peerLink.sendDrop(owner.id, point);
+      markEgg("crossHandoff");
+      roamingIndex = -1;
+      awayIndex.value = index;
+      awayEdge = edgeFromPoint(point.x, point.y);
+      awayTo = owner.id;
+      window.clearTimeout(awayTimer);
+      awayTimer = window.setTimeout(() => bringCatHome(), AWAY_RETURN_MS);
+      releaseDrag();
+      resumePlay();
+      return;
+    }
+
+    // 又拖回自己地盘上、或者落在窗口之间的空当里：猫自己回来
+    setRoaming(false, index);
+  } else {
+    // 撑不住实时传位置时还按老办法：顶到窗口边上松手就当把猫扔出去
+    //（推越界的在拖动途中就已经交出去了）
+    const over = overshootOf(drag.shiftX, drag.baseLeft, drag.width, window.innerWidth);
+    const edge = over !== 0 ? (over > 0 ? "right" : "left") : pressedEdge(drag);
+    if (edge && peerLink.neighborTowards(edge)) {
+      const index = draggedIndex.value;
+      releaseDrag();
+      handOffCard(index, edge, over !== 0 ? Math.abs(over) : SLIDE_IN_OVER_PX);
+      resumePlay();
+      return;
+    }
   }
   // 松手落在另一张卡身上就算叠猫猫（要赶在清掉位移之前量）
   if (isStackedOnOther(slot)) markEgg("cardStack");
   // 交还样式：过渡会把猫带着惯性送回原位，顺带晃两下
-  slot.classList.remove("is-dragging");
+  draggingIndex.value = -1;
   slot.style.translate = "";
   slot.style.rotate = "";
   drag = null;
@@ -765,10 +950,12 @@ function onPointerUp(event: PointerEvent): void {
     speech.value = "";
   }, SPEECH_LINGER_MS);
 
-  // 闹完了，接着原来的节奏演
-  if (stageVisible) {
-    schedulePlay(nextPlayDelay());
-  }
+  resumePlay();
+}
+
+/** 闹完了，接着原来的节奏演 */
+function resumePlay(): void {
+  if (stageVisible) schedulePlay(nextPlayDelay());
 }
 
 onMounted(() => {
@@ -776,6 +963,9 @@ onMounted(() => {
   watchStage();
 
   peerLink.onHandoff(receiveCat);
+  // 隔壁正拎着猫拖过我这块屏幕：一路画着走，松手落在谁那儿谁接
+  peerLink.onRoam(showRoamer);
+  peerLink.onDrop(catchDroppedCat);
   // 隔壁说猫要来了，先在标题那行通个风，别让它凭空从边上冒出来
   peerLink.onIncoming(() => {
     peerHint.value = "隔壁好像要把猫扔过来了…";
@@ -806,6 +996,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(visitorTimer);
   window.clearTimeout(visitorHideTimer);
   window.clearTimeout(peerHintTimer);
+  window.clearTimeout(roamerTimer);
   peerLink.stop();
 });
 
@@ -988,6 +1179,40 @@ html.dark .home-live-bubble {
 html.dark .home-live-visitor {
   border-color: #262a33;
   background: #262a33;
+}
+
+/* 隔壁正拎着猫路过我这儿：按屏幕坐标定点画一只，跟着对面手上的动作走。
+   挂在 body 上，免得被页面的裁剪区截掉 */
+.home-live-roamer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 8;
+  width: 42px;
+  height: 42px;
+  translate: -50% -50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--vp-c-accent, #096dd9) 26%, transparent);
+  opacity: 0.85;
+  pointer-events: none;
+  /* 位置消息隔着 45ms 来一条，用一小段线性过渡把中间补顺，看着才是走过来的 */
+  transition: transform 0.08s linear;
+}
+
+.home-live-roamer img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+html.dark .home-live-roamer {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #262a33;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes home-live-visit {
@@ -1759,6 +1984,10 @@ html.dark .home-live-avatar {
 
   /* 拖拽是手带出来的动作，跟手照旧，只是松手不再弹 */
   .home-live-slot {
+    transition: none;
+  }
+
+  .home-live-roamer {
     transition: none;
   }
 }

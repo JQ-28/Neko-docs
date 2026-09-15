@@ -5,6 +5,13 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+// 首页的猫能被拎着拖出窗口交给隔壁窗口，往右拖时那块位移会把页面的滚动区撑宽。
+// 在这一层裁掉横向溢出：猫到窗口边上就自然出去了，也不会多出横向滚动条。
+// 只用 clip 不用 hidden，它不建立滚动容器，纵向滚动和 fixed 定位都不受影响
+#app {
+  overflow-x: clip;
+}
+
 .qq-chat-interface {
   border: 2px solid #f9bdeb;
   border-radius: 20px;
