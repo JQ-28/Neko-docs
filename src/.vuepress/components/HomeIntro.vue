@@ -1,5 +1,7 @@
 <template>
   <section class="home-intro" :class="{ entered }">
+    <OnlineCounter />
+
     <h2 class="home-intro-title">
       <span class="home-intro-bar" aria-hidden="true"></span>
       Neko 能做什么？
@@ -78,6 +80,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { copyText, showTip } from "./copy-utils";
+import OnlineCounter from "./OnlineCounter.vue";
 
 interface HomeFeat {
   name: string;
