@@ -83,6 +83,8 @@ export interface LiveShow {
   canPlay(): boolean;
   /** 演一段（不给就随机挑一段） */
   play(options?: PlayOptions): void;
+  /** 按名字演指定的那一段（对话中间插戏用）；凑不齐两张就演不成，返回 false */
+  playByName(name: string): boolean;
   /** 新卡落地那段见面小戏演哪一段 */
   pickGreeting(): PlayScript;
   /** 刚露头：按规矩排第一段 */
@@ -227,6 +229,12 @@ export function useLiveShow(host: ShowHost): LiveShow {
     lastPlayedAt: () => lastPlayedAt,
     canPlay,
     play: (options) => void playScript(options),
+    playByName: (name) => {
+      const script = PLAY_SCRIPTS.find((item) => item.name === name);
+      if (!script || host.cards().length < PLAY_CARDS) return false;
+      void playScript({ script });
+      return true;
+    },
     pickGreeting: () => GREET_SCRIPTS[Math.floor(Math.random() * GREET_SCRIPTS.length)],
     scheduleFirst: () => {
       // 刚露头就演一段，离上一段太近的话先把间隔补够

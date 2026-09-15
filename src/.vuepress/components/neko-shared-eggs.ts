@@ -17,7 +17,8 @@ export const TOOLS_EGGS = {
 export const DOCS_EGGS = {
   docsNight: '文档站夜读', docsSearchNeko: '搜索框喊猫', docsEggsSearch: '抽屉里的册子',
   cardShake: '摇猫猫', cardStack: '叠猫猫', cardWalk: '遛猫', peekShows: '猫猫剧场', onlineAlone: '独守空站',
-  crossHandoff: '跨屏接力', twinDance: '猫界齐舞',
+  crossHandoff: '跨屏接力', twinDance: '猫界齐舞', docsStare: '屏幕外的人类',
+  cursorStill: '静止的箭头', cardTaps: '六连戳', scrollDash: '嗖一下', backAfterWeek: '好久不见',
 };
 
 export const EGGS = { ...TOOLS_EGGS, ...DOCS_EGGS };
@@ -83,6 +84,11 @@ export const EGG_HINTS = {
   onlineAlone: '深夜只剩你一只猫在逛的时候，留意一下在线猫猫说的话',
   crossHandoff: '同一台电脑上把首页开在两个窗口里，抓着猫往窗口边上推，它会甩到隔壁那扇窗去',
   twinDance: '首页开着两个窗口的时候，两边的猫会隔着窗户同时演同一段',
+  docsStare: '在首页安安静静待够一分半，别急着往下滚，它们会先发现你在看',
+  cursorStill: '光标停在首页三十秒别动，看看它们会不会替你解释你在干嘛',
+  cardTaps: '五秒之内戳同一张卡六下，戳到它开口为止',
+  scrollDash: '从首页顶端一口气滚到最底下，快一点，它眼睛会跟不上',
+  backAfterWeek: '隔上一个星期再来一次，它会记得你上次来的时候在干嘛',
   miaoMode: '在外观或偏好设置里打开喵语模式，让整站都喵起来',
 };
 

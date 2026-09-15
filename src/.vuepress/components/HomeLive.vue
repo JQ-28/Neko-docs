@@ -195,6 +195,106 @@ const slotEls = new Map<string, HTMLElement>();
 const visitorSide = ref<"" | LiveEdge>("");
 /** 卡片区在不在视野里：滚进视野才开演、才开口 */
 let stageVisible = false;
+/** 观众盯着卡片区看了多久：在视野里、页面也没被切走，才继续计时 */
+let lingerMs = 0;
+let lingerSince = 0;
+/** 刚从别的标签页切回来是什么时候（时间戳，没切过就是 0） */
+let returnedAt = 0;
+/** 「刚切回来」这话说出去多久之内还算新鲜 */
+const RETURNED_MS = 45_000;
+
+/** 观众的目光这会儿是不是落在卡片上：露头了、页面也没被切走 */
+function isWatched(): boolean {
+  return stageVisible && !document.hidden;
+}
+
+/** 目光落上来就开始计时，移开（滚走、切后台、切标签页）就停表，回来接着累加 */
+function syncLinger(): void {
+  if (isWatched()) {
+    if (!lingerSince) lingerSince = Date.now();
+    return;
+  }
+  if (!lingerSince) return;
+  lingerMs += Date.now() - lingerSince;
+  lingerSince = 0;
+}
+
+/** 到这会儿为止，观众一共盯着看了多少秒 */
+function lingerSeconds(): number {
+  return Math.floor((lingerMs + (lingerSince ? Date.now() - lingerSince : 0)) / 1000);
+}
+
+/** 光标静止多久算「手放下了」；连戳几下算「戳猫猫」；多快滚完整页算「嗖一下」 */
+const CURSOR_IDLE_MS = 30_000;
+const TAP_BURST_COUNT = 6;
+const TAP_WINDOW_MS = 5_000;
+/** 「嗖一下」的宽容度：从顶到底两秒半之内都算，程序化平滑滚动那点时间也算进来 */
+const SCROLL_DASH_MS = 2_500;
+/** 这些「时刻」说出去多久之内还算新鲜，过了就等下一回 */
+const MOMENT_FRESH_MS = 30_000;
+/** 上次来的时间戳记在这儿，隔几天再来才有「好久不见」 */
+const LAST_SEEN_KEY = "neko-live-last-seen";
+const DAY_MS = 86_400_000;
+
+/** 小箭头最后动过是什么时候、同一张卡连着戳了几次、什么时候戳满的、什么时候一口气滚到底的 */
+let cursorMovedAt = 0;
+let tapCount = 0;
+let tapSince = 0;
+let lastTapCard = "";
+let tapBurstAt = 0;
+let topAt = 0;
+let scrollDashAt = 0;
+/** 距上一次来隔了多少天（头一回来是 0） */
+let awayDays = 0;
+
+/** 手一动（划、点、敲键盘）就重新计时：静下来三十秒才轮到那句「手放下了」 */
+function noteActivity(): void {
+  cursorMovedAt = Date.now();
+}
+
+/** 数一数这一张卡被戳了几下：五秒内戳满六下就记一笔 */
+function countTap(cardId: string): void {
+  const now = Date.now();
+  if (cardId !== lastTapCard || now - tapSince > TAP_WINDOW_MS) {
+    lastTapCard = cardId;
+    tapSince = now;
+    tapCount = 0;
+  }
+  tapCount += 1;
+  if (tapCount >= TAP_BURST_COUNT) {
+    tapBurstAt = now;
+    tapCount = 0;
+  }
+}
+
+/** 一口气从顶滚到底：从顶部起算一秒半之内见底才算「嗖一下」 */
+function onScroll(): void {
+  const doc = document.documentElement;
+  const max = doc.scrollHeight - window.innerHeight;
+  // 页面不够长就不凑热闹，免得随便一滑就中
+  if (max < window.innerHeight) return;
+  const top = window.scrollY;
+  const now = Date.now();
+  if (top < 120) {
+    topAt = now;
+    return;
+  }
+  if (top >= max - 8 && now - topAt < SCROLL_DASH_MS) scrollDashAt = now;
+}
+
+/** 上一次来是什么时候：读完就把此刻记下，下回再算隔了几天 */
+function readAwayDays(): number {
+  try {
+    const raw = window.localStorage.getItem(LAST_SEEN_KEY);
+    window.localStorage.setItem(LAST_SEEN_KEY, String(Date.now()));
+    if (!raw) return 0;
+    const days = Math.floor((Date.now() - Number(raw)) / DAY_MS);
+    return Number.isFinite(days) && days > 0 ? days : 0;
+  } catch {
+    // 隐私模式等存储异常：当头一回来
+    return 0;
+  }
+}
 
 /** 演出：演哪一段、什么时候演、两张卡谁左谁右 */
 const show = useLiveShow({
@@ -202,8 +302,10 @@ const show = useLiveShow({
   slotOf: (cardId) => slotEls.get(cardId),
   visible: () => stageVisible,
   hasPeers: () => peerLink.hasPeers(),
-  // 演完一段，让它们趁热说两句刚才那一下
-  onFinished: () => talk.markPlayed(),
+  // 演完一段：是对话中间插的那一下就把话接上，接不上才当普通的「刚演完」
+  onFinished: () => {
+    if (!talk.actDone()) talk.markPlayed();
+  },
 });
 
 /** 说话：谁来说、说什么、多久说一段 */
@@ -213,6 +315,13 @@ const talk = useLiveTalk({
   ready: () => !drag && !show.isPlaying() && roamingIds.value.length === 0,
   peers: () => ({ count: peerLink.peerCount.value, sides: peerLink.peerSides.value }),
   lastPlayedAt: show.lastPlayedAt,
+  linger: lingerSeconds,
+  justReturned: () => Date.now() - returnedAt < RETURNED_MS,
+  cursorIdle: () => cursorMovedAt > 0 && Date.now() - cursorMovedAt >= CURSOR_IDLE_MS,
+  tapBurst: () => tapBurstAt > 0 && Date.now() - tapBurstAt < MOMENT_FRESH_MS,
+  scrollDash: () => scrollDashAt > 0 && Date.now() - scrollDashAt < MOMENT_FRESH_MS,
+  awayDays: () => awayDays,
+  act: (name) => show.playByName(name),
   holdShow: show.hold,
   releaseShow: show.resume,
 });
@@ -275,6 +384,14 @@ let stageWatcher: IntersectionObserver | undefined;
 /** 页面切到后台、或者卡片区滚出视野：常驻的那些无限动画先停下 */
 function syncResting(): void {
   resting.value = document.hidden || !stageVisible;
+  // 顺带把「观众看了多久」的表也对一下：切走就停，切回来接着算
+  syncLinger();
+}
+
+/** 页面切走、切回来：常驻动画跟着停/走，回来那一瞬间记一笔 */
+function onVisibilityChange(): void {
+  if (!document.hidden) returnedAt = Date.now();
+  syncResting();
 }
 
 /** 卡片多半在首屏下面，露头了才开演：在视野里隔一阵循环一段，滚走就停 */
@@ -522,6 +639,9 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   if (event.pointerType === "mouse" && event.button !== 0) return;
   // 静态模式下卡片就摆着看，不给拎
   if (staticMode) return;
+  // 戳猫猫的计数放在最前：戳完变拖拽也算数
+  noteActivity();
+  countTap(card.id);
   // 正在演互动动画、或者已经有一张在手上，就别再拎
   if (drag || show.isPlaying()) return;
 
@@ -712,7 +832,14 @@ onMounted(() => {
   scheduleNudge();
   watchStage();
   syncResting();
-  document.addEventListener("visibilitychange", syncResting);
+  document.addEventListener("visibilitychange", onVisibilityChange);
+
+  // 观众手上在忙什么：划、点、敲键盘都算，滚页面另外记
+  awayDays = readAwayDays();
+  window.addEventListener("pointermove", noteActivity, { passive: true });
+  window.addEventListener("keydown", noteActivity);
+  window.addEventListener("pointerdown", noteActivity, { passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true });
 
   // 隔壁走贴边那条路把卡递过来了：从中转那条边滑进来
   peerLink.onHandoff(receiveCard);
@@ -749,7 +876,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (staticMode) return;
-  document.removeEventListener("visibilitychange", syncResting);
+  document.removeEventListener("visibilitychange", onVisibilityChange);
+  window.removeEventListener("pointermove", noteActivity);
+  window.removeEventListener("keydown", noteActivity);
+  window.removeEventListener("pointerdown", noteActivity);
+  window.removeEventListener("scroll", onScroll);
   stageWatcher?.disconnect();
   window.clearTimeout(idleTimer);
   window.clearTimeout(greetTimer);
