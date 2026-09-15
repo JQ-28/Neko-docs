@@ -12,8 +12,12 @@ function showUpdateCard(worker: ServiceWorker): void {
   button.className = "neko-update-card-button";
   button.textContent = "刷新";
   button.addEventListener("click", () => {
-    card.remove();
+    if (button.classList.contains("is-updating")) return;
+    button.classList.add("is-updating");
     worker.postMessage({ type: "SKIP_WAITING" });
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      window.location.reload();
+    });
   });
 
   card.append(text, button);

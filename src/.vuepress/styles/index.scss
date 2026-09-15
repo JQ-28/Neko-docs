@@ -894,6 +894,32 @@ html.dark .neko-egg-tip-text {
   cursor: pointer;
 }
 
+// 点击刷新后按钮变转圈，等新 SW 接管重载页面
+.neko-update-card-button.is-updating {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.neko-update-card-button.is-updating::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: neko-update-spin 0.8s linear infinite;
+}
+
+@keyframes neko-update-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes neko-update-in {
   from {
     opacity: 0;
