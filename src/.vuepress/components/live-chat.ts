@@ -10,7 +10,9 @@ import {
   CHAT_TURNS,
   JUST_DRAGGED_MS,
   JUST_PLAYED_MS,
+  LINE_GESTURES,
   MEME_GAP_MS,
+  MOOD_GESTURES,
   MOOD_LINES,
   MOMENT_CHANCE,
   SPEECH_LINES,
@@ -20,6 +22,7 @@ import {
   type ChatMood,
   type ChatTurn,
   type EmoState,
+  type GestureName,
   type SpeechLines,
 } from "./live-lines";
 
@@ -97,6 +100,8 @@ export interface LiveTalk {
   readonly speakingId: Ref<string>;
   /** 冒出来的那句话 */
   readonly speech: Ref<string>;
+  /** 这句配的小动作（没标就是空，老老实实点头） */
+  readonly speakingGesture: Ref<GestureName | "">;
   /** 让某张卡从它的台词池里说一句 */
   say(card: CardSpec, type: keyof SpeechLines): void;
   /** 松手了：刚那句话再挂一会儿再收，像还在嘀咕 */
@@ -107,6 +112,8 @@ export interface LiveTalk {
   forget(cardId: string): void;
   /** 正在说的那段别说了 */
   stop(): void;
+  /** 话还没说完吗（含着两句中间的停顿）；大编舞要等这个空了再开演 */
+  isChatting(): boolean;
   /** 落地那两句聊完以后，接着排平时的闲聊 */
   scheduleAfterGreeting(): void;
   /** 刚被拎起来玩过：趁热让它们嘀咕两句 */
@@ -154,10 +161,13 @@ function castOf(kinds: ReadonlySet<CardSpec["kind"]>): ChatCast | null {
 
 export function useLiveTalk(host: TalkHost): LiveTalk {
   const speakingId = ref("");
+  const speakingGesture = ref<GestureName | "">("");
   const speech = ref("");
   let speechTimer = 0;
   let chatTimer = 0;
   let turnTimer = 0;
+  /** 下一句已经排上了（还没到点）：用来判断「话还没说完」 */
+  let turnPending = false;
   /** 对话的场次号：中途被拎走、卡片被搬走就加一，正在说的那段自己作废 */
   let chatRun = 0;
   /** 上一句是谁说的，下一句换张卡张嘴 */
@@ -271,6 +281,9 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   function showSpeech(cardId: string, line: string): void {
     speakingId.value = cardId;
     speech.value = line;
+    // 说这句时配什么小动作：台词上标了就用标的，没标就照眼下的心情来
+    speakingGesture.value =
+      LINE_GESTURES[line] ?? MOOD_GESTURES[currentEmo(host.cards().length)] ?? "";
     window.clearTimeout(speechTimer);
     speechTimer = window.setTimeout(() => {
       speakingId.value = "";
@@ -419,7 +432,9 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     window.clearTimeout(turnTimer);
     if (act) {
       pending = { turns, index: index + 1, run, previous: speaker.id };
+      turnPending = true;
       turnTimer = window.setTimeout(() => {
+        turnPending = false;
         if (run !== chatRun) {
           pending = null;
           return;
@@ -433,10 +448,11 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       return;
     }
 
-    turnTimer = window.setTimeout(
-      () => playTurn(turns, index + 1, run, speaker.id),
-      CHAT_TURN_MS
-    );
+    turnPending = true;
+    turnTimer = window.setTimeout(() => {
+      turnPending = false;
+      playTurn(turns, index + 1, run, speaker.id);
+    }, CHAT_TURN_MS);
   }
 
   /** 轮到说话了：偶尔只是自己嘀咕一句，多数时候两张以上就来一段你一句我一句 */
@@ -488,6 +504,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
 
   return {
     speakingId,
+    speakingGesture,
     speech,
     say: (card, type) => showSpeech(card.id, pickLine(card, type)),
     lingerSpeech: () => {
@@ -516,6 +533,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       window.clearTimeout(turnTimer);
     },
     scheduleAfterGreeting: () => schedule(GREETING_REPLY_MS + nextChatDelay()),
+    isChatting: () => speakingId.value !== "" || turnPending || pending !== null,
     markDragged: () => {
       lastDragAt = Date.now();
       // 刚被人拎来拎去：先闹一会儿别扭

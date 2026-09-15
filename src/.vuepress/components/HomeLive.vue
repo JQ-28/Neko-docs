@@ -8,7 +8,11 @@
 
     <!-- 卡片住在哪扇窗口就由哪扇窗口渲染：本窗口生的 + 隔壁搬过来的，拖走一张这里就少一张。
          有哪些卡要等挂载后才知道（每扇窗口各生各的），首帧先空着，水合才对得上 -->
-    <div v-if="mounted" class="home-live-cards">
+    <div
+      v-if="mounted"
+      class="home-live-cards"
+      :style="{ '--play-gap': `${playGap}px`, '--play-span': `${playSpan}px` }"
+    >
       <div
         v-for="(card, index) in liveCards"
         :key="card.id"
@@ -20,8 +24,10 @@
           'is-away': roamingIds.includes(card.id),
           'is-dragging': draggingId === card.id,
           'is-playing': playingName !== '',
+          'is-talking': speakingId === card.id,
         }"
         :data-play="playingName || undefined"
+        :data-gesture="speakingId === card.id && speakingGesture ? speakingGesture : undefined"
         @pointerdown="onPointerDown($event, card)"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -157,6 +163,27 @@ const peerLink = staticMode ? idlePeerLink() : startPeerLink();
 const resting = ref(false);
 /** 本窗口的显示顺序（拖卡片互相换位改的就是它），各扇窗口各排各的 */
 const cardOrder = ref<string[]>([]);
+
+/** 两张卡之间真实隔着多远（大编舞的位移全按它算，窄屏自动收窄）；没量到时用这套兜底 */
+const PLAY_GAP_DEFAULT = 140;
+const PLAY_GAP_MIN = 80;
+const PLAY_GAP_MAX = 320;
+/** 「绕过对方站到另一边」需要的距离，封顶免得飞出屏幕 */
+const PLAY_SPAN_MAX = 540;
+const playGap = ref(PLAY_GAP_DEFAULT);
+const playSpan = ref(PLAY_GAP_DEFAULT * 2);
+
+/** 每次开演前量一次：flex 布局下两张卡的距离随视口变，动画里的位移不能写死 */
+function measurePlayDistance(): void {
+  const { left, right } = show.playSide.value;
+  const leftSlot = slotEls.get(left);
+  const rightSlot = slotEls.get(right);
+  if (!leftSlot || !rightSlot) return;
+  const gap = Math.abs(leftSlot.offsetLeft - rightSlot.offsetLeft);
+  if (gap < PLAY_GAP_MIN) return;
+  playGap.value = Math.min(gap, PLAY_GAP_MAX);
+  playSpan.value = Math.min(gap + leftSlot.offsetWidth, PLAY_SPAN_MAX);
+}
 
 /** 手上这几张卡按本窗口的顺序排：新来的排在末尾，走了的从顺序里清掉 */
 function syncCardOrder(): void {
@@ -307,17 +334,23 @@ const show = useLiveShow({
   slotOf: (cardId) => slotEls.get(cardId),
   visible: () => stageVisible,
   hasPeers: () => peerLink.hasPeers(),
-  // 演完一段：是对话中间插的那一下就把话接上，接不上才当普通的「刚演完」
+  // 开演前先量一次两张卡的实际距离，大编舞的位移全靠它
+  onStarted: () => measurePlayDistance(),
   onFinished: () => {
+    // 是对话中间插的那一下就把话接上，接不上才当普通的「刚演完」
     if (!talk.actDone()) talk.markPlayed();
   },
+  // 大编舞要独占台面：话没说完、或者手正拎着卡，就先别演
+  bigReady: () => !talk.isChatting() && !drag,
 });
 
 /** 说话：谁来说、说什么、多久说一段 */
 const talk = useLiveTalk({
   cards: () => liveCards.value,
   visible: () => stageVisible,
-  ready: () => !drag && !show.isPlaying() && roamingIds.value.length === 0,
+  // 页面切到后台就别说话了：说了也没人听得见，白排一场
+  ready: () =>
+    !drag && !show.isPlaying() && roamingIds.value.length === 0 && !document.hidden,
   peers: () => ({ count: peerLink.peerCount.value, sides: peerLink.peerSides.value }),
   lastPlayedAt: show.lastPlayedAt,
   linger: lingerSeconds,
@@ -332,7 +365,7 @@ const talk = useLiveTalk({
 });
 
 const { playingName, playSide } = show;
-const { speakingId, speech } = talk;
+const { speakingId, speech, speakingGesture } = talk;
 
 /** 隔壁喊话说卡要来了，标题那行先替他通个风 */
 const peerHint = ref("");
@@ -936,6 +969,10 @@ html.dark .home-intro-sub {
 /* 两张卡片居中并排，间距留够，像聊天窗里面对面坐着的两个人 */
 .home-live-cards {
   --ease-play: cubic-bezier(0.34, 1.3, 0.64, 1);
+  /* 两张卡的实际距离与「绕过对方」的距离：开演前由脚本量出来覆盖，
+     这里是没量到时的兜底值（大编舞的位移全靠它们，不能是 0） */
+  --play-gap: 140px;
+  --play-span: 280px;
   position: relative;
   display: flex;
   flex-wrap: wrap;
@@ -1195,6 +1232,116 @@ html.dark .home-live-roamer {
     neko-card-float 10s cubic-bezier(0.455, 0.03, 0.515, 0.955) -4.3s infinite;
 }
 
+/* 轮到它说话了：把慢慢浮动换成一行一句的点头，看着像真的在开口。
+   被拎在手上、或者两张卡正演对手戏时让位给那两种动作（不然会互相打断） */
+.home-live-slot.is-talking:not(.is-dragging):not(.is-playing) .home-live-card {
+  animation: home-live-in 0.44s cubic-bezier(0.22, 1, 0.36, 1),
+    neko-card-talk 0.68s ease-in-out infinite;
+}
+
+/* 在线卡的入场动画名字在它自己的 scoped 块里（被哈希过），这里只挂说话那层
+   ——说话时它的慢浮动让位给点头，跟旁边那只同一个节奏（相位错开一点） */
+.home-live-slot.is-talking:not(.is-dragging):not(.is-playing) :deep(.home-online) {
+  animation: neko-card-talk 0.68s ease-in-out 0.06s infinite;
+}
+
+/* 这句台词标了小动作：把点头换成那个动作。幅度不写死在这儿，交给下面 --g-* 那几个数，
+   所以加动作只是加一行变量，不用复制整条 animation */
+.home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) .home-live-card {
+  animation-name: home-live-in, neko-card-gesture;
+  animation-duration: 0.44s, var(--g-dur, 0.68s);
+}
+
+.home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) :deep(.home-online) {
+  animation-name: neko-card-gesture;
+  animation-duration: var(--g-dur, 0.68s);
+}
+
+/* 十一个小动作，说穿了只是改几个数：抬爪、摇、弹、抖、蔫、后缩、凑近、歪头、探头、伸腰、闪一下 */
+.home-live-slot[data-gesture="guard"] {
+  --g-y: 2px;
+  --g-scale: 0.97;
+}
+
+.home-live-slot[data-gesture="sway"] {
+  --g-rot: 3deg;
+}
+
+.home-live-slot[data-gesture="hop"] {
+  --g-y: -4px;
+}
+
+.home-live-slot[data-gesture="shiver"] {
+  --g-rot: 1.2deg;
+  --g-dur: 0.4s;
+}
+
+.home-live-slot[data-gesture="droop"] {
+  --g-y: 3px;
+  --g-scale: 0.985;
+}
+
+.home-live-slot[data-gesture="leanBack"] {
+  --g-y: 2px;
+  --g-scale: 0.97;
+}
+
+.home-live-slot[data-gesture="leanIn"] {
+  --g-y: -2px;
+  --g-scale: 1.03;
+}
+
+.home-live-slot[data-gesture="tilt"] {
+  --g-rot: 5deg;
+}
+
+.home-live-slot[data-gesture="peek"] {
+  --g-x: 5px;
+}
+
+.home-live-slot[data-gesture="stretch"] {
+  --g-y: -3px;
+  --g-scale: 1.025;
+}
+
+.home-live-slot[data-gesture="tick"] {
+  --g-op: 0.68;
+}
+
+/* 说话时的小幅上下：抬两像素、压一像素，节奏比心跳快一点，像嘴里在出字 */
+@keyframes neko-card-talk {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  32% {
+    translate: 0 -2px;
+  }
+
+  64% {
+    translate: 0 1px;
+  }
+}
+
+/* 动作：一口气到位置上再回到原样，看着像做完一个动作而不是在原地抽搐 */
+@keyframes neko-card-gesture {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+    scale: 1;
+    opacity: 1;
+  }
+
+  50% {
+    translate: var(--g-x, 0px) var(--g-y, 0px);
+    rotate: var(--g-rot, 0deg);
+    scale: var(--g-scale, 1);
+    opacity: var(--g-op, 1);
+  }
+}
+
 .home-live-glass {
   position: absolute;
   inset: 0;
@@ -1430,6 +1577,375 @@ html.dark .home-live-avatar {
 
 .home-live-slot--right.is-playing[data-play="swap"] {
   animation: neko-play-swap-left 3.2s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* 下面四段是安静向的，只在台词点名时演（不进平时的随机排期） */
+
+/* 靠一下：两张卡各自向对方挪一点、靠住停半拍，再分开 */
+.home-live-slot.is-playing[data-play="lean"] {
+  animation: neko-play-lean 1.8s var(--ease-play);
+}
+
+/* 递东西：左边那只探出去递，右边那只迎上来接一下 */
+.home-live-slot--left.is-playing[data-play="pass"] {
+  animation: neko-play-pass-give 1.6s var(--ease-play);
+}
+
+.home-live-slot--right.is-playing[data-play="pass"] {
+  animation: neko-play-pass-take 1.6s var(--ease-play);
+}
+
+/* 学对方：同一个动作，右边慢半拍，看着就是跟着学 */
+.home-live-slot.is-playing[data-play="mimic"] {
+  animation: neko-play-mimic 1.8s var(--ease-play);
+}
+
+.home-live-slot--right.is-playing[data-play="mimic"] {
+  animation-delay: 0.15s;
+}
+
+/* 一起看出去：不镜像，两张卡朝同一方向偏头，像同时望见画面外那个人 */
+.home-live-slot.is-playing[data-play="lookOut"] {
+  animation: neko-play-lookOut 2s var(--ease-play);
+}
+
+/* ===== 大编舞：动作大、时间长，隔一阵当一次特别节目，不掺进平时的打闹 ===== */
+
+/* 镜像舞步：两张卡照镜子做同一套动作（这段幅度小，在平时的排期里也会出现） */
+.home-live-slot.is-playing[data-play="mirrorStep"] {
+  animation: neko-play-mirror 3s var(--ease-play);
+}
+
+/* 太极转圈：各自往对方那侧绕半圈、交换位置，再绕回来；一个走上面一个走下面 */
+.home-live-slot.is-playing[data-play="circle"] {
+  --r: calc(var(--play-gap) / 2);
+  animation: neko-play-circle 4.5s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* 跨越玩耍：左边那只原地跳两下，右边那只贴下面跑过去停到它左边，再跑回来 */
+.home-live-slot--left.is-playing[data-play="crossPlay"] {
+  animation: neko-play-cross-jump 7s var(--ease-play);
+  z-index: 2;
+}
+
+.home-live-slot--right.is-playing[data-play="crossPlay"] {
+  animation: neko-play-cross-run 7s cubic-bezier(0.45, 0, 0.55, 1);
+  z-index: 1;
+}
+
+/* 跳背：左边蹲下，右边从它头顶跳过去落到那一侧，再跳回来 */
+.home-live-slot--left.is-playing[data-play="leapfrog"] {
+  animation: neko-play-leap-crouch 3s var(--ease-play);
+}
+
+.home-live-slot--right.is-playing[data-play="leapfrog"] {
+  animation: neko-play-leap-over 3s var(--ease-play);
+  z-index: 2;
+}
+
+/* 绕圈追：右边先跑、左边慢半拍跟上，各绕半圈再归位 */
+.home-live-slot--right.is-playing[data-play="chaseLoop"] {
+  animation: neko-play-chase-loop 6s cubic-bezier(0.45, 0, 0.55, 1) -0.4s;
+}
+
+.home-live-slot--left.is-playing[data-play="chaseLoop"] {
+  animation: neko-play-chase-loop 6s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* 躲猫猫：左边那只缩到对方身后，右边那只左右探头去找 */
+.home-live-slot--left.is-playing[data-play="peekaboo"] {
+  animation: neko-play-hide 4s var(--ease-play);
+  z-index: 1;
+}
+
+.home-live-slot--right.is-playing[data-play="peekaboo"] {
+  animation: neko-play-seek 4s var(--ease-play);
+  z-index: 2;
+}
+
+/* 镜像舞步：同一个动作左右镜像做两轮，像跟着对方一起跳 */
+@keyframes neko-play-mirror {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  15% {
+    transform: translate(calc(-8px * var(--play-dir)), -9px) rotate(calc(-2deg * var(--play-dir)));
+  }
+
+  30% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  45% {
+    transform: translate(calc(8px * var(--play-dir)), -9px) rotate(calc(2deg * var(--play-dir)));
+  }
+
+  60% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  78% {
+    transform: translate(calc(-6px * var(--play-dir)), -6px) rotate(calc(-1.4deg * var(--play-dir)));
+  }
+}
+
+/* 太极转圈：绕半圈到对方的位置（走上面），再绕半圈回来（走下面）。
+   --r 是间距的一半 = 圆的半径，两张卡镜像走，所以一个顺时针一个逆时针 */
+@keyframes neko-play-circle {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate(calc(var(--r) * var(--play-dir)), -20px)
+      rotate(calc(7deg * var(--play-dir)));
+  }
+
+  50% {
+    transform: translate(calc(var(--r) * 2 * var(--play-dir)), 0) rotate(0deg);
+  }
+
+  75% {
+    transform: translate(calc(var(--r) * var(--play-dir)), 20px)
+      rotate(calc(-7deg * var(--play-dir)));
+  }
+}
+
+/* 跨越玩耍 · 左边那只：原地跳两下，等对方从下面跑过去 */
+@keyframes neko-play-cross-jump {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  7% {
+    transform: translate(0, -26px);
+  }
+
+  15% {
+    transform: translate(0, 0);
+  }
+
+  22% {
+    transform: translate(0, -10px);
+  }
+
+  29% {
+    transform: translate(0, 0);
+  }
+
+  55% {
+    transform: translate(0, -24px);
+  }
+
+  63% {
+    transform: translate(0, 0);
+  }
+
+  71% {
+    transform: translate(0, -8px);
+  }
+
+  78% {
+    transform: translate(0, 0);
+  }
+}
+
+/* 跨越玩耍 · 右边那只：贴着下面跑到对方左边，站一会儿，再从下面跑回来。
+   --play-span 是「绕过对方站到另一边」需要的距离，按实际视口量出来的 */
+@keyframes neko-play-cross-run {
+  0%,
+  5% {
+    transform: translate(0, 0);
+  }
+
+  24% {
+    transform: translate(calc(var(--play-span) * var(--play-dir)), 12px)
+      rotate(calc(-3deg * var(--play-dir)));
+  }
+
+  34%,
+  62% {
+    transform: translate(calc(var(--play-span) * var(--play-dir)), 4px) rotate(0deg);
+  }
+
+  92%,
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+/* 跳背 · 蹲着的那只：压低压扁一点，让人从头顶过去 */
+@keyframes neko-play-leap-crouch {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  20%,
+  55% {
+    transform: translate(0, 6px) scale(1, 0.93);
+  }
+
+  78% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+}
+
+/* 跳背 · 跳过去的那只：一头高一头低画个弧，落在对方另一侧，再跳回来 */
+@keyframes neko-play-leap-over {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  20% {
+    transform: translate(calc(var(--play-span) * 0.5 * var(--play-dir)), -30px);
+  }
+
+  45%,
+  58% {
+    transform: translate(calc(var(--play-span) * var(--play-dir)), 0);
+  }
+
+  78% {
+    transform: translate(calc(var(--play-span) * 0.5 * var(--play-dir)), -26px);
+  }
+}
+
+/* 绕圈追：一路绕到对方那一侧再绕回来，跑的时候身子往前倾 */
+@keyframes neko-play-chase-loop {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  22% {
+    transform: translate(calc(var(--play-span) * 0.55 * var(--play-dir)), -14px)
+      rotate(calc(6deg * var(--play-dir)));
+  }
+
+  45% {
+    transform: translate(calc(var(--play-span) * var(--play-dir)), 0)
+      rotate(calc(3deg * var(--play-dir)));
+  }
+
+  70% {
+    transform: translate(calc(var(--play-span) * 0.5 * var(--play-dir)), 14px)
+      rotate(calc(-4deg * var(--play-dir)));
+  }
+}
+
+/* 躲猫猫 · 躲的那只：缩到对方身后，藏一会儿再出来 */
+@keyframes neko-play-hide {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25%,
+  72% {
+    transform: translate(calc(var(--play-gap) * 0.55 * var(--play-dir)), -6px) scale(0.94);
+  }
+}
+
+/* 躲猫猫 · 找的那只：往左探一下、往右探一下，最后回头看见对方 */
+@keyframes neko-play-seek {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  20% {
+    transform: translate(-6px, -3px) rotate(-7deg);
+  }
+
+  40% {
+    transform: translate(6px, -3px) rotate(7deg);
+  }
+
+  60% {
+    transform: translate(-5px, -2px) rotate(-6deg);
+  }
+
+  80% {
+    transform: translate(0, -4px) rotate(0deg);
+  }
+}
+
+/* 靠一下：各自往中间挪，靠住停一会儿再分开 */
+@keyframes neko-play-lean {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+
+  30%,
+  70% {
+    transform: translateX(calc(7px * var(--play-dir))) rotate(calc(1.2deg * var(--play-dir)));
+  }
+}
+
+/* 递：探出去把东西送到对方面前，停一下再收回来 */
+@keyframes neko-play-pass-give {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  35%,
+  60% {
+    transform: translateX(calc(12px * var(--play-dir))) rotate(calc(2deg * var(--play-dir)));
+  }
+}
+
+/* 接：迎上去一点，接住再退回来 */
+@keyframes neko-play-pass-take {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  35%,
+  60% {
+    transform: translateX(calc(4px * var(--play-dir)));
+  }
+}
+
+/* 学：上下两下，谁先谁后交给 animation-delay */
+@keyframes neko-play-mimic {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  25% {
+    transform: translate(calc(2px * var(--play-dir)), -4px);
+  }
+
+  50% {
+    transform: translate(0, 0);
+  }
+
+  75% {
+    transform: translate(calc(2px * var(--play-dir)), -4px);
+  }
+}
+
+/* 一起看出去：同向偏头加一点前倾，像看见了屏幕外面那个人 */
+@keyframes neko-play-lookOut {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  30%,
+  70% {
+    transform: translateY(-2px) rotate(2.5deg) scale(1.02);
+  }
 }
 
 /* 凑近打招呼：先一起往中间靠，碰一下再退回一点点 */
@@ -1874,6 +2390,10 @@ html.dark .home-live-avatar {
 @media (prefers-reduced-motion: reduce) {
   /* 互动动画的选择器特异性较高，这里要写成同级别才盖得住 */
   .home-live-slot.is-playing[data-play],
+  .home-live-slot.is-talking:not(.is-dragging):not(.is-playing) .home-live-card,
+  .home-live-slot.is-talking:not(.is-dragging):not(.is-playing) :deep(.home-online),
+  .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) .home-live-card,
+  .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) :deep(.home-online),
   .home-live-bubble,
   .home-live-card,
   .home-live-avatar.is-moving,

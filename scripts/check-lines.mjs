@@ -48,9 +48,8 @@ function checkText(text, where) {
   if (EMOJI.test(text)) errors.push(`不该有 emoji：${where} 「${text}」`);
 }
 
-const { SPEECH_LINES, MOOD_LINES, CHAT_TURNS, CHAT_MOMENTS } = await import(
-  pathToFileURL(path.join(dir, "live-lines.ts")).href
-);
+const { SPEECH_LINES, MOOD_LINES, CHAT_TURNS, CHAT_MOMENTS, LINE_GESTURES, MOOD_GESTURES } =
+  await import(pathToFileURL(path.join(dir, "live-lines.ts")).href);
 
 for (const [kind, pools] of Object.entries(SPEECH_LINES)) {
   for (const [type, lines] of Object.entries(pools)) collectPool(`SPEECH_LINES.${kind}.${type}`, lines);
@@ -98,7 +97,7 @@ for (const [line, places] of linePlaces) {
 }
 
 const showSource = await readFile(path.join(dir, "live-show.ts"), "utf8");
-const actNames = new Set([...showSource.matchAll(/name: "([a-z]+)"/g)].map((match) => match[1]));
+const actNames = new Set([...showSource.matchAll(/name: "([a-zA-Z]+)"/g)].map((match) => match[1]));
 const eggsSource = await readFile(path.join(dir, "neko-shared-eggs.ts"), "utf8");
 const sliceBlock = (start) => {
   const from = eggsSource.indexOf(start);
@@ -112,20 +111,62 @@ const eggNames = new Set(
 );
 const eggHintBlock = sliceBlock("export const EGG_HINTS");
 
+// 彩蛋：点亮的蛋必须真的在册子里
 CHAT_MOMENTS.forEach((moment, index) => {
   if (moment.egg && !eggNames.has(moment.egg)) {
-    errors.push(`彩蛋名对不上：CHAT_MOMENTS[${index}] 的 egg「${moment.egg}」不在 DOCS_EGGS 里`);
+    errors.push(`彩蛋名对不上：CHAT_MOMENTS[${index}] 的 egg「${moment.egg}」不在彩蛋册子里`);
   }
-  moment.turns.forEach((turn, turnIndex) => {
-    if (turn.act && !actNames.has(turn.act)) {
-      errors.push(`演出名对不上：CHAT_MOMENTS[${index}][${turnIndex}] 的 act「${turn.act}」不在 PLAY_SCRIPTS 里`);
-    }
-  });
 });
+
+// 互动：名字要对得上演出脚本，而且一段里最多插一个（多了会变成一路打下去）
+const allBlocks = [
+  ...Object.entries(CHAT_TURNS).flatMap(([cast, list]) =>
+    list.map((turns, index) => [`CHAT_TURNS.${cast}[${index}]`, turns])
+  ),
+  ...CHAT_MOMENTS.map((moment, index) => [`CHAT_MOMENTS[${index}]`, moment.turns]),
+];
+for (const [where, turns] of allBlocks) {
+  const acts = turns.filter((turn) => turn.act);
+  if (acts.length > 1) errors.push(`一段里插了 ${acts.length} 个互动：${where}`);
+  for (const turn of acts) {
+    if (!actNames.has(turn.act)) {
+      errors.push(`演出名对不上：${where} 的 act「${turn.act}」不在 PLAY_SCRIPTS 里`);
+    }
+  }
+}
 
 // 册子里每颗蛋都得有提示文案，不然收集页会出现一行空白
 for (const id of eggNames) {
   if (!new RegExp(`^\\s*${id}:`, "m").test(eggHintBlock)) errors.push(`彩蛋 ${id} 没写提示文案`);
+}
+
+// 说话时的小动作：挂在不存在的话上会永远不触发，CSS 里没写的动作会静默失效
+const homeSource = await readFile(path.join(dir, "HomeLive.vue"), "utf8");
+const definedGestures = new Set(
+  [...homeSource.matchAll(/\[data-gesture="(\w+)"\]/g)].map((match) => match[1])
+);
+const usedGestures = new Set(
+  [...Object.values(LINE_GESTURES), ...Object.values(MOOD_GESTURES)].filter(Boolean)
+);
+for (const [line, gesture] of Object.entries(LINE_GESTURES)) {
+  if (!linePlaces.has(line)) errors.push(`动作挂在了一句不存在的话上：「${line}」→ ${gesture}`);
+}
+for (const gesture of usedGestures) {
+  if (!definedGestures.has(gesture)) errors.push(`动作 ${gesture} 没有对应的 CSS 规则`);
+}
+for (const gesture of definedGestures) {
+  if (!usedGestures.has(gesture)) warnings.push(`动作 ${gesture} 定义了却没人用`);
+}
+
+// 每段演出脚本都得有样式，不然点了名也只是站着不动
+const definedPlays = new Set(
+  [...homeSource.matchAll(/\[data-play="(\w+)"\]/g)].map((match) => match[1])
+);
+for (const name of actNames) {
+  if (!definedPlays.has(name)) errors.push(`演出 ${name} 没有对应的 CSS 规则`);
+}
+for (const name of definedPlays) {
+  if (!actNames.has(name)) warnings.push(`样式里写了演出 ${name}，但脚本里没有这一段`);
 }
 
 const blockCount = CHAT_MOMENTS.length + Object.values(CHAT_TURNS).reduce((sum, list) => sum + list.length, 0);

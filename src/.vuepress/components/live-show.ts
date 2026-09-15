@@ -14,6 +14,10 @@ export interface PlayScript {
   durationMs: number;
   /** 顺带让两只猫各歪一次头，像在互相打量 */
   withPeek: boolean;
+  /** 只在台词点名时才演，不进随机排期（靠一下、递东西单独演会很莫名其妙） */
+  byLineOnly?: boolean;
+  /** 大编舞：动作大、时间长，当「特别节目」偶尔来一次，不掺进平时的打闹里 */
+  big?: boolean;
 }
 
 export const PLAY_SCRIPTS: readonly PlayScript[] = [
@@ -27,7 +31,31 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "tag", durationMs: 3200, withPeek: false },
   { name: "roll", durationMs: 2800, withPeek: true },
   { name: "swap", durationMs: 3200, withPeek: true },
+  { name: "mirrorStep", durationMs: 3000, withPeek: false },
+  { name: "lean", durationMs: 1800, withPeek: false, byLineOnly: true },
+  { name: "pass", durationMs: 1600, withPeek: false, byLineOnly: true },
+  { name: "mimic", durationMs: 1800, withPeek: false, byLineOnly: true },
+  { name: "lookOut", durationMs: 2000, withPeek: false, byLineOnly: true },
+  { name: "circle", durationMs: 4500, withPeek: false, big: true },
+  { name: "crossPlay", durationMs: 7000, withPeek: false, big: true },
+  { name: "leapfrog", durationMs: 3000, withPeek: false, big: true },
+  { name: "chaseLoop", durationMs: 6000, withPeek: false, big: true },
+  { name: "peekaboo", durationMs: 4000, withPeek: false, big: true },
 ];
+
+/** 平时自己排的那几段：按词演的、还有大编舞都不掺和，不然节奏会乱 */
+const DANCE_SCRIPTS: readonly PlayScript[] = PLAY_SCRIPTS.filter(
+  (script) => !script.byLineOnly && !script.big
+);
+
+/** 大编舞：动作大、时间长，偶尔当一次特别节目 */
+const BIG_SCRIPTS: readonly PlayScript[] = PLAY_SCRIPTS.filter((script) => script.big);
+
+/** 特别节目之间至少隔这么久，不然就成蹦迪了 */
+const BIG_MIN_GAP_MS = 8 * 60_000;
+const BIG_MAX_GAP_MS = 12 * 60_000;
+/** 大编舞要跨过对方，窄屏上会撞到屏幕边被裁掉，所以只在够宽的窗口上演 */
+const BIG_MIN_VIEWPORT = 880;
 
 /** 新卡落地先演一段短的见面小戏，从几段轻巧的里挑 */
 const GREET_SCRIPTS: readonly PlayScript[] = PLAY_SCRIPTS.filter(
@@ -66,8 +94,12 @@ export interface ShowHost {
   visible: () => boolean;
   /** 隔壁还开着窗口吗（有邻居就跟着时间槽齐舞） */
   hasPeers: () => boolean;
+  /** 又开演了：谁想提前让开台面（比如正在说话的对话）就用它 */
+  onStarted?: () => void;
   /** 又演完一段：谁想借这个时机说两句就用它 */
   onFinished?: () => void;
+  /** 要演大编舞了，这会儿台面空着吗（正在说话就先别演） */
+  bigReady?: () => boolean;
 }
 
 export interface LiveShow {
@@ -100,7 +132,10 @@ export interface LiveShow {
 export function useLiveShow(host: ShowHost): LiveShow {
   const playingName = ref("");
   let playTimer = 0;
+  let bigTimer = 0;
   let resetTimer = 0;
+  /** 组件让过台面（比如正在说话）的时候，特别节目先别插进来 */
+  let holding = false;
   let lastScript = -1;
   let lastPlayedAt = 0;
   /** 这一场演过哪些剧本，用来凑「猫猫剧场」 */
@@ -130,11 +165,11 @@ export function useLiveShow(host: ShowHost): LiveShow {
   }
 
   function pickScript(): PlayScript {
-    let index = Math.floor(Math.random() * PLAY_SCRIPTS.length);
+    let index = Math.floor(Math.random() * DANCE_SCRIPTS.length);
     // 连着两次演同一段太假，往后挪一段
-    if (index === lastScript) index = (index + 1) % PLAY_SCRIPTS.length;
+    if (index === lastScript) index = (index + 1) % DANCE_SCRIPTS.length;
     lastScript = index;
-    return PLAY_SCRIPTS[index];
+    return DANCE_SCRIPTS[index];
   }
 
   function peek(root: HTMLElement | null, selector: string): void {
@@ -154,10 +189,10 @@ export function useLiveShow(host: ShowHost): LiveShow {
 
   /** 纯函数：同一个槽在任何窗口都算出同一段；与上一槽错开，免得连着演同一段 */
   function scriptForSlot(slot: number): PlayScript {
-    const total = PLAY_SCRIPTS.length;
+    const total = DANCE_SCRIPTS.length;
     const pick = ((slot * 2654435761) >>> 0) % total;
     const previous = (((slot - 1) * 2654435761) >>> 0) % total;
-    return PLAY_SCRIPTS[pick === previous ? (pick + 1) % total : pick];
+    return DANCE_SCRIPTS[pick === previous ? (pick + 1) % total : pick];
   }
 
   /** 排下一段的间隔：隔壁开着就等下一个时间槽，自己待着就随便隔一阵 */
@@ -183,6 +218,8 @@ export function useLiveShow(host: ShowHost): LiveShow {
     if (slots.length < PLAY_CARDS) return;
 
     playingName.value = script.name;
+    // 台面交给我了：正在说话的对话先让一让，演完再说
+    host.onStarted?.();
     if (script.withPeek) {
       slots.forEach((slot) => peek(slot, ".home-live-avatar, .home-online-avatar"));
     }
@@ -198,7 +235,8 @@ export function useLiveShow(host: ShowHost): LiveShow {
 
   /** 此时此刻凑得齐两张、也有人在看吗 */
   function canPlay(): boolean {
-    return host.cards().length === PLAY_CARDS && host.visible();
+    // 页面切到后台就别演了：没人看的动画白烧电
+    return host.cards().length === PLAY_CARDS && host.visible() && !document.hidden;
   }
 
   function schedule(delayMs: number): void {
@@ -217,8 +255,30 @@ export function useLiveShow(host: ShowHost): LiveShow {
     }, delayMs);
   }
 
+  /** 下一个时间槽该演哪段特别节目（没有邻居就随机挑一段） */
+  function pickBig(): PlayScript {
+    if (!host.hasPeers()) return BIG_SCRIPTS[Math.floor(Math.random() * BIG_SCRIPTS.length)];
+    const slot = nextDanceSlot().slot;
+    return BIG_SCRIPTS[((slot * 40503) >>> 0) % BIG_SCRIPTS.length];
+  }
+
+  /** 特别节目：隔一阵来一次，来之前先确认台面空着（正在说话就跳过这一轮） */
+  function scheduleBig(): void {
+    window.clearTimeout(bigTimer);
+    bigTimer = window.setTimeout(() => {
+      scheduleBig();
+      if (holding) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (window.innerWidth < BIG_MIN_VIEWPORT) return;
+      if (!canPlay() || isPlaying()) return;
+      if (!(host.bigReady?.() ?? true)) return;
+      void playScript({ script: pickBig(), big: true });
+    }, BIG_MIN_GAP_MS + Math.random() * (BIG_MAX_GAP_MS - BIG_MIN_GAP_MS));
+  }
+
   onBeforeUnmount(() => {
     window.clearTimeout(playTimer);
+    window.clearTimeout(bigTimer);
     window.clearTimeout(resetTimer);
   });
 
@@ -242,11 +302,15 @@ export function useLiveShow(host: ShowHost): LiveShow {
       schedule(
         gapLeft + FIRST_PLAY_MIN_MS + Math.random() * (FIRST_PLAY_MAX_MS - FIRST_PLAY_MIN_MS)
       );
+      // 特别节目是给「待了一阵子的人」看的，所以从进站就开始计时
+      scheduleBig();
     },
     resume: () => {
+      holding = false;
       if (host.visible()) schedule(nextPlayDelay());
     },
     hold: () => {
+      holding = true;
       window.clearTimeout(playTimer);
       window.clearTimeout(resetTimer);
       clearPlayback();

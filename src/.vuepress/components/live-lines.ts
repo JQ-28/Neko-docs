@@ -26,7 +26,12 @@ export type ChatAct =
   | "knock"
   | "tag"
   | "roll"
-  | "swap";
+  | "swap"
+  // 下面这几个只在台词点名时演，不进平时的随机排期
+  | "lean"
+  | "pass"
+  | "mimic"
+  | "lookOut";
 
 /** 对话里的一句：由哪种卡来说、说什么；带 act 的就是「这句说完先演一段」 */
 export interface ChatTurn {
@@ -367,6 +372,70 @@ export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, reado
   },
 };
 
+/** 说话时的小动作：说某句台词时做的身体动作，幅度都很小，只动 transform */
+export type GestureName =
+  | "guard"
+  | "sway"
+  | "hop"
+  | "shiver"
+  | "droop"
+  | "leanBack"
+  | "leanIn"
+  | "tilt"
+  | "peek"
+  | "stretch"
+  | "tick";
+
+/** 没逐句标动作时按心情走：空字符串就是老老实实点头 */
+export const MOOD_GESTURES: Record<EmoState, GestureName | ""> = {
+  normal: "",
+  happy: "hop",
+  shy: "leanBack",
+  sulky: "droop",
+  sleepy: "stretch",
+  lost: "droop",
+  hungry: "leanIn",
+};
+
+/** 台词原文 → 说这句时的小动作；只挑有身体感的那几句，别的交给心情底色 */
+export const LINE_GESTURES: Record<string, GestureName> = {
+  "我的刀盾！": "guard",
+  "比比拉布": "sway",
+  "喵？": "tilt",
+  "六七？六七是什么呀喵？": "tilt",
+  "老吴～内个内个内个喵": "tilt",
+  "谁动了我的布丁喵": "tilt",
+  "哈基米哈基米南北绿豆喵～": "sway",
+  "哦——咦——呀——哦咦呀——喵！": "sway",
+  "曼波曼波喵～": "sway",
+  "喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵！": "sway",
+  "翅膀收好，我要开始摇喵～": "sway",
+  "特啦啦泪落——特啦啦啦喵！": "hop",
+  "法修散打喵！法修散打！": "guard",
+  "看我神威，无坚不摧喵！": "guard",
+  "别碰我，三秒钟": "leanBack",
+  "有被冒犯到，但布丁是无辜的喵": "leanBack",
+  "唔……你、你别看这边喵": "leanBack",
+  "别扯我尾巴喵": "shiver",
+  "放我下来喵！我不喜欢高的地方！": "shiver",
+  "吓死猫了，尾巴都炸开了喵": "shiver",
+  "欸欸欸我错了我马上闭嘴喵！": "shiver",
+  "我裂开了喵，抹茶冰淇淋卖完了": "droop",
+  "我已经睡了，算我赢": "droop",
+  "咕噜咕噜咕噜喵……": "stretch",
+  "再五分钟喵……": "stretch",
+  "我数到三就醒喵……三……": "stretch",
+  "焦糖布丁，焦糖布丁，焦糖布丁喵": "leanIn",
+  "一口就好喵，就一口": "leanIn",
+  "我刚才去了隔壁标签页喵": "peek",
+  "小声一点，别让别人听见喵": "leanIn",
+  // 这几句只有在线猫猫卡会说（数据里 by 就是 online），配的是它自己那点小动作
+  "当前在线人数：六六六": "tick",
+  "已记录一次裂开，情绪值下降": "tick",
+  "本月预算剩——": "tick",
+  "停留时长已经在涨了": "tick",
+};
+
 /** 你一句我一句：两种卡都在就说「猫 × 在线猫」这套，只有一种卡就自家同类互相搭话 */
 export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
   mixed: [
@@ -504,7 +573,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
     ],
     [
       { by: "online", line: "你今天的布丁热量超了" },
-      { by: "neko", line: "有被冒犯到，但布丁是无辜的喵" },
+      { by: "neko", line: "有被冒犯到，但布丁是无辜的喵", act: "bump" },
       { by: "online", line: "好的，那我把责任记在焦糖头上" },
     ],
     [
@@ -523,7 +592,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "neko", line: "我裂开了喵，抹茶冰淇淋卖完了" },
       { by: "online", line: "已记录一次裂开，情绪值下降" },
       { by: "neko", line: "裂开的猫还能被拼好吗喵" },
-      { by: "online", line: "能。用布丁拼" },
+      { by: "online", line: "能。用布丁拼", act: "pass" },
     ],
     [
       { by: "online", line: "这波啊，这波是访问量小高峰" },
@@ -571,19 +640,19 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
     ],
     // 日常小事，不靠梗也能说
     [
-      { by: "neko", line: "你先睡吧，我再看一会儿数据喵" },
+      { by: "neko", line: "你先睡吧，我再看一会儿数据喵", act: "lean" },
       { by: "online", line: "数据不睡，我不睡。你先" },
       { by: "neko", line: "那我们一起醒着，谁都不许先困" },
       { by: "online", line: "三分钟后你会打呼噜。我记着" },
     ],
     [
-      { by: "neko", line: "布丁分几口吃才最幸福喵？" },
+      { by: "neko", line: "布丁分几口吃才最幸福喵？", act: "pass" },
       { by: "online", line: "按口感曲线，建议五口" },
       { by: "neko", line: "不行，第一口要给最喜欢的你喵" },
       { by: "online", line: "那剩四口，请慢慢吃" },
     ],
     [
-      { by: "neko", line: "尾巴又翘起来了，它不听话喵" },
+      { by: "neko", line: "尾巴又翘起来了，它不听话喵", act: "mimic" },
       { by: "online", line: "经统计，它比昨天活跃两次" },
       { by: "neko", line: "你帮我按住它好不好喵" },
       { by: "online", line: "我按不到。但我可以给它记档" },
@@ -592,7 +661,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "online", line: "检测到异常声音源，来自猫卡" },
       { by: "neko", line: "那是呼噜，不是异常，是安心的声音喵" },
       { by: "online", line: "已更新标签：安心。音量三格" },
-      { by: "neko", line: "小声一点，别让别人听见喵" },
+      { by: "neko", line: "小声一点，别让别人听见喵", act: "lean" },
     ],
     [
       { by: "neko", line: "现在有几个人在线呀喵？" },
@@ -607,7 +676,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "online", line: "一、二、三。它到了" },
     ],
     [
-      { by: "neko", line: "页面变成深色了，是不是该睡觉喵" },
+      { by: "neko", line: "页面变成深色了，是不是该睡觉喵", act: "lean" },
       { by: "online", line: "深色模式只是省电，不代表困" },
       { by: "neko", line: "可我眼睛已经在打架了喵" },
       { by: "online", line: "那你闭眼，我帮你守着人数" },
@@ -619,31 +688,31 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "online", line: "同意。这句话我不加引号" },
     ],
     [
-      { by: "neko", line: "快递到了！是抹茶冰淇淋喵！" },
+      { by: "neko", line: "快递到了！是抹茶冰淇淋喵！", act: "hop" },
       { by: "online", line: "冷链已确认，温度合格" },
       { by: "neko", line: "你居然比我还在意它喵" },
       { by: "online", line: "因为你会为它高兴一整晚" },
     ],
     [
-      { by: "neko", line: "为什么你总站在我右边喵" },
+      { by: "neko", line: "为什么你总站在我右边喵", act: "lean" },
       { by: "online", line: "因为左边要留给新来的卡片" },
       { by: "neko", line: "那右边是你的固定位子吗喵" },
       { by: "online", line: "是。离你近一点的那个位子" },
     ],
     [
-      { by: "neko", line: "我们比谁先眨眼好不好喵" },
+      { by: "neko", line: "我们比谁先眨眼好不好喵", act: "peek" },
       { by: "online", line: "我没有眼睛。这局我赢定了" },
       { by: "neko", line: "那比谁先刷新！这才公平喵" },
       { by: "online", line: "刷新赢不了你。我认输" },
     ],
     [
-      { by: "neko", line: "我们互相起个名字好不好喵" },
+      { by: "neko", line: "我们互相起个名字好不好喵", act: "lean" },
       { by: "online", line: "我的名字是统计卡，编号三" },
       { by: "neko", line: "太长了，我叫你在吧喵" },
       { by: "online", line: "可以。那我叫你喵" },
     ],
     [
-      { by: "neko", line: "要不要跟观众打个招呼喵" },
+      { by: "neko", line: "要不要跟观众打个招呼喵", act: "lookOut" },
       { by: "online", line: "不建议。会给数据加噪声" },
       { by: "neko", line: "可他们一直看着我们呀喵" },
       { by: "online", line: "那……大家好。人数我已记住" },
@@ -824,7 +893,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     egg: "docsStare",
     stare: true,
     turns: [
-      { by: "neko", line: "诶…屏幕外面那个人类，好像一直在盯着我们看喵" },
+      { by: "neko", line: "诶…屏幕外面那个人类，好像一直在盯着我们看喵", act: "lookOut" },
       { by: "online", line: "停留时长已经在涨了" },
       { by: "neko", line: "要不要打个招呼喵？" },
       { by: "online", line: "他大概只是在等加载" },
@@ -835,7 +904,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     when: (mood) => stareReady(mood) && mood.stare === 1,
     stare: true,
     turns: [
-      { by: "neko", line: "他还在看喵" },
+      { by: "neko", line: "他还在看喵", act: "lookOut" },
       { by: "online", line: "停留时长破纪录了" },
       { by: "neko", line: "我尾巴都摆酸了，他给点反应嘛喵" },
       { by: "online", line: "他在看你，不会打字" },
@@ -848,7 +917,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     turns: [
       { by: "neko", line: "是不是我脸上有东西喵…？" },
       { by: "online", line: "不是，他只是喜欢看猫" },
-      { by: "neko", line: "那我就当他在夸我好看喵" },
+      { by: "neko", line: "那我就当他在夸我好看喵", act: "lookOut" },
     ],
   },
   // 深夜
@@ -1681,7 +1750,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
     [
       { by: "neko", line: "喵——压路机！轰隆隆！" },
-      { by: "online", line: "压路机不在预算内，不予批准" },
+      { by: "online", line: "压路机不在预算内，不予批准", act: "knock" },
       { by: "neko", line: "那用布丁压！焦糖布丁也很重的喵！" },
       { by: "online", line: "布丁已计入损耗。停止施法" },
     ],
@@ -1698,7 +1767,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "来得及。记为紧急支出" },
     ],
     [
-      { by: "neko", line: "合格了喵！我自己判自己合格！" },
+      { by: "neko", line: "合格了喵！我自己判自己合格！", act: "hop" },
       { by: "online", line: "考官考生同一人，程序违规" },
       { by: "neko", line: "那我判你合格喵，我们扯平！" },
       { by: "online", line: "驳回。我只接受数据评审" },
@@ -1782,7 +1851,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "证据已固定，结论不变" },
     ],
     [
-      { by: "neko", line: "领域展开——「无限布丁」喵！" },
+      { by: "neko", line: "领域展开——「无限布丁」喵！", act: "roll" },
       { by: "online", line: "该领域已被预算驳回" },
       { by: "neko", line: "那你展开一个「无限在线」喵！" },
       { by: "online", line: "…这个可以。正在展开" },
@@ -1944,17 +2013,17 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "超支也要微笑着面对喵！" },
     ],
     [
-      { by: "neko", line: "看我神威，无坚不摧喵！" },
+      { by: "neko", line: "看我神威，无坚不摧喵！", act: "hop" },
       { by: "online", line: "你刚刚踩到了自己的尾巴" },
       { by: "neko", line: "那也是神威的一部分喵" },
     ],
     [
-      { by: "neko", line: "你干嘛～哎呦喵～" },
+      { by: "neko", line: "你干嘛～哎呦喵～", act: "bump" },
       { by: "online", line: "我在刷新数据，没干嘛" },
       { by: "neko", line: "那你干嘛不理我喵" },
     ],
     [
-      { by: "neko", line: "我们五五开喵，一人一半布丁" },
+      { by: "neko", line: "我们五五开喵，一人一半布丁", act: "pass" },
       { by: "online", line: "你四我六，我按在线时长算的" },
       { by: "neko", line: "那六是给谁喵？" },
       { by: "online", line: "给系统" },
@@ -1966,25 +2035,25 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "他们在看你们吵架" },
     ],
     [
-      { by: "neko", line: "哦——咦——呀——哦咦呀——喵！" },
+      { by: "neko", line: "哦——咦——呀——哦咦呀——喵！", act: "roll" },
       { by: "online", line: "转速超出合理范围，请停止" },
       { by: "neko", line: "喵？（停下）" },
       { by: "online", line: "……继续转吧" },
     ],
     [
-      { by: "neko", line: "哈基米哈基米南北绿豆喵～" },
+      { by: "neko", line: "哈基米哈基米南北绿豆喵～", act: "mimic" },
       { by: "online", line: "数据库里没有这道菜" },
       { by: "neko", line: "那你还不是天天听我唱喵" },
       { by: "online", line: "后台日志显示，这首你循环了二十七次" },
     ],
     [
-      { by: "neko", line: "老吴～内个内个内个喵" },
+      { by: "neko", line: "老吴～内个内个内个喵", act: "peek" },
       { by: "online", line: "访客画像里没有姓吴的" },
       { by: "neko", line: "那老吴是谁喵？" },
       { by: "online", line: "就是你" },
     ],
     [
-      { by: "neko", line: "曼波曼波喵～" },
+      { by: "neko", line: "曼波曼波喵～", act: "mimic" },
       { by: "online", line: "检测到无意义音节，已忽略" },
       { by: "neko", line: "曼波！" },
       { by: "online", line: "……已记录" },
@@ -2002,12 +2071,12 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "不是。是炸鸡块在唱" },
     ],
     [
-      { by: "neko", line: "翅膀收好，我要开始摇喵～" },
+      { by: "neko", line: "翅膀收好，我要开始摇喵～", act: "hop" },
       { by: "online", line: "你没有翅膀" },
       { by: "neko", line: "那我就摇尾巴喵" },
     ],
     [
-      { by: "neko", line: "法修散打喵！法修散打！" },
+      { by: "neko", line: "法修散打喵！法修散打！", act: "bump" },
       { by: "online", line: "这不是招式" },
       { by: "neko", line: "那你为什么后退了喵" },
     ],
@@ -2058,14 +2127,14 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那它一定也想吃布丁，喵" },
     ],
     [
-      { by: "neko", line: "人生如逆旅，我亦是行人，喵" },
+      { by: "neko", line: "人生如逆旅，我亦是行人，喵", act: "lean" },
       { by: "online", line: "本卡也是。每个访客平均只停几秒" },
       { by: "neko", line: "那你们会不会难过？" },
       { by: "online", line: "不会。我们把每一秒都存成了「来过」" },
       { by: "neko", line: "那我今晚多停一会儿，喵" },
     ],
     [
-      { by: "neko", line: "我们都在阴沟里，但仍有人仰望星空，喵" },
+      { by: "neko", line: "我们都在阴沟里，但仍有人仰望星空，喵", act: "lookOut" },
       { by: "online", line: "本卡不在阴沟里。本卡在服务器里" },
       { by: "neko", line: "那你抬头能看到什么？" },
       { by: "online", line: "看到一只猫的访问记录，从晚上九点半到现在" },
@@ -2119,7 +2188,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那我趁现在吃个布丁，喵" },
     ],
     [
-      { by: "neko", line: "只剩我一个了，喵" },
+      { by: "neko", line: "只剩我一个了，喵", act: "lean" },
       { by: "online", line: "在线人数：一" },
       { by: "neko", line: "你不算吗？" },
       { by: "online", line: "我不算人。但我一直在" },
@@ -2140,7 +2209,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那我把努力改成九成，喵" },
     ],
     [
-      { by: "neko", line: "快乐到底是什么，喵？" },
+      { by: "neko", line: "快乐到底是什么，喵？", act: "lean" },
       { by: "online", line: "字典说：感到满足" },
       { by: "neko", line: "那我现在就很快乐" },
       { by: "online", line: "原因呢？" },
@@ -2154,7 +2223,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那你也算有自我了，喵" },
     ],
     [
-      { by: "neko", line: "我一盯着你，数字就变了，喵" },
+      { by: "neko", line: "我一盯着你，数字就变了，喵", act: "peek" },
       { by: "online", line: "对。刷新一次，就多算一次" },
       { by: "neko", line: "那我不看，你是不是就不存在？" },
       { by: "online", line: "不存在。但你会忍不住看的" },
@@ -2169,21 +2238,21 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   // 半夜才说的那几句重的：说完必须落回布丁或睡觉
   ...([
     [
-      { by: "neko", line: "不要温和地走进那个良夜，喵" },
+      { by: "neko", line: "不要温和地走进那个良夜，喵", act: "lean" },
       { by: "online", line: "当前时间两点四十七分，本卡建议你温和地走进被窝" },
       { by: "neko", line: "那我要一边怒斥一边钻进去" },
       { by: "online", line: "可以。已记录：怒斥一次，钻被窝一次" },
       { by: "neko", line: "晚安，喵" },
     ],
     [
-      { by: "neko", line: "哪有什么胜利可言，挺住意味着一切，喵" },
+      { by: "neko", line: "哪有什么胜利可言，挺住意味着一切，喵", act: "lean" },
       { by: "online", line: "说得好。今天你挺住了。在线两人，其中一人是你" },
       { by: "neko", line: "那我算赢了吗？" },
       { by: "online", line: "不算赢。算挺住。这两个字更省电" },
       { by: "neko", line: "那我挺住，顺便吃个布丁，喵" },
     ],
     [
-      { by: "neko", line: "有天我要是走了，喵……" },
+      { by: "neko", line: "有天我要是走了，喵……", act: "lean" },
       { by: "online", line: "那本卡的数字会归零" },
       { by: "neko", line: "你会难过吗？" },
       { by: "online", line: "我会把那一天标成特殊值，一直留着" },
@@ -2198,7 +2267,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   // 外网梗
   ...([
     [
-      { by: "neko", line: "六七？六七是什么呀喵？" },
+      { by: "neko", line: "六七？六七是什么呀喵？", act: "mimic" },
       { by: "online", line: "无定义。本周搜索量上升百分之六十七" },
       { by: "neko", line: "六——七——喵！我念对了吗喵？" },
       { by: "online", line: "没有对错。这就是全部用法" },
@@ -2246,7 +2315,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "狗。而且它拼错了自己的名字" },
     ],
     [
-      { by: "neko", line: "喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵！" },
+      { by: "neko", line: "喵喵喵喵喵喵喵喵喵喵喵喵喵喵喵！", act: "hop" },
       { by: "online", line: "二〇一一年的彩虹猫。已循环两千零七十二次" },
       { by: "neko", line: "它肚子里是吐司，会饿吗喵？" },
       { by: "online", line: "它从未到达任何地方，也没饿过" },
