@@ -242,8 +242,10 @@ onBeforeUnmount(() => {
 }
 
 .home-intro.entered .home-feat {
-  animation: home-rise 0.5s var(--ease-out) backwards;
-  animation-delay: calc(0.08s + var(--i) * 0.07s);
+  /* 入场用 multipart 语法和常驻浮动并存：后者用 translate 属性，不会覆盖入场的 transform */
+  animation: home-rise 0.5s var(--ease-out) backwards,
+    neko-card-float 10s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+  animation-delay: calc(0.08s + var(--i) * 0.07s), calc(var(--i) * -1.7s);
 }
 
 .home-intro.entered .home-recent {

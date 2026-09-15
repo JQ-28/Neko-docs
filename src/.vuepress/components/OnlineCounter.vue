@@ -3,7 +3,7 @@
     <span class="home-online-glass" aria-hidden="true"></span>
     <img
       class="home-online-avatar"
-      src="/assets/image/neko.webp"
+      src="/assets/image/neko11.jpg"
       alt=""
       width="34"
       height="34"
@@ -108,6 +108,7 @@ onBeforeUnmount(() => {
 /* 视觉沿用状态页账号卡片：渐变描边玻璃层 + 圆头像 + 双层呼吸灯 */
 .home-online {
   --online-state: #22c55e;
+  --online-tilt: 0.6deg;
   position: relative;
   overflow: hidden;
   display: inline-flex;
@@ -121,7 +122,14 @@ onBeforeUnmount(() => {
   background: #ffffff;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--vp-c-accent, #096dd9) 10%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  animation: home-online-in 0.44s cubic-bezier(0.22, 1, 0.36, 1);
+  rotate: var(--online-tilt);
+  scale: 1;
+  transition: rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    scale 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    box-shadow 0.45s ease, border-color 0.3s ease;
+  /* 入场用 transform、常驻浮动用 translate 属性，两者互不覆盖 */
+  animation: home-online-in 0.44s cubic-bezier(0.22, 1, 0.36, 1),
+    neko-card-float 10s cubic-bezier(0.455, 0.03, 0.515, 0.955) 0.7s infinite;
 }
 
 /* 渐变描边：用 mask 把渐变裁成只有边框那一圈 */
@@ -148,11 +156,11 @@ onBeforeUnmount(() => {
   flex: none;
   width: 34px;
   height: 34px;
+  border: 2px solid #ffffff;
   border-radius: 50%;
   object-fit: cover;
-  background: #f4f1f8;
-  border: 1.5px solid color-mix(in srgb, var(--online-state) 55%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--online-state) 14%, transparent);
+  background: #f0e6f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .home-online-text {
@@ -227,6 +235,18 @@ html.dark .home-online-glass {
 
 html.dark .home-online-avatar {
   background: #262a33;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* 与首页功能卡同款交互：回正并轻微放大 */
+@media (hover: hover) and (pointer: fine) {
+  .home-online:hover {
+    rotate: 0deg;
+    scale: 1.03;
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 15px 40px color-mix(in srgb, var(--vp-c-accent, #096dd9) 18%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
 }
 
 @keyframes home-online-in {
@@ -272,6 +292,11 @@ html.dark .home-online-avatar {
   .home-online-light-core,
   .home-online-light-ring {
     animation: none;
+  }
+
+  .home-online {
+    rotate: 0deg;
+    transition: none;
   }
 }
 </style>

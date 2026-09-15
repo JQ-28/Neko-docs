@@ -1224,3 +1224,15 @@ html.dark .neko-firefly-field {
     animation: none;
   }
 }
+
+// 首页功能卡与在线卡共用的浮动：与指令速查页的指令卡同款，轻微上下漂
+@keyframes neko-card-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -5px;
+  }
+}
