@@ -101,12 +101,18 @@ const awayIndex = ref(-1);
 /** 隔壁的小脑袋从哪边探出来（空串表示没在探） */
 const visitorSide = ref<"" | LiveEdge>("");
 
+/** 隔壁喊话说猫要来了，标题那行先替他通个风 */
+const peerHint = ref("");
+let peerHintTimer = 0;
+
 /** 谁把猫领走的、从哪条边出去的，它一关窗口就得把猫从原路放回来 */
 let awayTo = "";
 let awayEdge: LiveEdge = "right";
 let awayTimer = 0;
 let visitorTimer = 0;
 let visitorHideTimer = 0;
+/** 上次跟隔壁打招呼的时间，用来限流 */
+let warnedAt = 0;
 
 // QQ 头像服务偶尔抽风或被网络挡住，退回本地那张，别让卡片开天窗
 function onAvatarError(): void {
@@ -320,6 +326,8 @@ const HANDOFF_PUSH_PX = 120;
 const HANDOFF_GO_PX = 64;
 /** 猫从窗口外滑进来的起步深度：没真越界的就按这个量从边上滑 */
 const SLIDE_IN_OVER_PX = 48;
+/** 猫顶在窗口边上等着出手时，隔这么久跟对面打一次招呼（别刷屏） */
+const WARN_INTERVAL_MS = 2000;
 /** 猫丢出去了，隔这么久自己溜回来，免得对面不开着就一直少一只 */
 const AWAY_RETURN_MS = 45_000;
 
@@ -456,11 +464,15 @@ function scheduleVisitor(): void {
   }, VISITOR_MIN_MS + Math.random() * (VISITOR_MAX_MS - VISITOR_MIN_MS));
 }
 
-/** 隔壁有窗口时一起演同一段，算「猫界齐舞」 */
+/** 隔壁有窗口时一起演同一段，算「猫界齐舞」；标题那行还负责说清邻居在哪边 */
 const stageNote = computed(() => {
+  if (peerHint.value) return peerHint.value;
   if (awayIndex.value >= 0) return "有只猫去隔壁串门了";
-  const others = peerLink.peerCount.value;
-  if (others > 0) return `隔壁还有 ${others} 只猫在看着`;
+
+  const { left, right } = peerLink.peerSides.value;
+  if (left > 0 && right > 0) return `左边 ${left} 只、右边 ${right} 只猫都在看着`;
+  if (left > 0) return `左边还有 ${left} 只猫在看着`;
+  if (right > 0) return `右边还有 ${right} 只猫在看着`;
   return "两只猫正蹲在这里";
 });
 
@@ -685,16 +697,23 @@ function onPointerMove(event: PointerEvent): void {
   // 位置直接给到手上，拖尾和回弹交给样式里的过渡，掉帧也不会变形
   drag.slot.style.translate = `${dx}px ${dy}px`;
 
-  // 推过头就当场把猫交给隔壁，不用等松手
+  // 贴着左边还是右边：越界的看越出方向，没越界的看是不是顶到边上了
   const over = overshootOf(dx, drag.baseLeft, drag.width, window.innerWidth);
-  if (over !== 0 && Math.abs(over) >= HANDOFF_GO_PX) {
-    const edge: LiveEdge = over > 0 ? "right" : "left";
-    if (peerLink.neighborTowards(edge)) {
-      const index = draggedIndex.value;
-      releaseDrag();
-      handOffCard(index, edge, Math.abs(over));
-      return;
-    }
+  const edge = over !== 0 ? (over > 0 ? "right" : "left") : pressedEdge(drag);
+  const target = edge ? peerLink.neighborTowards(edge) : null;
+
+  // 推过头就当场把猫交给隔壁，不用等松手
+  if (edge && target && Math.abs(over) >= HANDOFF_GO_PX) {
+    const index = draggedIndex.value;
+    releaseDrag();
+    handOffCard(index, edge, Math.abs(over));
+    return;
+  }
+
+  // 猫顶在边上等着出手：先跟对面打声招呼，让它把猫叫醒准备接
+  if (edge && target && Date.now() - warnedAt > WARN_INTERVAL_MS) {
+    warnedAt = Date.now();
+    peerLink.warnIncoming(target.id, edge);
   }
 
   // 顺手数一数彩蛋：摇猫猫、遛猫
@@ -757,6 +776,14 @@ onMounted(() => {
   watchStage();
 
   peerLink.onHandoff(receiveCat);
+  // 隔壁说猫要来了，先在标题那行通个风，别让它凭空从边上冒出来
+  peerLink.onIncoming(() => {
+    peerHint.value = "隔壁好像要把猫扔过来了…";
+    window.clearTimeout(peerHintTimer);
+    peerHintTimer = window.setTimeout(() => {
+      peerHint.value = "";
+    }, 1800);
+  });
   // 领走猫的那个窗口关掉了，就把猫放回来
   peerLink.onPeerGone((id) => {
     if (awayTo === id) bringCatHome();
@@ -778,6 +805,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(awayTimer);
   window.clearTimeout(visitorTimer);
   window.clearTimeout(visitorHideTimer);
+  window.clearTimeout(peerHintTimer);
   peerLink.stop();
 });
 
