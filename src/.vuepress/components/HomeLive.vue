@@ -28,6 +28,7 @@
         }"
         :data-play="playingName || undefined"
         :data-gesture="speakingId === card.id && speakingGesture ? speakingGesture : undefined"
+        :data-mood="mood"
         @pointerdown="onPointerDown($event, card)"
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
@@ -94,9 +95,11 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "./egg-utils";
 import { GREETING_REPLY_MS, useLiveTalk } from "./live-chat";
+import { DROP_LINES, recentLine } from "./live-lines";
 import {
   cardPointAbs,
   createDragTrack,
@@ -365,7 +368,10 @@ const talk = useLiveTalk({
 });
 
 const { playingName, playSide } = show;
-const { speakingId, speech, speakingGesture } = talk;
+const { speakingId, speech, speakingGesture, mood } = talk;
+
+/** 拎到跳转位上松手要把页面换过去 */
+const router = useRouter();
 
 /** 隔壁喊话说卡要来了，标题那行先替他通个风 */
 const peerHint = ref("");
@@ -729,17 +735,117 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   show.hold();
 }
 
-/** 收拾拖拽现场：卡片被搬到隔壁窗口时用，不留回弹 */
-function releaseDrag(): void {
+/** 收拾手上那点状态：卡片被搬到隔壁、或者被首页某个落点接住了，都用它。
+    keepSpeech 是给落点用的 —— 刚落点说的话不能跟着「拎着时那句抱怨」一起收掉 */
+function dropRelease(keepSpeech = false): void {
   if (!drag) return;
-  const { handle, pointerId, slot } = drag;
+  const { handle, pointerId } = drag;
   if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
   draggingId.value = "";
-  slot.style.translate = "";
-  slot.style.rotate = "";
   drag = null;
-  // 猫都走了，刚才那句话也收掉
-  talk.hush();
+  if (!keepSpeech) talk.hush();
+  lightDrop(null);
+}
+
+/** 收拾拖拽现场：卡片被搬到隔壁窗口、或者落在落点上时用，都不留回弹 */
+function releaseDrag(keepSpeech = false): void {
+  if (!drag) return;
+  drag.slot.style.translate = "";
+  drag.slot.style.rotate = "";
+  dropRelease(keepSpeech);
+}
+
+/** 拎到跳转位上松手后，隔这么久才真的换页：先让人看清猫被收进去那一下 */
+const CARRY_MS = 320;
+/** 寄养：收进去多久之后自己爬回来 */
+const RETIRE_MS = 2600;
+/** 猫被带去哪个页面，先记在本地，到站那边（CardCourier）认出来再演一段 */
+const CARRIED_KEY = "neko-carried";
+
+let dropLit: HTMLElement | null = null;
+let carryTimer = 0;
+let retireTimer = 0;
+
+/** 指针这会儿压在哪个落点上（没压着就是 null）。落点自己在 DOM 上标 data-drop */
+function dropUnder(x: number, y: number): HTMLElement | null {
+  const el = document.elementFromPoint(x, y);
+  return el instanceof HTMLElement ? el.closest<HTMLElement>("[data-drop]") : null;
+}
+
+/** 点亮/熄灭落点。用 dataset 而不是 class：这两处的 class 都由 Vue 说了算，加了会被冲掉 */
+function lightDrop(el: HTMLElement | null): void {
+  if (el === dropLit) return;
+  if (dropLit) delete dropLit.dataset.dropLit;
+  dropLit = el;
+  if (dropLit) dropLit.dataset.dropLit = "true";
+}
+
+/** 落点接住了：给一下短促的反馈，让手感落地 */
+function flashDrop(el: HTMLElement): void {
+  el.dataset.dropHit = "true";
+  window.setTimeout(() => delete el.dataset.dropHit, 600);
+}
+
+/** 这个落点该说哪句：功能卡按功能名查表，最近更新是现编的 */
+function dropLine(el: HTMLElement, kind: string): string {
+  if (kind === "feat") return DROP_LINES[el.dataset.dropKey ?? ""] ?? "";
+  if (kind === "recent") {
+    const message = el.querySelector(".home-recent-message")?.textContent?.trim() ?? "";
+    return message ? recentLine(message) : "";
+  }
+  return DROP_LINES[kind] ?? "";
+}
+
+/** 拎到跳转位上松手：猫被那个按钮收进去，然后带着它一起换页 */
+function carryAway(card: CardSpec, to: string, el: HTMLElement): void {
+  const slot = slotEls.get(card.id);
+  if (!slot) return;
+  flashDrop(el);
+  slot.dataset.carried = "true";
+  try {
+    // 记是被哪张卡带过去的：到站那边照着这个挑头像和口吻
+    window.sessionStorage.setItem(CARRIED_KEY, card.kind);
+  } catch {
+    // 隐私模式存不了，那就只是少演一段「到站」
+  }
+  window.clearTimeout(carryTimer);
+  carryTimer = window.setTimeout(() => void router.push(to), CARRY_MS);
+}
+
+/** 寄养处：把卡收进去，过一会儿它自己爬回来，还得吐槽一句 */
+function retireCard(card: CardSpec): void {
+  const slot = slotEls.get(card.id);
+  if (!slot) return;
+  slot.dataset.retired = "true";
+  window.clearTimeout(retireTimer);
+  retireTimer = window.setTimeout(() => {
+    delete slot.dataset.retired;
+    talk.sayLine(card, DROP_LINES.bin);
+  }, RETIRE_MS);
+}
+
+/** 松手把卡放在落点上：真接住了返回 true，接不住就当没这回事、卡片自己弹回原位 */
+function useDrop(el: HTMLElement, card: CardSpec): boolean {
+  const kind = el.dataset.drop ?? "";
+
+  if (kind === "goto") {
+    const to = el.dataset.dropTo;
+    if (!to) return false;
+    carryAway(card, to, el);
+    return true;
+  }
+
+  if (kind === "bin") {
+    flashDrop(el);
+    retireCard(card);
+    return true;
+  }
+
+  const line = dropLine(el, kind);
+  if (!line) return false;
+  flashDrop(el);
+  talk.sayLine(card, line);
+  return true;
 }
 
 function onPointerMove(event: PointerEvent): void {
@@ -787,6 +893,11 @@ function onPointerMove(event: PointerEvent): void {
       warnedAt = Date.now();
       peerLink.warnIncoming(target.id, edge);
     }
+  }
+
+  // 拎着卡片扫过首页别处：压在哪个落点上就点亮哪个，手挪开就灭
+  if (!roamingIds.value.includes(drag.cardId)) {
+    lightDrop(dropUnder(event.clientX, event.clientY));
   }
 
   // 顺手数一数彩蛋：摇猫猫、遛猫
@@ -839,6 +950,19 @@ function onPointerUp(event: PointerEvent): void {
       return;
     }
   }
+  // 松手压在首页某个落点上：交给落点，卡片自己弹回原位
+  const dropped = liveCards.value.find((item) => item.id === cardId);
+  const target = dropped ? dropUnder(event.clientX, event.clientY) : null;
+  if (dropped && target && useDrop(target, dropped)) {
+    // 被跳转位收进按钮的那张留在原地，别回弹；其它落点都让它跳回原位。
+    // 两个都要留住刚落点说的那句，收尾别出声
+    if (target.dataset.drop === "goto") dropRelease(true);
+    else releaseDrag(true);
+    talk.markDragged();
+    show.resume();
+    return;
+  }
+
   // 松手落在别的卡身上就算叠猫猫（要赶在清掉位移之前量）
   if (isStackedOnOther(slot, cardId)) markEgg("cardStack");
 
@@ -926,6 +1050,8 @@ onBeforeUnmount(() => {
   window.clearTimeout(visitorHideTimer);
   window.clearTimeout(peerHintTimer);
   window.clearTimeout(roamerTimer);
+  window.clearTimeout(carryTimer);
+  window.clearTimeout(retireTimer);
   peerLink.stop();
 });
 
@@ -1000,12 +1126,54 @@ html.dark .home-intro-sub {
   pointer-events: none;
 }
 
-/* 拎在手上：跟手要快，但留一点点拖尾才像有重量；角度过渡带过冲，甩起来就晃 */
+/* 拎在手上：跟手要快，但留一点点拖尾才像有重量；角度过渡带过冲，甩起来就晃。
+   pointer-events 关掉是为了让命中判定穿透它，看到底下压着哪个落点 */
 .home-live-slot.is-dragging {
   z-index: 3;
   scale: 1.05;
+  pointer-events: none;
   transition: translate 0.14s ease-out,
     rotate 0.22s cubic-bezier(0.34, 1.5, 0.64, 1), scale 0.2s ease-out;
+}
+
+/* 被跳转位收进按钮里：缩没，紧接着页面就换过去了 */
+@keyframes home-live-carried {
+  0% {
+    scale: 1;
+    opacity: 1;
+  }
+
+  100% {
+    scale: 0.15;
+    opacity: 0;
+  }
+}
+
+.home-live-slot[data-carried] {
+  animation: home-live-carried 0.32s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* 寄养处：收进去 → 待一会儿 → 自己爬回来，一条动画把这三步走完，到点自动复原 */
+@keyframes home-live-retire {
+  0% {
+    scale: 1;
+    opacity: 1;
+  }
+
+  35%,
+  65% {
+    scale: 0.3;
+    opacity: 0;
+  }
+
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+.home-live-slot[data-retired] {
+  animation: home-live-retire 2.6s var(--ease-play, cubic-bezier(0.34, 1.3, 0.64, 1));
 }
 
 /* 右边的卡朝反方向动，两张卡才像面对面凑近 */
@@ -1205,7 +1373,7 @@ html.dark .home-live-roamer {
 
 /* 视觉与在线卡保持一致：渐变描边玻璃层 + 圆头像 + 双层呼吸灯 */
 .home-live-card {
-  --live-state: #22c55e;
+  --live-state: var(--live-hue, #22c55e);
   --live-tilt: -0.6deg;
   position: relative;
   overflow: hidden;
@@ -1413,12 +1581,14 @@ html.dark .home-live-roamer {
   border-radius: 50%;
 }
 
+/* 指示灯的色与节奏全从槽位上传下来：几个数一变就是一档心情，灯自己的规则不用动。
+   --live-hue 颜色 / --live-beat 呼吸周期 / --live-dim 呼吸最暗到哪 / --live-glow 外圈光晕半径 */
 .home-live-light-core {
   width: 9px;
   height: 9px;
   background: var(--live-state);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--live-state) 18%, transparent);
-  animation: home-live-breathe 2.4s ease-in-out infinite;
+  box-shadow: 0 0 0 var(--live-glow, 3px) color-mix(in srgb, var(--live-state) 18%, transparent);
+  animation: home-live-breathe var(--live-beat, 2.4s) ease-in-out infinite;
 }
 
 .home-live-light-ring {
@@ -1426,7 +1596,96 @@ html.dark .home-live-roamer {
   height: 9px;
   border: 1.5px solid var(--live-state);
   opacity: 0;
-  animation: home-live-ripple 2.4s ease-out infinite;
+  animation: home-live-ripple var(--live-beat, 2.4s) ease-out infinite;
+}
+
+/* 心情档：灯跟着心情走，但只改几个数。正常心情就用兜底那盏绿，不单写一条 */
+.home-live-slot[data-mood="happy"] {
+  --live-hue: #10b981;
+  --live-beat: 1.7s;
+  --live-dim: 0.86;
+}
+
+.home-live-slot[data-mood="shy"] {
+  --live-hue: #f472b6;
+  --live-beat: 2s;
+  --live-dim: 0.8;
+}
+
+.home-live-slot[data-mood="sulky"] {
+  --live-hue: #f59e0b;
+  --live-beat: 2.6s;
+  --live-dim: 0.66;
+}
+
+.home-live-slot[data-mood="sleepy"] {
+  --live-hue: #7c8aa0;
+  --live-beat: 4.6s;
+  --live-dim: 0.46;
+}
+
+.home-live-slot[data-mood="lost"] {
+  --live-hue: #8fa89b;
+  --live-beat: 3.4s;
+  --live-dim: 0.58;
+}
+
+.home-live-slot[data-mood="hungry"] {
+  --live-hue: #fbbf24;
+  --live-beat: 2.1s;
+  --live-dim: 0.82;
+}
+
+/* 状态档压在心情上面：演对手戏时两盏灯一起跳得更欢，开口说话时灯再亮一档，
+   被拎在手上则换成悬空的蓝 —— 状态是状态，心情是心情 */
+.home-live-slot.is-playing {
+  --live-beat: 1.4s;
+  --live-glow: 4px;
+  --live-ring-scale: 2.6;
+}
+
+.home-live-slot.is-talking {
+  --live-beat: 1.8s;
+  --live-glow: 5px;
+  --live-dim: 0.92;
+  --live-ring-scale: 2.8;
+}
+
+.home-live-slot.is-dragging {
+  --live-hue: #60a5fa;
+  --live-beat: 1.2s;
+  --live-glow: 4px;
+  --live-dim: 0.9;
+  --live-ring-scale: 2.6;
+}
+
+/* 深底上这几个色得提亮一档才看得清；拎在手上那盏蓝也要重新盖一次 */
+html.dark .home-live-slot[data-mood="happy"] {
+  --live-hue: #34d399;
+}
+
+html.dark .home-live-slot[data-mood="shy"] {
+  --live-hue: #f9a8d4;
+}
+
+html.dark .home-live-slot[data-mood="sulky"] {
+  --live-hue: #fbbf24;
+}
+
+html.dark .home-live-slot[data-mood="sleepy"] {
+  --live-hue: #93a3b8;
+}
+
+html.dark .home-live-slot[data-mood="lost"] {
+  --live-hue: #a3bdae;
+}
+
+html.dark .home-live-slot[data-mood="hungry"] {
+  --live-hue: #fcd34d;
+}
+
+html.dark .home-live-slot.is-dragging {
+  --live-hue: #93c5fd;
 }
 
 html.dark .home-live-card {
@@ -1490,7 +1749,7 @@ html.dark .home-live-avatar {
 
   50% {
     transform: scale(0.82);
-    opacity: 0.72;
+    opacity: var(--live-dim, 0.72);
   }
 }
 
@@ -1502,7 +1761,7 @@ html.dark .home-live-avatar {
 
   70%,
   100% {
-    transform: scale(2.1);
+    transform: scale(var(--live-ring-scale, 2.1));
     opacity: 0;
   }
 }
@@ -2398,7 +2657,9 @@ html.dark .home-live-avatar {
   .home-live-card,
   .home-live-avatar.is-moving,
   .home-live-light-core,
-  .home-live-light-ring {
+  .home-live-light-ring,
+  .home-live-slot[data-carried],
+  .home-live-slot[data-retired] {
     animation: none;
   }
 

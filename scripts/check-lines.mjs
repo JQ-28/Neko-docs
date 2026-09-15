@@ -48,7 +48,7 @@ function checkText(text, where) {
   if (EMOJI.test(text)) errors.push(`不该有 emoji：${where} 「${text}」`);
 }
 
-const { SPEECH_LINES, MOOD_LINES, CHAT_TURNS, CHAT_MOMENTS, LINE_GESTURES, MOOD_GESTURES } =
+const { SPEECH_LINES, MOOD_LINES, CHAT_TURNS, CHAT_MOMENTS, LINE_GESTURES, MOOD_GESTURES, DROP_LINES } =
   await import(pathToFileURL(path.join(dir, "live-lines.ts")).href);
 
 for (const [kind, pools] of Object.entries(SPEECH_LINES)) {
@@ -167,6 +167,28 @@ for (const name of actNames) {
 }
 for (const name of definedPlays) {
   if (!actNames.has(name)) warnings.push(`样式里写了演出 ${name}，但脚本里没有这一段`);
+}
+
+// 拎到首页别处松手：落点得认得出来，台词得挂在真有的落点上
+const introSource = await readFile(path.join(dir, "HomeIntro.vue"), "utf8");
+const DROP_KINDS = new Set(["feat", "recent", "goto", "title", "bin"]);
+for (const match of introSource.matchAll(/data-drop="(\w+)"/g)) {
+  if (!DROP_KINDS.has(match[1])) errors.push(`不认识的落点类型：data-drop="${match[1]}"`);
+}
+introSource.split("\n").forEach((line, index) => {
+  if (line.includes('data-drop="goto"') && !line.includes("data-drop-to")) {
+    errors.push(`跳转位没写 data-drop-to（HomeIntro.vue:${index + 1}）`);
+  }
+});
+// 功能卡的台词和首页那张功能池得一一对上：漏一条，它被拎上去就只会干站着
+const featNames = new Set([...introSource.matchAll(/^\s{4}name: "([^"]+)",$/gm)].map((match) => match[1]));
+for (const name of featNames) {
+  if (!DROP_LINES[name]) warnings.push(`功能「${name}」被拎上去没话说`);
+}
+for (const key of Object.keys(DROP_LINES)) {
+  if (/[\u4e00-\u9fa5]/.test(key) && !featNames.has(key)) {
+    errors.push(`落点台词挂在了一个不存在的功能上：「${key}」`);
+  }
 }
 
 const blockCount = CHAT_MOMENTS.length + Object.values(CHAT_TURNS).reduce((sum, list) => sum + list.length, 0);

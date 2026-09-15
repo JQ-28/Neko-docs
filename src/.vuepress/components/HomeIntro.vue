@@ -2,16 +2,23 @@
   <section class="home-intro" :class="{ entered }">
     <HomeLive />
 
-    <h2 class="home-intro-title">
+    <h2 class="home-intro-title" data-drop="title">
       <span class="home-intro-bar" aria-hidden="true"></span>
       Neko 能做什么？
       <span class="home-intro-sub">挑几个代表性的看看，全部功能在指令速查</span>
     </h2>
 
     <div class="home-feats">
-      <div v-for="(feat, index) in feats" :key="feat.link" class="home-feat" :style="{ '--i': index }">
+      <div
+        v-for="(feat, index) in feats"
+        :key="feat.link"
+        class="home-feat"
+        :style="{ '--i': index }"
+        data-drop="feat"
+        :data-drop-key="feat.name"
+      >
         <span class="home-feat-glass" aria-hidden="true"></span>
-        <RouterLink :to="feat.link" class="home-feat-name">
+        <RouterLink :to="feat.link" class="home-feat-name" data-drop="goto" :data-drop-to="feat.link">
           {{ feat.name }}
         </RouterLink>
         <span class="home-feat-desc">{{ feat.desc }}</span>
@@ -41,6 +48,7 @@
           v-for="item in recents"
           :key="item.time + item.message"
           class="home-recent-item"
+          data-drop="recent"
         >
           <span class="home-recent-time">{{ item.time }}</span>
           <span class="home-recent-message">{{ item.message }}</span>
@@ -49,7 +57,7 @@
     </section>
 
     <div class="home-cta">
-      <RouterLink class="home-cta-ghost" to="/start">
+      <RouterLink class="home-cta-ghost" to="/start" data-drop="goto" data-drop-to="/start">
         <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path
             fill="currentColor"
@@ -58,7 +66,7 @@
         </svg>
         <span>5 分钟快速上手</span>
       </RouterLink>
-      <RouterLink class="home-cta-ghost" to="/qunliao">
+      <RouterLink class="home-cta-ghost" to="/qunliao" data-drop="goto" data-drop-to="/qunliao">
         <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path
             fill="currentColor"
@@ -67,11 +75,13 @@
         </svg>
         <span>把 neko 拉进群</span>
       </RouterLink>
+      <!-- 把卡片拎到这里松手：猫被收进去待一会儿又自己爬回来，是个玩笑不是真删 -->
+      <span class="home-cta-bin" data-drop="bin" aria-hidden="true">寄养处</span>
     </div>
 
     <p class="home-more">
       还不知道 neko 有哪些本事？去
-      <RouterLink to="/zhiling/cheatsheet">指令速查</RouterLink>
+      <RouterLink to="/zhiling/cheatsheet" data-drop="goto" data-drop-to="/zhiling/cheatsheet">指令速查</RouterLink>
       全看一遍喵~
     </p>
   </section>
@@ -595,13 +605,65 @@ html.dark .home-recent-time {
   }
 }
 
+/* ===== 拎着卡片能落在哪儿 =====
+   落点自己在 DOM 上标 data-drop，拖动时由 HomeLive 往上面写 data-drop-lit（扫过时点亮）
+   和 data-drop-hit（松手接住时弹一下）。选择器写成两个属性，才盖得住各处的 :hover */
+[data-drop] {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, scale 0.25s var(--ease-out);
+}
+
+[data-drop][data-drop-lit] {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent),
+    0 12px 28px color-mix(in srgb, var(--accent) 20%, transparent);
+  scale: 1.02;
+}
+
+@keyframes home-drop-hit {
+  0%,
+  100% {
+    scale: 1;
+  }
+
+  40% {
+    scale: 1.06;
+  }
+}
+
+[data-drop][data-drop-hit] {
+  animation: home-drop-hit 0.5s var(--ease-out);
+}
+
+/* 寄养处：拎过来放下，猫被收进去待一会儿又自己爬回来 */
+.home-cta-bin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #a397b2;
+  border: 1px dashed color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+html.dark .home-cta-bin {
+  color: #8d85a0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .home-feat,
   .home-feat-glass,
   .home-feat-name,
   .home-feat-cmd,
-  .home-cta-ghost {
+  .home-cta-ghost,
+  [data-drop] {
     transition: none;
+  }
+
+  [data-drop][data-drop-hit] {
+    animation: none;
   }
 
   .home-intro.entered .home-intro-title,

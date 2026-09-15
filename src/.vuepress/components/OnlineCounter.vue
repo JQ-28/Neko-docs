@@ -192,7 +192,7 @@ onBeforeUnmount(() => {
 <style scoped>
 /* 小卡片：贴在标题行右侧，与标题成组，不另占一行 */
 .home-online {
-  --online-state: #22c55e;
+  --online-state: var(--live-hue, #22c55e);
   --online-tilt: 0.6deg;
   position: relative;
   overflow: hidden;
@@ -336,12 +336,14 @@ html.dark .home-online-note {
   border-radius: 50%;
 }
 
+/* 指示灯的色与节奏可以由外面（首页那排卡片）从槽位上传下来，
+   没传就是原来那盏绿 —— 其它地方引这个组件时不用管这些变量 */
 .home-online-light-core {
   width: 9px;
   height: 9px;
   background: var(--online-state);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--online-state) 18%, transparent);
-  animation: home-online-breathe 2.4s ease-in-out infinite;
+  box-shadow: 0 0 0 var(--live-glow, 3px) color-mix(in srgb, var(--online-state) 18%, transparent);
+  animation: home-online-breathe var(--live-beat, 2.4s) ease-in-out infinite;
 }
 
 .home-online-light-ring {
@@ -349,7 +351,7 @@ html.dark .home-online-note {
   height: 9px;
   border: 1.5px solid var(--online-state);
   opacity: 0;
-  animation: home-online-ripple 2.4s ease-out infinite;
+  animation: home-online-ripple var(--live-beat, 2.4s) ease-out infinite;
 }
 
 html.dark .home-online {
@@ -399,7 +401,7 @@ html.dark .home-online-avatar {
 
   50% {
     transform: scale(0.82);
-    opacity: 0.72;
+    opacity: var(--live-dim, 0.72);
   }
 }
 
@@ -411,7 +413,7 @@ html.dark .home-online-avatar {
 
   70%,
   100% {
-    transform: scale(2.1);
+    transform: scale(var(--live-ring-scale, 2.1));
     opacity: 0;
   }
 }

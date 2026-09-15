@@ -16,6 +16,7 @@ import CommandCheatsheet from "./components/CommandCheatsheet.vue";
 import CommandRouter from "./components/CommandRouter.vue";
 import AnnouncementPopup from "./components/AnnouncementPopup.vue";
 import BotStatus from "./components/BotStatus.vue";
+import CardCourier from "./components/CardCourier.vue";
 import EggCollection from "./components/EggCollection.vue";
 import {
   EGGS,
@@ -81,7 +82,7 @@ export default defineClientConfig({
     app.component("EggCollection", EggCollection);
   },
 
-  rootComponents: [CommandRouter, AnnouncementPopup, EggCollection],
+  rootComponents: [CommandRouter, AnnouncementPopup, EggCollection, CardCourier],
 
   setup() {
     let observer: MutationObserver | null = null;

@@ -102,8 +102,12 @@ export interface LiveTalk {
   readonly speech: Ref<string>;
   /** 这句配的小动作（没标就是空，老老实实点头） */
   readonly speakingGesture: Ref<GestureName | "">;
+  /** 眼下的心情：卡片上的状态灯照着它变色 */
+  readonly mood: Ref<EmoState>;
   /** 让某张卡从它的台词池里说一句 */
   say(card: CardSpec, type: keyof SpeechLines): void;
+  /** 让某张卡说指定的这一句（把卡拎到首页某个落点上时用） */
+  sayLine(card: CardSpec, line: string): void;
   /** 松手了：刚那句话再挂一会儿再收，像还在嘀咕 */
   lingerSpeech(): void;
   /** 立刻把话收掉（卡片被搬走、被拎去隔壁时用） */
@@ -189,8 +193,9 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   const saidAt = new Map<string, number>();
   /** 上一段对话是哪一段，下一段换一段 */
   let lastChatKey = "";
-  /** 眼下的心情，以及它挂到什么时候（事件带起来的，过一会儿自己回落） */
-  let emo: EmoState = "normal";
+  /** 眼下的心情，以及它挂到什么时候（事件带起来的，过一会儿自己回落）。
+      它是个 ref：卡片上的状态灯就照着它变色 */
+  const mood = ref<EmoState>("normal");
   let emoUntil = 0;
 
   /** 把本地记的「听过哪些话」捡回来：隐私模式下读不到就当没记过 */
@@ -258,18 +263,21 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
 
   /** 记一笔心情：被人拎过就闹别扭、演完一段就得意、被盯着看就害羞 */
   function holdEmo(next: EmoState, holdMs: number): void {
-    emo = next;
+    mood.value = next;
     emoUntil = Date.now() + holdMs;
   }
 
-  /** 这会儿是什么心情：事件带起来的优先，其次看夜里、看是不是只剩自己 */
+  /** 这会儿是什么心情：事件带起来的优先，其次看夜里、看是不是只剩自己。
+      顺手把算出来的结果写回 mood，状态灯跟着变；事件到点后就是这么回落的 */
   function currentEmo(count: number): EmoState {
-    if (emo !== "normal" && Date.now() < emoUntil) return emo;
-    if (count === 1) return "lost";
+    // 事件带起来的心情还没到点，就照它算
+    if (mood.value !== "normal" && Date.now() < emoUntil) return mood.value;
     const hour = new Date().getHours();
-    if (hour < 5 || hour >= 23) return "sleepy";
-    if (hour >= 17 && hour < 19) return "hungry";
-    return "normal";
+    if (count === 1) mood.value = "lost";
+    else if (hour < 5 || hour >= 23) mood.value = "sleepy";
+    else if (hour >= 17 && hour < 19) mood.value = "hungry";
+    else mood.value = "normal";
+    return mood.value;
   }
 
   /** 话长就多挂一会儿 */
@@ -517,8 +525,10 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   return {
     speakingId,
     speakingGesture,
+    mood,
     speech,
     say: (card, type) => showSpeech(card.id, pickLine(card, type)),
+    sayLine: (card, line) => showSpeech(card.id, line),
     lingerSpeech: () => {
       window.clearTimeout(speechTimer);
       speechTimer = window.setTimeout(() => {
