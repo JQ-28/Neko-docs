@@ -32,6 +32,17 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "roll", durationMs: 2800, withPeek: true },
   { name: "swap", durationMs: 3200, withPeek: true },
   { name: "mirrorStep", durationMs: 3000, withPeek: false },
+  // 多拍子的日常：不是「A 动一下、B 动一下」就完，而是来回好几个回合，久看不厌。
+  // 这几段的位移只按 --play-gap（两张卡的相对间距）算，不用 --play-span，
+  // 所以横排竖排都成立 —— 手机上无非幅度小一点
+  { name: "nuzzle", durationMs: 4200, withPeek: false },
+  { name: "leanNap", durationMs: 6500, withPeek: false },
+  { name: "shareBite", durationMs: 4800, withPeek: false },
+  { name: "highPaw", durationMs: 2800, withPeek: true },
+  { name: "startle", durationMs: 3400, withPeek: false },
+  { name: "roundChase", durationMs: 4600, withPeek: false },
+  { name: "tailSpin", durationMs: 5200, withPeek: false },
+  { name: "makeUp", durationMs: 4400, withPeek: false },
   { name: "lean", durationMs: 1800, withPeek: false, byLineOnly: true },
   { name: "pass", durationMs: 1600, withPeek: false, byLineOnly: true },
   { name: "mimic", durationMs: 1800, withPeek: false, byLineOnly: true },
@@ -51,10 +62,28 @@ const DANCE_SCRIPTS: readonly PlayScript[] = PLAY_SCRIPTS.filter(
 /** 大编舞：动作大、时间长，偶尔当一次特别节目 */
 const BIG_SCRIPTS: readonly PlayScript[] = PLAY_SCRIPTS.filter((script) => script.big);
 
+/** 一个人也能演的小动作：打哈欠、伸懒腰、抖耳朵、回头看、抖毛。
+    不用等对手，所以手里只有一张卡的时候也排得上 —— 那会儿它本来几乎是张静止的图。
+    这几段不进 DANCE_SCRIPTS：独角戏与对手戏各排各的，互不占名额 */
+export const SOLO_SCRIPTS: readonly PlayScript[] = [
+  { name: "yawn", durationMs: 3200, withPeek: false },
+  { name: "stretchOut", durationMs: 2800, withPeek: false },
+  { name: "earFlick", durationMs: 1400, withPeek: false },
+  { name: "lookBack", durationMs: 2600, withPeek: false },
+  { name: "shakeOff", durationMs: 1600, withPeek: false },
+];
+
+/** 独处小动作之间的间隔：比对手戏稀一点，不然一张卡会显得特别忙 */
+const SOLO_MIN_MS = 26_000;
+const SOLO_MAX_MS = 52_000;
+/** 到点发现台面正被占着（在说话、在演对手戏）：过一会儿再来问，别白等一整轮 */
+const SOLO_RETRY_MS = 12_000;
+
 /** 特别节目之间至少隔这么久，不然就成蹦迪了 */
 const BIG_MIN_GAP_MS = 8 * 60_000;
 const BIG_MAX_GAP_MS = 12 * 60_000;
-/** 大编舞要跨过对方，窄屏上会撞到屏幕边被裁掉，所以只在够宽的窗口上演 */
+/** 横排时大编舞要横着跨过对方，窗口太窄会撞到屏幕边被裁掉，所以要够宽。
+    手机上两张卡是上下摞着的，样式那边会换成上下走的版本，不受这条限制 */
 const BIG_MIN_VIEWPORT = 880;
 /** 到点了但台面正被占着（多半是在说话）：过这么久再来看一眼，不让它一等又是一整轮 */
 const BIG_RETRY_MS = 90_000;
@@ -111,6 +140,8 @@ export interface LiveShow {
   /** 演对手戏的两张卡是谁：恰好两张时才排得出左右，猫卡在前站左边。
       动画里两张卡分工不同（谁撞过来、谁被打飞）都得认准这两张 */
   readonly playSide: ComputedRef<{ left: string; right: string }>;
+  /** 这一段演的是哪几张卡（对手戏两张、独处小动作一张）：模板据此挂 is-playing 与 data-play */
+  readonly playingIds: ComputedRef<Set<string>>;
   isPlaying(): boolean;
   /** 上一回开演是什么时候（时间戳，没演过就是 0） */
   lastPlayedAt(): number;
@@ -134,6 +165,9 @@ export interface LiveShow {
 
 export function useLiveShow(host: ShowHost): LiveShow {
   const playingName = ref("");
+  /** 独处小动作演的是哪张卡（空串表示这场是对手戏、或者没在演） */
+  const soloId = ref("");
+  let soloTimer = 0;
   let playTimer = 0;
   let bigTimer = 0;
   let resetTimer = 0;
@@ -144,13 +178,22 @@ export function useLiveShow(host: ShowHost): LiveShow {
   /** 这一场演过哪些剧本，用来凑「猫猫剧场」 */
   const seenShows = new Set<string>();
 
-  /** 上场演出的两个槽位，左右分工与模板上的 class 用同一份安排 */
+  /** 上场演出的两个槽位，左右分工与模板上的 class 用同一份安排。
+      独处小动作只有一张卡，右边留空：别的卡就不会拿到 --left / --right 那套分工 */
   const playSide = computed(() => {
+    if (soloId.value) return { left: soloId.value, right: "" };
     const [left = "", right = ""] = host
       .cards()
       .slice(0, PLAY_CARDS)
       .map((card) => card.id);
     return { left, right };
+  });
+
+  /** 这一段演的是哪几张卡：对手戏两张、独处小动作一张。
+      模板靠它决定谁挂 is-playing 与 data-play —— 不然三张卡会跟着一起打哈欠 */
+  const playingIds = computed(() => {
+    if (!playingName.value) return new Set<string>();
+    return new Set([playSide.value.left, playSide.value.right].filter(Boolean));
   });
 
   function activeSlots(): HTMLElement[] {
@@ -165,6 +208,7 @@ export function useLiveShow(host: ShowHost): LiveShow {
 
   function clearPlayback(): void {
     playingName.value = "";
+    soloId.value = "";
   }
 
   function pickScript(): PlayScript {
@@ -236,6 +280,62 @@ export function useLiveShow(host: ShowHost): LiveShow {
     lastPlayedAt = Date.now();
   }
 
+  /** 独处小动作：只动一张卡，不用凑齐两张 */
+  async function playSolo(script: PlayScript, cardId: string): Promise<void> {
+    clearPlayback();
+    await nextTick();
+    if (!host.slotOf(cardId)) return;
+
+    soloId.value = cardId;
+    playingName.value = script.name;
+    host.onStarted?.();
+
+    window.clearTimeout(resetTimer);
+    resetTimer = window.setTimeout(() => {
+      clearPlayback();
+      host.onFinished?.();
+    }, script.durationMs);
+    lastPlayedAt = Date.now();
+  }
+
+  /** 独处小动作的排期：手里几张卡都排得上，所以只剩一张卡时它也不至于干站着 */
+  function scheduleSolo(
+    delayMs = SOLO_MIN_MS + Math.random() * (SOLO_MAX_MS - SOLO_MIN_MS)
+  ): void {
+    window.clearTimeout(soloTimer);
+    soloTimer = window.setTimeout(() => {
+      const cards = host.cards();
+      // 台面正忙（在说话、在演对手戏、拎在手上、页切后台）：过会儿再来问。
+      // 这里不重排一整轮，不然很容易一连几次都撞上说话
+      const busy =
+        holding ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+        isPlaying() ||
+        cards.length === 0 ||
+        !host.visible() ||
+        document.hidden ||
+        !(host.bigReady?.() ?? true);
+      if (busy) {
+        scheduleSolo(SOLO_RETRY_MS);
+        return;
+      }
+      const card = cards[Math.floor(Math.random() * cards.length)];
+      void playSolo(SOLO_SCRIPTS[Math.floor(Math.random() * SOLO_SCRIPTS.length)], card.id);
+      scheduleSolo();
+    }, delayMs);
+  }
+
+  /** 眼下两张卡是上下摞着的吗（手机上、窄窗口都是）：是的话大编舞走上下走的版本，
+      横向位移那一套在竖排布局里会把卡片直接推出屏幕 */
+  function isStackedLayout(): boolean {
+    const cards = host.cards();
+    if (cards.length !== PLAY_CARDS) return false;
+    const first = host.slotOf(cards[0].id);
+    const second = host.slotOf(cards[1].id);
+    if (!first || !second) return false;
+    return Math.abs(first.offsetTop - second.offsetTop) > first.offsetHeight / 2;
+  }
+
   /** 此时此刻凑得齐两张、也有人在看吗 */
   function canPlay(): boolean {
     // 页面切到后台就别演了：没人看的动画白烧电
@@ -271,11 +371,12 @@ export function useLiveShow(host: ShowHost): LiveShow {
   ): void {
     window.clearTimeout(bigTimer);
     bigTimer = window.setTimeout(() => {
-      // 台面这会儿不空：正在说话、手拎着卡、页切后台、窗口太窄、或者上一段还没演完
+      // 台面这会儿不空：正在说话、手拎着卡、页切后台、上一段还没演完，
+      // 或者横排着而窗口太窄（竖排时换成上下走的版本，多窄都能演）
       const busy =
         holding ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-        window.innerWidth < BIG_MIN_VIEWPORT ||
+        (!isStackedLayout() && window.innerWidth < BIG_MIN_VIEWPORT) ||
         !canPlay() ||
         isPlaying() ||
         !(host.bigReady?.() ?? true);
@@ -292,12 +393,14 @@ export function useLiveShow(host: ShowHost): LiveShow {
   onBeforeUnmount(() => {
     window.clearTimeout(playTimer);
     window.clearTimeout(bigTimer);
+    window.clearTimeout(soloTimer);
     window.clearTimeout(resetTimer);
   });
 
   return {
     playingName,
     playSide,
+    playingIds,
     isPlaying,
     lastPlayedAt: () => lastPlayedAt,
     canPlay,
@@ -317,6 +420,8 @@ export function useLiveShow(host: ShowHost): LiveShow {
       );
       // 特别节目是给「待了一阵子的人」看的，所以从进站就开始计时
       scheduleBig();
+      // 独处小动作的链子也从这儿起步：往后它自己接自己，被占就隔一会儿再问
+      scheduleSolo();
     },
     resume: () => {
       holding = false;

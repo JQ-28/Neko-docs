@@ -48,8 +48,10 @@ function checkText(text, where) {
   if (EMOJI.test(text)) errors.push(`不该有 emoji：${where} 「${text}」`);
 }
 
-const { SPEECH_LINES, MOOD_LINES, CHAT_TURNS, CHAT_MOMENTS, LINE_GESTURES, MOOD_GESTURES, DROP_LINES } =
+const { SPEECH_LINES, MOOD_LINES, CHAT_TURNS, CHAT_MOMENTS, CHAT_IMPROV, LINE_GESTURES, MOOD_GESTURES, DROP_LINES } =
   await import(pathToFileURL(path.join(dir, "live-lines.ts")).href);
+/** 台词文件的源码：有两项检查要在源码里数一数 */
+const linesSource = await readFile(path.join(dir, "live-lines.ts"), "utf8");
 
 for (const [kind, pools] of Object.entries(SPEECH_LINES)) {
   for (const [type, lines] of Object.entries(pools)) collectPool(`SPEECH_LINES.${kind}.${type}`, lines);
@@ -178,6 +180,95 @@ for (const name of actNames) {
 }
 for (const name of definedPlays) {
   if (!actNames.has(name)) warnings.push(`样式里写了演出 ${name}，但脚本里没有这一段`);
+}
+
+// 每段话、每档即兴都得真有可能说出口：把各种光景均匀随机过一遍，
+// 一段都命中不到，就说明它的 when 写死了（比如要求两个不可能同时成立的条件，
+// 或者用错了字段名 —— `mood.sides.left > 0` 写成 `mood.sides.neko` 是查不出来的）
+const AUDIT_RUNS = 20000;
+let auditSeed = 20240916;
+const auditRandom = () => {
+  auditSeed = (auditSeed * 1103515245 + 12345) & 0x7fffffff;
+  return auditSeed / 0x7fffffff;
+};
+const pickOne = (list) => list[Math.floor(auditRandom() * list.length)];
+
+/** 造一个「可能真的发生」的光景：周末与上班时段互斥，卡片数跟 cast 对得上 */
+function makeMood() {
+  const weekday = Math.floor(auditRandom() * 7);
+  const cast = pickOne(["mixed", "neko", "online"]);
+  const period = pickOne(["night", "morning", "day", "evening"]);
+  const hour = { night: 2, morning: 7, day: 12, evening: 20 }[period];
+  const sides = {
+    left: Math.floor(auditRandom() * 3),
+    right: Math.floor(auditRandom() * 3),
+    above: auditRandom() < 0.3 ? 1 : 0,
+    below: auditRandom() < 0.3 ? 1 : 0,
+  };
+  return {
+    period,
+    cast,
+    count: cast === "mixed" ? 2 + Math.floor(auditRandom() * 3) : 1,
+    peers: sides.left + sides.right + sides.above + sides.below,
+    sides,
+    justDragged: auditRandom() < 0.25,
+    justPlayed: auditRandom() < 0.25,
+    weekday,
+    linger: pickOne([0, 3, 60, 300, 900, 3600]),
+    stare: pickOne([0, 1, 2, 3]),
+    stareReady: auditRandom() < 0.5,
+    justReturned: auditRandom() < 0.15,
+    memeReady: auditRandom() < 0.5,
+    cursorIdle: auditRandom() < 0.15,
+    tapBurst: auditRandom() < 0.15,
+    scrollDash: auditRandom() < 0.15,
+    awayDays: pickOne([0, 1, 3, 7, 30, 365]),
+    weekend: weekday === 0 || weekday === 6,
+    workHours: weekday >= 1 && weekday <= 5 && hour >= 9 && hour < 18,
+    online: pickOne([0, 1, 2, 9, 10, 40]),
+    visitTimes: pickOne([1, 2, 3, 7, 8, 30]),
+  };
+}
+
+const momentHits = CHAT_MOMENTS.map(() => 0);
+const improvHits = CHAT_IMPROV.map(() => 0);
+for (let run = 0; run < AUDIT_RUNS; run += 1) {
+  const mood = makeMood();
+  CHAT_MOMENTS.forEach((moment, index) => {
+    if (moment.when(mood)) momentHits[index] += 1;
+  });
+  CHAT_IMPROV.forEach((improv, index) => {
+    if (improv.when(mood)) improvHits[index] += 1;
+  });
+}
+
+CHAT_MOMENTS.forEach((moment, index) => {
+  if (momentHits[index] === 0) {
+    errors.push(`这段光景永远说不成（when 的条件凑不到一起）：「${moment.turns[0]?.line}」`);
+  }
+});
+CHAT_IMPROV.forEach((improv, index) => {
+  if (improvHits[index] === 0) errors.push(`CHAT_IMPROV 第 ${index} 档永远说不成（数字条件凑不到）`);
+});
+
+// 常备对话里的角色得跟 cast 对得上：只有一张猫卡时却说「在线猫猫」的台词，那句永远没人接
+for (const [cast, list] of Object.entries(CHAT_TURNS)) {
+  list.forEach((turns, index) => {
+    const kinds = new Set(turns.map((turn) => turn.by));
+    const stray =
+      (cast === "neko" && kinds.has("online")) || (cast === "online" && kinds.has("neko"));
+    if (stray) errors.push(`常备对话 ${cast}#${index} 里出现了不该登场的角色：「${turns[0]?.line}」`);
+  });
+}
+
+// 只按台词点名演的那几段，得真有台词点它，不然一辈子演不出来
+const actingPlays = new Set(
+  [...linesSource.matchAll(/\bact:\s*"([a-zA-Z]+)"/g)].map((match) => match[1])
+);
+for (const match of showSource.matchAll(/name:\s*"([a-zA-Z]+)"[^}]*byLineOnly:\s*true/g)) {
+  if (!actingPlays.has(match[1])) {
+    errors.push(`演出 ${match[1]} 只在台词点名时演，但没有任何台词点它的名`);
+  }
 }
 
 // 拎到首页别处松手：落点得认得出来，台词得挂在真有的落点上

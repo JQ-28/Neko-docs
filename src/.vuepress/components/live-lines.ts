@@ -1086,6 +1086,8 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   {
     cast: "mixed",
     when: (mood) => mood.peers > 0,
+    // 有邻居窗口时这几段几乎永远可用，不加门槛就会一直提隔壁，别的光景全被挤掉
+    once: "peerNear",
     turns: [
       { by: "neko", line: "隔壁那扇窗口好像也有猫喵" },
       { by: "online", line: "我看见了，那边也在数猫" },
@@ -1094,6 +1096,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   {
     cast: "mixed",
     when: (mood) => mood.peers > 0,
+    once: "peerThrow",
     turns: [
       { by: "neko", line: "要不要把卡扔到隔壁去玩喵？" },
       { by: "online", line: "别闹，扔过去可就不好回来了" },
@@ -1102,6 +1105,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   {
     cast: "mixed",
     when: (mood) => mood.sides.right > 0,
+    once: "peerRight",
     turns: [
       { by: "neko", line: "右边那扇窗口里有猫在看我喵" },
       { by: "online", line: "右边确实还有几只，我数得清" },
@@ -1110,6 +1114,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   {
     cast: "mixed",
     when: (mood) => mood.sides.left > 0,
+    once: "peerLeft",
     turns: [
       { by: "neko", line: "左边好像有猫在探头喵" },
       { by: "online", line: "左边那扇窗口的猫也在数你" },
