@@ -2,6 +2,7 @@
   <div v-if="count > 0" class="home-online" role="status" aria-live="polite">
     <span class="home-online-glass" aria-hidden="true"></span>
     <img
+      ref="avatarRef"
       class="home-online-avatar"
       src="/assets/image/neko11.jpg"
       alt=""
@@ -32,8 +33,33 @@ const REQUEST_TIMEOUT_MS = 5_000;
 const count = ref(0);
 /** 有人进来时短暂顶替的文案，几秒后让位给常态统计 */
 const hint = ref("");
+const avatarRef = ref<HTMLImageElement | null>(null);
 
 const ARRIVE_HINT_MS = 2600;
+/** 头像隔多久自己动一下的随机区间：间隔不固定才不像机器 */
+const IDLE_MIN_MS = 16_000;
+const IDLE_MAX_MS = 38_000;
+
+// 头像动一下：偶尔歪歪头，或者被新来的猫惊动
+function nudgeAvatar(): void {
+  const avatar = avatarRef.value;
+  if (!avatar) return;
+  // 先摘掉再强制重排，保证连续两次也能各自播出动画
+  avatar.classList.remove("is-moving");
+  void avatar.offsetWidth;
+  avatar.classList.add("is-moving");
+}
+
+function scheduleIdleMove(): void {
+  // 偏好减少动效时整个不调度，省得空转着往元素上贴 class
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  window.clearTimeout(idleTimer);
+  const delay = IDLE_MIN_MS + Math.random() * (IDLE_MAX_MS - IDLE_MIN_MS);
+  idleTimer = window.setTimeout(() => {
+    nudgeAvatar();
+    scheduleIdleMove();
+  }, delay);
+}
 
 function periodOfHour(hour: number): "night" | "morning" | "day" {
   if (hour < 5) return "night";
@@ -66,6 +92,7 @@ function applyCount(next: number): void {
   count.value = next;
   if (previous > 0 && next > previous) {
     hint.value = "又来了一只猫";
+    nudgeAvatar();
     window.clearTimeout(arriveTimer);
     arriveTimer = window.setTimeout(() => {
       hint.value = "";
@@ -93,6 +120,7 @@ function readVisitorId(): string {
 let visitorId = "";
 let timer: number | undefined;
 let arriveTimer = 0;
+let idleTimer = 0;
 let inFlight = false;
 
 async function beat(): Promise<void> {
@@ -133,6 +161,7 @@ function handleVisibilityChange(): void {
 onMounted(() => {
   visitorId = readVisitorId();
   void beat();
+  scheduleIdleMove();
   timer = window.setInterval(() => {
     if (!document.hidden) void beat();
   }, HEARTBEAT_MS);
@@ -143,6 +172,7 @@ onBeforeUnmount(() => {
   if (timer !== undefined) window.clearInterval(timer);
   timer = undefined;
   window.clearTimeout(arriveTimer);
+  window.clearTimeout(idleTimer);
   document.removeEventListener("visibilitychange", handleVisibilityChange);
 });
 </script>
@@ -204,6 +234,28 @@ onBeforeUnmount(() => {
   object-fit: cover;
   background: #f0e6f6;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* 从偏下处转，歪头才像歪脖子而不是原地打转 */
+  transform-origin: 58% 82%;
+}
+
+/* 偶尔歪下头，或被人来惊动一下 */
+.home-online-avatar.is-moving {
+  animation: home-online-peek 0.86s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes home-online-peek {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  30% {
+    transform: rotate(-8deg) scale(1.07);
+  }
+
+  62% {
+    transform: rotate(5deg) scale(1.03);
+  }
 }
 
 .home-online-text {
@@ -332,7 +384,8 @@ html.dark .home-online-avatar {
 @media (prefers-reduced-motion: reduce) {
   .home-online,
   .home-online-light-core,
-  .home-online-light-ring {
+  .home-online-light-ring,
+  .home-online-avatar.is-moving {
     animation: none;
   }
 
