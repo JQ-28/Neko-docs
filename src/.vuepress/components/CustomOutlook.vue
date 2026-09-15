@@ -58,7 +58,7 @@
             @click="toggleDark"
           >
             <svg
-              class="icon icon-moon"
+              class="icon icon-moon vp-color-mode-icon"
               :class="{ show: isDark }"
               viewBox="0 0 1024 1024"
               xmlns="http://www.w3.org/2000/svg"
@@ -70,7 +70,7 @@
               />
             </svg>
             <svg
-              class="icon icon-sun"
+              class="icon icon-sun vp-color-mode-icon"
               :class="{ show: !isDark }"
               viewBox="0 0 1024 1024"
               xmlns="http://www.w3.org/2000/svg"
@@ -333,7 +333,7 @@ onBeforeUnmount(() => {
   }
 }
 
-.vp-color-mode-switch .icon {
+.vp-color-mode-switch .vp-color-mode-icon {
   position: absolute;
   inset: 0;
   margin: auto;
@@ -344,7 +344,7 @@ onBeforeUnmount(() => {
   transition: opacity 0.2s var(--ease-out, ease-out), transform 0.2s var(--ease-out, ease-out);
 }
 
-.vp-color-mode-switch .icon.show {
+.vp-color-mode-switch .vp-color-mode-icon.show {
   opacity: 1;
   transform: scale(1);
 }
@@ -362,7 +362,7 @@ onBeforeUnmount(() => {
     flex: none;
   }
 
-  .vp-color-mode-switch .icon {
+  .vp-color-mode-switch .vp-color-mode-icon {
     width: 1.25rem;
     height: 1.25rem;
   }
@@ -403,13 +403,13 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .vp-outlook-dropdown,
   .vp-color-mode-switch,
-  .vp-color-mode-switch .icon {
+  .vp-color-mode-switch .vp-color-mode-icon {
     transition: none;
   }
 
   .vp-color-mode-switch:hover,
-  .vp-color-mode-switch .icon,
-  .vp-color-mode-switch .icon.show {
+  .vp-color-mode-switch .vp-color-mode-icon,
+  .vp-color-mode-switch .vp-color-mode-icon.show {
     transform: none;
   }
 }
