@@ -11,7 +11,7 @@
     />
     <span class="home-online-text">
       <span class="home-online-name">在线猫猫</span>
-      <span class="home-online-meta">{{ headline }}</span>
+      <span class="home-online-meta" :class="{ 'is-hint': hint }">{{ headline }}</span>
     </span>
     <span class="home-online-light" aria-hidden="true">
       <span class="home-online-light-ring"></span>
@@ -30,13 +30,48 @@ const VISITOR_KEY = "neko-visitor-id";
 const REQUEST_TIMEOUT_MS = 5_000;
 
 const count = ref(0);
+/** 有人进来时短暂顶替的文案，几秒后让位给常态统计 */
+const hint = ref("");
 
-// 一个人时换句更亲昵的说法，比冷冰冰的「1」可爱
-const headline = computed(() => {
-  if (count.value <= 0) return "";
-  if (count.value === 1) return "现在只有你一只猫在逛";
-  return `现在有 ${count.value} 只猫在逛`;
+const ARRIVE_HINT_MS = 2600;
+
+function periodOfHour(hour: number): "night" | "morning" | "day" {
+  if (hour < 5) return "night";
+  if (hour < 8) return "morning";
+  return "day";
+}
+
+// 换个时段就换个说法，同一个小网站早中晚读起来不一样
+const baseHeadline = computed(() => {
+  const total = count.value;
+  if (total <= 0) return "";
+
+  const period = periodOfHour(new Date().getHours());
+  if (total === 1) {
+    if (period === "night") return "就剩你一只猫还没睡";
+    if (period === "morning") return "你是今天第一只来的猫";
+    return "现在就你一只猫在逛这个小网站";
+  }
+
+  if (period === "night") return `深夜还有 ${total} 只猫没睡`;
+  if (period === "morning") return `早起的 ${total} 只猫已经在逛了`;
+  return `现在有 ${total} 只猫在逛这个小网站`;
 });
+
+const headline = computed(() => hint.value || baseHeadline.value);
+
+// 有人来就报一声；有人走不吭声，免得像在赶客
+function applyCount(next: number): void {
+  const previous = count.value;
+  count.value = next;
+  if (previous > 0 && next > previous) {
+    hint.value = "又来了一只猫";
+    window.clearTimeout(arriveTimer);
+    arriveTimer = window.setTimeout(() => {
+      hint.value = "";
+    }, ARRIVE_HINT_MS);
+  }
+}
 
 // 匿名访客 ID：只用于去重，不含任何身份信息，清掉浏览器数据就换新号
 function readVisitorId(): string {
@@ -57,6 +92,7 @@ function readVisitorId(): string {
 
 let visitorId = "";
 let timer: number | undefined;
+let arriveTimer = 0;
 let inFlight = false;
 
 async function beat(): Promise<void> {
@@ -79,7 +115,7 @@ async function beat(): Promise<void> {
     if (!response.ok) return;
     const data = (await response.json()) as { count?: unknown };
     if (typeof data.count === "number" && data.count > 0) {
-      count.value = data.count;
+      applyCount(data.count);
     }
   } catch {
     // 统计坏掉不该影响页面，静默失败，等下一次心跳自愈
@@ -106,6 +142,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (timer !== undefined) window.clearInterval(timer);
   timer = undefined;
+  window.clearTimeout(arriveTimer);
   document.removeEventListener("visibilitychange", handleVisibilityChange);
 });
 </script>
@@ -189,6 +226,13 @@ onBeforeUnmount(() => {
   letter-spacing: 0.2px;
   white-space: nowrap;
   color: #a397b2;
+  transition: color 0.25s ease-out;
+}
+
+/* 有人进来的那几秒，文案跟着提亮一下，像有人在说话 */
+.home-online-meta.is-hint {
+  color: var(--vp-c-accent, #096dd9);
+  font-weight: 600;
 }
 
 .home-online-light {
