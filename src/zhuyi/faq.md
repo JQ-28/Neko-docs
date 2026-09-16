@@ -62,7 +62,7 @@ Neko 在 **QQ 群聊和私聊** 中为大家服务。
 
 :::details 点击查看
 
-未经允许请勿擅自拉群。想邀请 Neko：
+未经允许请勿擅自拉群。**决定之前先看 [请 neko 之前](/zhuyi/invite)**（10 件事，两分钟看完）。想邀请 Neko：
 
 1. 填写 [邀群问卷](/qunliao)（或在线申请表单）
 2. 也可以直接加入 [小猫窝地下室](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info) 主群找 JQ

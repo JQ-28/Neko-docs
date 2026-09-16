@@ -101,6 +101,10 @@ html.dark .divider-text {
 }
 </style>
 
+:::tip 申请之前先看一眼
+[请 neko 之前，先看这 10 件事](/zhuyi/invite) —— 要花钱吗、会不会刷屏、能不能只关某个功能、群里的聊天她看不看、不想用了怎么退，两分钟看完。
+:::
+
 <QQChat title="如何领养小猫咪?">
   <QQMessage align="right" avatar="https://drive.nekodayo.top/raw/nekodocs/image/neko11.jpg">
     <div>我想邀请Neko来我的群聊玩，请问应该怎么弄鸭</div>

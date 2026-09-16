@@ -10,6 +10,14 @@ footer: Neko docs - 注意事项
 单击卡片 ![Logo](/assets/icon/credit-card.svg =15x15)![Logo](/assets/icon/arrow-pointer.svg =15x15) 即可进入对应卡片。
 
   ```component VPCard
+  title: 请 neko 之前
+  desc: 想请她进群？先看这 10 件事
+  logo: /assets/icon/circle-nodes.svg
+  link: invite
+  background: rgba(248, 248, 255, 0.3)
+  ```
+
+  ```component VPCard
   title: Bot使用条款
   desc: QQBot 用户条款
   logo: /assets/icon/file.svg
