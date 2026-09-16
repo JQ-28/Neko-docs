@@ -325,8 +325,16 @@ onBeforeUnmount(() => {
   /* 卡片窄，人数涨到三位数时不让文案把卡片撑破 */
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #a397b2;
+  /* 原来那版 #a397b2 在白色卡片上只有 2.76:1，11px 要 4.5:1 才达标；
+     换成站内已有的次级文字色（标题行右侧小字同款），实测 4.76:1 */
+  color: #7d6c8e;
   transition: color 0.25s ease-out;
+}
+
+html.dark .home-online-meta:not(.is-hint) {
+  /* 深色下卡片底是 rgba(30, 34, 42, 0.86)，实测 6.5:1。
+     带 :not(.is-hint) 是为了不盖掉下面「有人进来」那几秒的提亮色（它的特异性比 html.dark 低） */
+  color: #a9a2b8;
 }
 
 /* 有人进来的那几秒，文案跟着提亮一下，像有人在说话 */

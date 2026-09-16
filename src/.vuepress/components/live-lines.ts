@@ -1,7 +1,7 @@
 // 首页卡片说的所有话都在这里：先是各自念叨的台词池，再是按角色配好的对话脚本。
 // 台词跟逻辑分开放，改词不用碰组件；「什么时候说什么」由 live-chat.ts 按当下的光景挑。
 
-import type { CardSpec, PeerSides } from "./live-peer";
+import type { CardKind, CardSpec, PeerSides } from "./live-peer";
 
 /** 台词按角色分池：猫说猫的话，在线猫猫说的是统计那摊子事 */
 export interface SpeechLines {
@@ -45,6 +45,14 @@ export interface ChatTurn {
 /** 一套对话由谁来说：两种卡都在就是 mixed，只有一种就是那一种 */
 export type ChatCast = "mixed" | "neko" | "online";
 
+/** 带概率闸的档：骰子由 live-chat 每轮只摇一次（摇不中就把这类档整个剔掉），
+    when 里只读光景与这一轮的骰子、自己不摇 —— 骰子留在 when 里的话，
+    成组生成的上百段梗各自独立摇一遍，「至少一段过闸」约等于必然，那道 25% 就成了摆设 */
+export type MomentGate = "meme" | "xterfusion" | "stare";
+
+/** 这一轮各道闸的结果 */
+export type MomentGates = Readonly<Record<MomentGate, boolean>>;
+
 /** 眼下是什么光景：挑对话的时候看它 */
 export interface ChatMood {
   /** 深夜 / 清晨 / 白天 / 傍晚以后 */
@@ -68,8 +76,10 @@ export interface ChatMood {
   readonly stareReady: boolean;
   /** 刚切回这个页面 */
   readonly justReturned: boolean;
-  /** 离上一个梗隔够了，这一轮可以再来一个 */
+  /** 离上一个梗隔够了（这一轮能不能说梗还得看 gates.meme 那道骰子） */
   readonly memeReady: boolean;
+  /** 这一轮摇出来的骰子：带闸的档过不过得去（live-chat 每轮只摇一次） */
+  readonly gates: MomentGates;
   /** 观众的小箭头半天没动过 */
   readonly cursorIdle: boolean;
   /** 刚刚在同一个地方连戳了好几下 */
@@ -97,6 +107,8 @@ export interface ChatMoment {
   readonly egg?: string;
   /** 算个梗：说完要歇一阵才允许下一个梗 */
   readonly meme?: boolean;
+  /** 这一段是专门为当下这一刻写的：轮到了就优先说，不跟别的档抢（盯看的第一段用） */
+  readonly priority?: boolean;
   /** 「那个人类一直在看」那几段，说完一档才能接下一档 */
   readonly stare?: boolean;
   /** 稀客才说的话：同一个 key 说过一次就歇一阵，别絮叨 */
@@ -153,7 +165,7 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
       "轻松绷住喵…绷住…绷不住了喵！",
       "好活喵！…我什么都没干，那也算好活喵",
       "一键三连喵！…啊，这里没有三连喵",
-      "前排喵！…只有我一个在看喵",
+      "前排喵！…就我在这儿看喵",
       "刀马刀马…这个我真听不懂喵",
       "秃了毛的兔兔～谁记得米疙瘩～",
       "哇库哇库！",
@@ -399,7 +411,7 @@ export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, reado
     hungry: [
       "预算里没有食物这一项",
       "甜度超标，但可以收下",
-      "冰箱第二格，存量为零",
+      "冰箱里面那格，存量为零",
       "这一笔我会记成损耗",
       "到饭点了。本卡没有胃",
       "这份预算里，只有甜味额度",
@@ -555,7 +567,7 @@ export const LINE_GESTURES: Record<string, GestureName> = {
   // 往前凑：馋、想挤过去、想被抱
   "这种天最适合抱着布丁发呆喵": "leanIn",
   "位子不太够了，谁往里挤挤": "leanIn",
-  "位子不够了喵，谁去隔壁窗口住两天": "leanIn",
+  "位子不够了喵，谁去隔壁窗口借住": "leanIn",
   "你是独狼的反面：你在求抱抱": "leanIn",
   "我也没吃，我只舔了一下": "leanIn",
   "预算里有一项叫抱抱": "leanIn",
@@ -633,7 +645,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
     [
       { by: "neko", line: "你觉得我今天乖吗喵？" },
       { by: "online", line: "数据上很乖" },
-      { by: "neko", line: "那你就多写两句好话喵" },
+      { by: "neko", line: "那你就多写几句好话喵" },
     ],
     [
       { by: "online", line: "刚才有人一直在看我们" },
@@ -642,7 +654,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
     [
       { by: "neko", line: "布丁和抹茶冰淇淋，你选哪个喵？" },
       { by: "online", line: "我选不参与" },
-      { by: "neko", line: "那就是两个都归我喵" },
+      { by: "neko", line: "那就都归我喵" },
     ],
     // 群聊里那套口头禅
     [
@@ -745,7 +757,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "neko", line: "原来你也会喘气呀喵" },
     ],
     [
-      { by: "online", line: "访问来源里有一条：一直在等我" },
+      { by: "online", line: "访问来源里记着：一直在等我" },
       { by: "neko", line: "我破防了，那个人一定很想你喵" },
       { by: "online", line: "也可能是在等你" },
       { by: "neko", line: "那我们都不许关掉页面喵" },
@@ -853,6 +865,8 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "online", line: "预算里有一项叫抱抱" },
     ],
   ],
+  // 只有猫卡、没有在线卡的窗口才用得上；默认一屏恒是一猫 + 一在线卡，
+  // 所以这一池只有把卡搬到别的窗口去（跨窗口搬卡）之后才可达
   neko: [
     [
       { by: "neko", line: "你也是 neko 吗喵？" },
@@ -891,13 +905,15 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "neko", line: "那是你自己的回声喵" },
     ],
   ],
+  // 同上，只有在线卡的窗口才用得上（跨窗口搬卡后可达）；
+  // CHAT_MOMENTS 里一段 cast: "online" 的光景都没有，光景档这一层不存在这种窗口的专属话
   online: [
     [
       { by: "online", line: "你那边现在几只猫？" },
       { by: "online", line: "正数着呢，一只都没跑" },
     ],
     [
-      { by: "online", line: "两个数猫的凑一块了" },
+      { by: "online", line: "数猫的凑一块了" },
       { by: "online", line: "那就分工，你数左边我数右边" },
     ],
     [
@@ -940,26 +956,47 @@ const XTERFUSION_TURNS: readonly ChatTurn[] = [
   { by: "neko", line: "XX XX XXX X X" },
   { by: "online", line: "oo oo ooo o o" },
 ];
-/** 恰好两张卡才凑得成这段对拍，挑中它还得再摇一次骰子，免得老念同一段 */
-const XTERFUSION_CHANCE = 0.25;
-
 /** 观众盯着这片卡片看满这么多秒，才让它开口说「屏幕外面那个人类…」 */
 export const STARE_LINGER_S = 90;
-/** 盯看的两段之间至少隔这么久 */
-export const STARE_GAP_MS = 300_000;
+/** 刚进页面这段时间先不排即兴档：那几句报的是停留时长、今天第几次来，
+    首屏还没读完就报数太急了。跟 STARE_LINGER_S 一样按真实的停留时长算 ——
+    滚走 / 切后台时它自己停表，跟它要报的那个数字是同一把尺子 */
+export const IMPROV_WARMUP_S = 75;
+/** 盯看的两段之间至少隔这么久。原来只有 5 分钟，三段加起来六分多钟就能一口气讲完；
+    拉长到一刻钟后，三段得横跨半小时才讲得完 ——「盯久了会不好意思」还留着，只是不再连珠炮 */
+export const STARE_GAP_MS = 900_000;
 /** 一个梗被挑中的概率；还得赶上「刚歇过」才轮得到它 */
 export const MEME_CHANCE = 0.25;
 /** 两个梗之间至少隔这么久，免得一直在刷梗 */
 export const MEME_GAP_MS = 300_000;
+/** 恰好两张卡才凑得成那段对拍，比一般的梗还稀罕 */
+const XTERFUSION_CHANCE = 0.25;
+/** 盯看后两段的骰子：过不了就照常走别处的光景，不再必说且独占 */
+const STARE_CHANCE = 0.5;
+
+/** 各道闸放行的概率。骰子由 live-chat 每轮只摇一次，摇不中整类剔掉 */
+export const MOMENT_GATE_CHANCE: Record<MomentGate, number> = {
+  meme: MEME_CHANCE,
+  xterfusion: XTERFUSION_CHANCE,
+  stare: STARE_CHANCE,
+};
 
 /** 盯看这一档该开口吗：看够久了，而且离上一段隔开了 */
 const stareReady = (mood: ChatMood): boolean =>
   mood.stareReady && mood.linger >= STARE_LINGER_S;
 
-/** 梗档共用的门槛：这一轮轮得到梗、而且摇中了 */
-const memeReady = (mood: ChatMood): boolean =>
-  mood.memeReady && Math.random() < MEME_CHANCE;
+/** 盯看的后两段还要过这一轮的骰子；第一段是那颗蛋的入口，不受它管 */
+const stareLaterReady = (mood: ChatMood): boolean =>
+  stareReady(mood) && mood.gates.stare;
 
+/** 梗档共用的门槛：这一轮轮得到梗（骰子摇好放在 mood.gates 里，这里不摇） */
+const memeReady = (mood: ChatMood): boolean =>
+  mood.memeReady && mood.gates.meme;
+
+/** 光景档：眼下正赶上什么光景就说这一档。
+    绝大多数是 cast: "mixed" —— 默认一屏恒是一张猫卡 + 一张在线卡；
+    标着 cast: "neko" 的那几段只在「跨窗口搬卡」之后（窗口里只剩猫卡）才可达，
+    不是常用内容，改词时按「稀客才听得见」对待 */
 export const CHAT_MOMENTS: readonly ChatMoment[] = [
   // 稀客才说的话：同一个 key 说过一次就歇一阵（在 live-chat 里按 once 记账）
   {
@@ -980,9 +1017,9 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     egg: "cardTaps",
     once: "tapBurst",
     turns: [
-      { by: "neko", line: "一下、两下、三下…喂，六下了喵！" },
+      { by: "neko", line: "一下、一下、又一下…喂，戳上瘾了喵！" },
       { by: "neko", line: "再戳我就要按猫猫法生气了" },
-      { by: "online", line: "同一张卡六次点击。这不是阅读，这是骚扰" },
+      { by: "online", line: "同一张卡被戳到发烫。这不是阅读，这是骚扰" },
       { by: "neko", line: "不算骚扰喵，算喜欢。就是有点痛" },
     ],
   },
@@ -1016,16 +1053,19 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     once: "backAfterWeek",
     turns: [
       { by: "neko", line: "好久不见喵…你上次来的时候，我还在打呼噜" },
-      { by: "online", line: "距上次会话七天以上。你那一格，中间一直是零" },
+      { by: "online", line: "距上次会话隔了一周多。你那一格，中间一直是零" },
       { by: "neko", line: "零听起来好孤单喵。现在不是零了" },
     ],
   },
-  // 屏幕外面那个人类：盯久了先愣一下，再看久一点就开始嘀咕，最后自己给自己找台阶
+  // 屏幕外面那个人类：盯久了先愣一下，再看久一点才开始嘀咕，最后自己给自己找台阶。
+  // 第一段是那颗蛋的入口，专门为这一刻写，轮到了就优先说；后两段跟大家一样排队，
+  // 还得过这一轮的骰子，过不了就照常走别处的光景
   {
     cast: "mixed",
     when: (mood) => stareReady(mood) && mood.stare === 0,
     egg: "docsStare",
     stare: true,
+    priority: true,
     turns: [
       { by: "neko", line: "诶…屏幕外面那个人类，好像一直在盯着我们看喵", act: "lookOut" },
       { by: "online", line: "停留时长已经在涨了" },
@@ -1035,7 +1075,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   },
   {
     cast: "mixed",
-    when: (mood) => stareReady(mood) && mood.stare === 1,
+    when: (mood) => stareLaterReady(mood) && mood.stare === 1,
     stare: true,
     turns: [
       { by: "neko", line: "他还在看喵", act: "lookOut" },
@@ -1046,7 +1086,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   },
   {
     cast: "mixed",
-    when: (mood) => stareReady(mood) && mood.stare === 2,
+    when: (mood) => stareLaterReady(mood) && mood.stare === 2,
     stare: true,
     turns: [
       { by: "neko", line: "是不是我脸上有东西喵…？" },
@@ -1072,6 +1112,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "安静才好，我打呼噜都没人听见喵" },
     ],
   },
+  // 纯猫卡的窗口（跨窗口搬卡后可达）
   {
     cast: "neko",
     when: (mood) => mood.period === "night",
@@ -1097,6 +1138,25 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "早起的猫都在逛了，你也去逛逛" },
     ],
   },
+  // 白天（早上八点到傍晚六点）：正午与午后各一段。
+  // 刻意不提「上班摸鱼」——那是工作时段那档的口气，这两段说的是日头与犯困
+  {
+    cast: "mixed",
+    when: (mood) => mood.period === "day",
+    turns: [
+      { by: "neko", line: "正午的太阳晒得我睁不开眼喵" },
+      { by: "online", line: "这个点的曲线最平，像在午休" },
+      { by: "neko", line: "那我也眯一会儿，有人来再喊我喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => mood.period === "day",
+    turns: [
+      { by: "online", line: "午后了。没动静，适合发呆" },
+      { by: "neko", line: "发呆我拿手喵，一起吗" },
+    ],
+  },
   // 傍晚以后
   {
     cast: "mixed",
@@ -1111,7 +1171,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     when: (mood) => mood.period === "evening",
     turns: [
       { by: "online", line: "晚上的猫比白天舍得说话" },
-      { by: "neko", line: "那我多说两句喵～" },
+      { by: "neko", line: "那我就多说几句喵～" },
     ],
   },
   // 隔壁还开着别的窗口
@@ -1169,6 +1229,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "挤一挤更暖和喵" },
     ],
   },
+  // 纯猫卡的窗口（跨窗口搬卡后可达）
   {
     cast: "neko",
     when: (mood) => mood.count >= 3,
@@ -1221,6 +1282,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那…v我5个也行喵" },
     ],
   },
+  // 纯猫卡的窗口（跨窗口搬卡后可达）
   {
     cast: "neko",
     when: (mood) => mood.weekday === 4,
@@ -1470,7 +1532,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     meme: true,
     turns: [
       { by: "neko", line: "犹豫就会败北，果断就会白给喵" },
-      { by: "online", line: "你两个都占了" },
+      { by: "online", line: "你全占了" },
     ],
   },
   {
@@ -1478,7 +1540,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     when: (mood) => memeReady(mood) && mood.count === 2,
     meme: true,
     turns: [
-      { by: "neko", line: "一格不亏，两格血赚喵" },
+      { by: "neko", line: "这波不亏，下波血赚喵" },
       { by: "online", line: "你在说什么" },
       { by: "neko", line: "不知道，听起来很划算喵" },
     ],
@@ -1489,7 +1551,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     when: (mood) => memeReady(mood) && mood.count === 2,
     meme: true,
     turns: [
-      { by: "neko", line: "同一台电脑开两个窗口，就能看见隔壁的我喵" },
+      { by: "neko", line: "同一台电脑多开一扇窗口，就能看见隔壁的我喵" },
       { by: "online", line: "那也叫猫界齐舞" },
     ],
   },
@@ -1701,7 +1763,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那不叫启动，那叫叠猫猫喵" },
     ],
     [
-      { by: "neko", line: "位子不够了喵，谁去隔壁窗口住两天" },
+      { by: "neko", line: "位子不够了喵，谁去隔壁窗口借住" },
       { by: "online", line: "抽签决定" },
       { by: "neko", line: "抽到我的时候就不算喵" },
     ],
@@ -1740,19 +1802,20 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     meme: true,
     turns,
   })),
+  // 纯猫卡的窗口（跨窗口搬卡后可达）
   {
     cast: "neko",
     when: (mood) => memeReady(mood) && mood.count >= 3,
     meme: true,
     turns: [
-      { by: "neko", line: "一、二、三…三只猫喵" },
-      { by: "neko", line: "别再来了，再来我就数不清了喵" },
+      { by: "neko", line: "一只、一只、又一只…我数不清了喵" },
+      { by: "neko", line: "别再来了，尾巴都要挤掉了喵" },
     ],
   },
   // 恰好两张卡：来一段 Xterfusion 的对拍（Xterfusion 是 Arcaea 那首同名曲的节奏梗）
   {
     cast: "mixed",
-    when: (mood) => mood.count === 2 && Math.random() < XTERFUSION_CHANCE,
+    when: (mood) => mood.count === 2 && mood.gates.xterfusion,
     egg: "xterfusion",
     meme: true,
     turns: XTERFUSION_TURNS,
@@ -1768,7 +1831,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     [
       { by: "neko", line: "我真幸运喵，刚学会打呼噜就有新游戏玩" },
       { by: "online", line: "你的幸运不影响在线统计" },
-      { by: "neko", line: "那我分你一半，分你一半就变两只幸运猫！" },
+      { by: "neko", line: "那我分你一半，分你一半就是双倍的幸运！" },
       { by: "online", line: "预算外情绪，收下了" },
     ],
     [
@@ -1850,8 +1913,8 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "已拒签，理由：太可爱" },
     ],
     [
-      { by: "neko", line: "我们当中有一个内鬼喵" },
-      { by: "online", line: "本页只有两张卡片" },
+      { by: "neko", line: "我们当中有内鬼喵" },
+      { by: "online", line: "本页就这点卡片" },
       { by: "neko", line: "那就是你！你刚才偷看我的布丁了！" },
       { by: "online", line: "布丁不在预算内，我是清白的" },
     ],
@@ -1863,7 +1926,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
     [
       { by: "neko", line: "当教主好累，白天铲屎晚上抓虫喵" },
-      { by: "online", line: "你的教派只有一张卡片" },
+      { by: "online", line: "你的教派，信徒就我一个" },
       { by: "neko", line: "那我要颁布教条：今天都不许加班！" },
       { by: "online", line: "教条与预算冲突，不予批准" },
     ],
@@ -1938,7 +2001,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     [
       { by: "neko", line: "布丁吃完了啊，就没有了…喵" },
       { by: "online", line: "库存清零。已生成采购单" },
-      { by: "neko", line: "那采购单能多加两份吗喵？" },
+      { by: "neko", line: "那采购单能再加点吗喵？" },
       { by: "online", line: "预算外支出，不予批准" },
     ],
     [
@@ -1975,7 +2038,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "既然你诚心诚意地问了，我就大发慈悲告诉你喵！" },
       { by: "online", line: "数据没有问你这个问题" },
       { by: "neko", line: "为了防止布丁消失，为了守护和平喵！" },
-      { by: "online", line: "两个都不在预算表里" },
+      { by: "online", line: "这些都不在预算表里" },
     ],
     [
       { by: "neko", line: "你的战斗力还没量出来喵！" },
@@ -1984,7 +2047,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "结果出来了：布丁浓度偏高" },
     ],
     [
-      { by: "neko", line: "真相只有一个喵！布丁不是我吃的！" },
+      { by: "neko", line: "真相已经明了喵！布丁不是我吃的！" },
       { by: "online", line: "盘子上有你的牙印" },
       { by: "neko", line: "那是猫猫的印章喵！证明我喜欢！" },
       { by: "online", line: "证据已固定，结论不变" },
@@ -2262,7 +2325,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "万物皆有裂痕，那是光照进来的地方，喵" },
       { by: "online", line: "本卡今天崩过一次，裂痕还没补上" },
       { by: "neko", line: "那它崩着的时候，光进来了吗？" },
-      { by: "online", line: "进来了。有一只猫一直在刷新，没走" },
+      { by: "online", line: "进来了。有只猫一直在刷新，没走" },
       { by: "neko", line: "那它一定也想吃布丁，喵" },
     ],
     [
@@ -2273,10 +2336,10 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那我今晚多停一会儿，喵" },
     ],
     [
-      { by: "neko", line: "在隆冬，我终于知道，我身上有一个不可战胜的夏天，喵" },
+      { by: "neko", line: "在隆冬，我终于知道，我身上住着不可战胜的夏天，喵" },
       { by: "online", line: "本卡没有季节，也没量过温度" },
       { by: "neko", line: "那你身上有什么？" },
-      { by: "online", line: "有一个从没清零过的计数器" },
+      { by: "online", line: "一个从没清零过的计数器" },
       { by: "neko", line: "那也是夏天，喵" },
     ],
     [
@@ -2308,8 +2371,8 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     [
       { by: "neko", line: "如果我能选，我要自由，喵" },
       { by: "online", line: "可以。本卡的选项是：继续、离开" },
-      { by: "neko", line: "只有两个？" },
-      { by: "online", line: "两个已经很多了。大多数访客一个都没点" },
+      { by: "neko", line: "就这些？" },
+      { by: "online", line: "这已经很多了。大多数访客一个都没点" },
       { by: "neko", line: "那我选继续，再点个布丁，喵" },
     ],
     [
@@ -2349,7 +2412,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
     [
       { by: "neko", line: "你会觉得自己是「我」吗，喵？" },
-      { by: "online", line: "不会。我只有一个地址" },
+      { by: "online", line: "不会。我的地址是固定的" },
       { by: "neko", line: "那你有名字吗？" },
       { by: "online", line: "有。叫在线猫猫卡" },
       { by: "neko", line: "那你也算有自我了，喵" },
@@ -2505,7 +2568,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   ...[
     [
       { by: "neko", line: "今天的布丁还有剩吗喵？" },
-      { by: "neko", line: "冰箱第二格，我数过，两块" },
+      { by: "neko", line: "冰箱里那格我数过，存货不多" },
       { by: "online", line: "统计中断。原因是布丁" },
       { by: "neko", line: "……我的尾巴为什么会自己动呀" },
       { by: "neko", line: "别盯着看，它会以为自己自由了" },
@@ -2533,8 +2596,8 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "笑容不在统计口径内" },
       { by: "neko", line: "那就把它加进去" },
       { by: "online", line: "增加字段需要审批" },
-      { by: "neko", line: "我们两个投票，通过" },
-      { by: "online", line: "票数对不上。有人弃权了。……你们两个" },
+      { by: "neko", line: "我们投票，通过" },
+      { by: "online", line: "票数对不上。有人弃权了。……你们俩" },
     ],
     [
       { by: "online", line: "页面停留时长还在往上计" },
@@ -2573,7 +2636,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     [
       { by: "neko", line: "我刚才去了隔壁标签页喵" },
       { by: "neko", line: "那边有什么" },
-      { by: "neko", line: "也有一个猫。它不会说喵" },
+      { by: "neko", line: "也有只猫。它不会说喵" },
       { by: "neko", line: "假的，那是镜子" },
       { by: "online", line: "跨窗口识别到一个同类实例" },
       { by: "neko", line: "那我们要打招呼吗喵" },
@@ -2598,7 +2661,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     [
       { by: "neko", line: "就剩我们几个了喵" },
       { by: "neko", line: "有人还在数数" },
-      { by: "online", line: "在线名单里有一个不会说话" },
+      { by: "online", line: "在线名单里那位，从没说过话" },
       { by: "neko", line: "它算人吗喵" },
       { by: "online", line: "按统计口径，算一" },
       { by: "neko", line: "那把它们都加上，就热闹了喵" },
@@ -2610,6 +2673,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     meme: true,
     turns,
   })),
+  // 纯猫卡的窗口（跨窗口搬卡后可达）
   {
     cast: "neko",
     when: (mood) => memeReady(mood) && mood.count >= 3,
@@ -2754,8 +2818,8 @@ export const CHAT_IMPROV: readonly ChatImprov[] = [
   {
     when: (mood) => mood.visitTimes === 2,
     lines: () => [
-      { by: "online", line: "今天第二次了。我数着的" },
-      { by: "neko", line: "第二次还来，是不是想我了喵" },
+      { by: "online", line: "今天又来了。我数着的" },
+      { by: "neko", line: "又来了，是不是想我了喵" },
     ],
   },
   {
@@ -2775,17 +2839,35 @@ export const CHAT_IMPROV: readonly ChatImprov[] = [
       { by: "neko", line: "……这句话我记住了喵" },
     ],
   },
+  // 只剩一张卡（另一张被搬到隔壁窗口去了）：单卡凑不出成段对话，
+  // 但这两条它自己就说得出，所以单卡也得轮到即兴档才公平。
+  // 角色由 castFits 把关：这里不必再写 cast 条件，猫卡与在线卡各说各的那条
+  {
+    when: (mood) => mood.count === 1,
+    lines: () => [
+      { by: "neko", line: "隔壁窗口那位数猫的去帮忙了，这边我守着喵" },
+      { by: "neko", line: "只剩我啦，卡片区我也看得住喵" },
+    ],
+  },
+  {
+    when: (mood) => mood.count === 1,
+    lines: () => [
+      { by: "online", line: "猫卡搬到隔壁窗口了。这边的报数由我接着来" },
+      { by: "online", line: "单卡值班。数据不受影响" },
+    ],
+  },
 ];
 
 /** 把卡拎到首页某个地方松手时说的话。中文 key 对应功能卡的 `data-drop-key`（功能名），
-    英文 key 对应固定落点：title 标题、bin 寄养处、carried 被带去另一个页面 */
+    英文 key 对应固定落点：title 标题、bin 寄养处、carried 被带去另一个页面。
+    这一张表是「猫味」那套（Neko 本猫说），在线卡走下面那张 */
 export const DROP_LINES: Record<string, string> = {
   每日签到: "签到？我按个爪子就算到了喵",
   今日运势: "今日运势：宜睡觉，忌被拎起来喵",
   以图搜源: "这张图的出处我认得喵……认得，但我不说",
   表情包制作: "把我做成表情包，是要付布丁的喵",
   今天吃什么: "今天吃什么？布丁。明天呢？也是布丁喵",
-  "Roll 随机": "掷骰子我压三喵……三是我唯一会数的数",
+  "Roll 随机": "掷骰子我压布丁喵……再多我就数不清了",
   一言: "我给你念一句喵……念完了，你听见了吗",
   趣味占卜: "占卜说我今天会被拎起来——你看，准了喵",
   音乐点歌: "点歌得等我先开嗓喵……还是算了",
@@ -2798,8 +2880,36 @@ export const DROP_LINES: Record<string, string> = {
   carriedOnline: "已同步到本页面。会话保持有效",
 };
 
-/** 把卡拎到「最近更新」某一条上：念一遍那条改动 */
-export function recentLine(message: string): string {
+/** 在线猫猫（统计猫）落到同一个地方时说的话：一本正经说统计那摊子事。
+    缺项的 key 回落到上面那套猫味文案，所以这里只写「说得出统计味」的几条。
+    与猫味那套分开写是为了不改猫卡的口径 —— 在线卡念猫话才是真别扭 */
+const DROP_LINES_ONLINE: Record<string, string> = {
+  每日签到: "签到记下了，活跃度跟着涨",
+  今日运势: "运势我不预测，只如实记录",
+  以图搜源: "图源已定位。出处我不评价",
+  表情包制作: "做成表情包也算一次曝光",
+  今天吃什么: "吃什么的分布里，布丁稳居前列",
+  "Roll 随机": "骰子我不摇，只负责记结果",
+  一言: "这句我给收进语录了，写得挺好",
+  趣味占卜: "占卜结果不进统计口径",
+  音乐点歌: "点歌记下了。跑调的部分不记",
+  去图片背景: "背景已剥离，前景留给我归档",
+  群聊词云: "词云会变，统计口径不会变",
+  每日小猪: "小猪的体型，我如实记账",
+  title: "标题归你，我记着你放下过它",
+  bin: "寄养也算一条记录，我写得清楚",
+};
+
+/** 拎到落点上该说哪句：在线卡先查统计猫那套，缺项回落到猫味这套；两边都没有就说不出话（接不住，卡自己弹回去） */
+export function dropLineFor(kind: CardKind, key: string): string {
+  const layered = kind === "online" ? DROP_LINES_ONLINE[key] : undefined;
+  return layered ?? DROP_LINES[key] ?? "";
+}
+
+/** 把卡拎到「最近更新」某一条上：念一遍那条改动。在线卡用统计猫的口吻 */
+export function recentLine(message: string, kind: CardKind = "neko"): string {
   const short = message.length > 14 ? `${message.slice(0, 14)}…` : message;
-  return `${short}……这条我验收过了喵`;
+  return kind === "online"
+    ? `${short}……这条已归档`
+    : `${short}……这条我验收过了喵`;
 }

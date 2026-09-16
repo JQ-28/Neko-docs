@@ -103,13 +103,15 @@ import { useRouter } from "vue-router";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "./egg-utils";
 import { GREETING_REPLY_MS, useLiveTalk } from "./live-chat";
-import { DROP_LINES, nekoMetaLine, recentLine } from "./live-lines";
+import { dropLineFor, nekoMetaLine, recentLine } from "./live-lines";
 import {
   cardPointAbs,
   createDragTrack,
   DRAG_LIFT_PX,
   DRAG_TOP_MARGIN,
+  EDGE_SCROLL_FRAME_MS,
   edgeFromPoint,
+  edgeScrollSpeed,
   HANDOFF_GO_PX,
   HANDOFF_PUSH_PX,
   leanFromSpeed,
@@ -796,6 +798,9 @@ const stageNote = computed(() => {
 });
 
 let drag: DragState | null = null;
+/** 手指/鼠标这会儿在屏幕的哪个高度：自动滚页看它，比卡片中心更贴边 ——
+    卡片被 limitShift 挡在离边 16px 处，中心到不了最边上，速度的档位就拉不开 */
+let dragPointerY = 0;
 /** 拎着卡片时顺手统计的动作：摇猫猫、遛猫 */
 const dragTrack = createDragTrack();
 
@@ -969,6 +974,7 @@ function beginDrag(
     shiftY: 0,
     touch: event.pointerType !== "mouse",
   };
+  dragPointerY = event.clientY;
   // 手指点得太快时指针可能已经抬起了，抓不到就按没抓到继续走
   try {
     handle.setPointerCapture(event.pointerId);
@@ -998,6 +1004,8 @@ function dropRelease(keepSpeech = false): void {
   draggingId.value = "";
   // 手机上拎完，竖向滚动还给页面
   slot.style.touchAction = "";
+  // 松手、被接住、被取消三条路都从这儿出去：自动滚页的循环也归拖拽的生命周期管
+  stopEdgeScroll();
   drag = null;
   if (!keepSpeech) talk.hush();
   lightDrop(null);
@@ -1037,7 +1045,8 @@ const RETIRE_MS = 2600;
 const CARRIED_KEY = "neko-carried";
 
 let dropLit: HTMLElement | null = null;
-/** 命中测试的节流现场：手指挪得少就不用每帧去问一次 elementFromPoint */
+/** 命中测试的节流现场：按「卡片中心挪了多少」算，挪得少就不用每帧去问一次 elementFromPoint
+    （指针坐标不行：自动滚页时指针没动，卡片底下的落点却换了） */
 let dropHitAtX = 0;
 let dropHitAtY = 0;
 let dropHitAt = 0;
@@ -1072,14 +1081,15 @@ function flashDrop(el: HTMLElement): void {
   dropTimers.set(el, window.setTimeout(() => delete el.dataset.dropHit, 600));
 }
 
-/** 这个落点该说哪句：功能卡按功能名查表，最近更新是现编的 */
-function dropLine(el: HTMLElement, kind: string): string {
-  if (kind === "feat") return DROP_LINES[el.dataset.dropKey ?? ""] ?? "";
+/** 这个落点该说哪句：功能卡按功能名查表，最近更新是现编的。
+    台词按卡种分层 —— 在线猫猫说的是统计那摊子事，别让它念猫的话 */
+function dropLine(el: HTMLElement, kind: string, card: CardSpec): string {
+  if (kind === "feat") return dropLineFor(card.kind, el.dataset.dropKey ?? "");
   if (kind === "recent") {
     const message = el.querySelector(".home-recent-message")?.textContent?.trim() ?? "";
-    return message ? recentLine(message) : "";
+    return message ? recentLine(message, card.kind) : "";
   }
-  return DROP_LINES[kind] ?? "";
+  return dropLineFor(card.kind, kind);
 }
 
 /** 把一张卡从「被收走」的动画里放出来：那两条动画都是 forwards 的，
@@ -1139,7 +1149,7 @@ function retireCard(card: CardSpec): void {
     window.setTimeout(() => {
       retireTimers.delete(card.id);
       delete slot.dataset.retired;
-      talk.sayLine(card, DROP_LINES.bin);
+      talk.sayLine(card, dropLineFor(card.kind, "bin"));
     }, RETIRE_MS)
   );
 }
@@ -1161,7 +1171,7 @@ function useDrop(el: HTMLElement, card: CardSpec): boolean {
     return true;
   }
 
-  const line = dropLine(el, kind);
+  const line = dropLine(el, kind, card);
   if (!line) return false;
   flashDrop(el);
   talk.sayLine(card, line);
@@ -1181,6 +1191,72 @@ function heldCenter(): { x: number; y: number } | null {
   };
 }
 
+/** 卡片压在哪个落点上就点亮哪个（没压着就灭）。拖动中随手指更新、贴边自动滚页时也调用 */
+function refreshDropLight(): void {
+  const center = heldCenter();
+  if (!center) {
+    lightDrop(null);
+    return;
+  }
+  const now = performance.now();
+  const moved = Math.hypot(center.x - dropHitAtX, center.y - dropHitAtY);
+  if (moved < HIT_MIN_PX && now - dropHitAt < HIT_MIN_MS) return;
+  dropHitAtX = center.x;
+  dropHitAtY = center.y;
+  dropHitAt = now;
+  lightDrop(dropUnder(center.x, center.y));
+}
+
+/** 贴边自动滚页：拖拽被锁在视口里，不给页面滚动的话窄屏上根本够不到寄养处那些落点。
+    每帧按手到上下边缘的距离算一次速度，手停在边上就一直滚，挪开或滚到头就停 */
+let edgeScrollFrame = 0;
+let edgeScrollAt = 0;
+
+function stopEdgeScroll(): void {
+  if (!edgeScrollFrame) return;
+  cancelAnimationFrame(edgeScrollFrame);
+  edgeScrollFrame = 0;
+}
+
+function edgeScrollStep(): void {
+  edgeScrollFrame = 0;
+  const now = performance.now();
+  // 卡片正飘在别的窗口的地盘上、或者已经松手了：这一轮到这儿为止
+  if (!drag || roamingIds.value.includes(drag.cardId)) return;
+
+  const speed = edgeScrollSpeed(dragPointerY, window.innerHeight);
+  const top = window.scrollY;
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  const room = speed < 0 ? top : max - top;
+  // 出了边缘区、或者已经在顶/底没得可滚：停下别空转，回到边缘区会由 pointermove 再拉起来
+  if (speed === 0 || room <= 0) return;
+
+  // 低帧率下按实际帧间隔折算（封顶两帧，切后台回来别一下窜出老远）；
+  // 「减少动效」也照常能用 —— 拖拽是手带出来的操作，不是装饰动画，只是慢一点
+  const elapsed = Math.min(now - edgeScrollAt, EDGE_SCROLL_FRAME_MS * 2);
+  const slowdown = reduceMotionQuery?.matches ? 0.6 : 1;
+  edgeScrollAt = now;
+  // 主题全局开着 scroll-behavior: smooth，不点明 instant 的话每一小步都会被抹成一段缓动
+  window.scrollBy({
+    top: (speed * elapsed * slowdown) / EDGE_SCROLL_FRAME_MS,
+    behavior: "instant",
+  });
+  // 页面滚了，卡片底下的东西就换了：高亮跟着重算，松手时的落点判定与它同一口径
+  refreshDropLight();
+  edgeScrollFrame = requestAnimationFrame(edgeScrollStep);
+}
+
+/** 手进没进边缘带：进了就保证滚动循环在跑，出了就立刻停 */
+function updateEdgeScroll(): void {
+  if (!drag || edgeScrollSpeed(dragPointerY, window.innerHeight) === 0) {
+    stopEdgeScroll();
+    return;
+  }
+  if (edgeScrollFrame) return;
+  edgeScrollAt = performance.now();
+  edgeScrollFrame = requestAnimationFrame(edgeScrollStep);
+}
+
 function onPointerMove(event: PointerEvent): void {
   // 还在等长按：手指挪开了就说明人家是想滚页面，这次不算拎
   if (touchHoldAt && event.pointerId === touchHoldAt.pointerId) {
@@ -1189,6 +1265,7 @@ function onPointerMove(event: PointerEvent): void {
     return;
   }
   if (!drag || event.pointerId !== drag.pointerId) return;
+  dragPointerY = event.clientY;
 
   const now = performance.now();
   const rawX = event.clientX - drag.startX;
@@ -1244,16 +1321,7 @@ function onPointerMove(event: PointerEvent): void {
   // 拎着卡片扫过首页别处：压在哪个落点上就点亮哪个，手挪开就灭。
   // 这一下要读一次布局（elementFromPoint 是强制同步布局），所以排在写位移之前 ——
   // 排在后面就成了「写样式、再读布局」，浏览器得为它把整页重排一遍
-  if (!roamingIds.value.includes(drag.cardId)) {
-    const moved = Math.hypot(event.clientX - dropHitAtX, event.clientY - dropHitAtY);
-    if (moved >= HIT_MIN_PX || now - dropHitAt >= HIT_MIN_MS) {
-      dropHitAtX = event.clientX;
-      dropHitAtY = event.clientY;
-      dropHitAt = now;
-      const center = heldCenter();
-      lightDrop(center ? dropUnder(center.x, center.y) : null);
-    }
-  }
+  if (!roamingIds.value.includes(drag.cardId)) refreshDropLight();
 
   // 位置直接给到手上，拖尾和回弹交给样式里的过渡，掉帧也不会变形
   drag.slot.style.translate = `${dx}px ${dy - lift}px`;
@@ -1261,6 +1329,10 @@ function onPointerMove(event: PointerEvent): void {
   // 顺手数一数彩蛋：摇猫猫、遛猫
   if (dragTrack.shake(event.clientX, Date.now())) markEgg("cardShake");
   if (dragTrack.walk(dx, dy)) markEgg("cardWalk");
+
+  // 手把卡片带到屏幕边上就自动滚页（下一句那条「减少动效」会提前 return，
+  // 所以这个调用必须排在它前面，不然省电模式下页外那些落点永远够不到）
+  updateEdgeScroll();
 
   // 甩得越快歪得越厉害，手一停角度自己荡回来，看着就像被拎着的猫
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -1345,6 +1417,8 @@ function onPointerUp(event: PointerEvent): void {
     slot.style.translate = "";
     slot.style.rotate = "";
   }
+  // 这条松手路径不走 dropRelease，滚页循环要自己收（否则会一直滚下去）
+  stopEdgeScroll();
   drag = null;
   // 拎完了，竖向滚动还给页面（换位那条路走的是 reorderCards，同样要还）
   slot.style.touchAction = "";
@@ -1464,6 +1538,8 @@ onBeforeUnmount(() => {
   window.clearTimeout(peerHintTimer);
   window.clearTimeout(roamerTimer);
   window.clearTimeout(touchHoldTimer);
+  // 组件走了就别再滚页面：拖拽中切页时循环可能正跑着
+  stopEdgeScroll();
   for (const timer of carryTimers.values()) window.clearTimeout(timer);
   carryTimers.clear();
   for (const timer of retireTimers.values()) window.clearTimeout(timer);
@@ -1544,7 +1620,9 @@ html.dark .home-intro-sub {
   --play-dir: 1;
   position: relative;
   display: flex;
-  flex: 0 1 264px;
+  /* 基准取 236px：flex 换行按「假想主轴尺寸」判定，写 264 时要容器 550px 才排得下，
+     561–597px 那条带就会掉成一上一下；由 grow 补回来，宽屏仍是 max-width 那 264 */
+  flex: 1 1 236px;
   max-width: 264px;
   /* 松手后带着惯性飞回原位，角度还会多晃两下 */
   transition: translate 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
@@ -1620,6 +1698,9 @@ html.dark .home-intro-sub {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+  /* 连戳两下以上是这块卡片的主要互动，得关掉双击缩放（pan-y 关不掉它）。
+     放槽位这一层是取祖先交集：卡片上的 pan-y 保住纵滑，拖动时 JS 写的 none 照样压得住 */
+  touch-action: manipulation;
 }
 
 /* 两张卡都能拎：鼠标抓着走，手机上先按住再动；竖直方向留给页面滚动 */
@@ -1695,7 +1776,15 @@ html.dark .home-live-slot.is-dragging :deep(.home-online) {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  white-space: nowrap;
+  /* 最长的一句有二十五六个字，nowrap 下一行要 330px，比卡片还宽 ——
+     窄屏上两头会被视口裁掉一大截（#app 的 overflow-x: clip 只挡滚动条，不挡裁切）。
+     限宽到槽位宽度内 + 允许换行：气泡最宽也就跟卡片一样，任何视口都不会出屏；
+     它是绝对定位，折行只往上长，不会把卡片撑变形，也不会盖住卡片本体 */
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: break-word;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--vp-c-accent, #096dd9) 16%, transparent);
   pointer-events: none;
   animation: home-live-bubble-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
@@ -1718,6 +1807,9 @@ html.dark .home-live-slot.is-dragging :deep(.home-online) {
 html.dark .home-live-bubble {
   border-color: rgba(255, 255, 255, 0.1);
   background: #262a33;
+  /* 深色下主题把 accent 提到约 #2389f6，压在 #262a33 上只有 4.06:1；
+     换成粉蓝渐变那一端的蓝，实测 6.5:1，色系也一致 */
+  color: #7fb0ff;
 }
 
 /* 串门：隔壁窗口的猫探个小脑袋出来看一眼，晃两下又缩回去 */
@@ -2058,13 +2150,27 @@ html.dark .home-live-roamer {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+  /* 名字不加溢出保护的话，360px 起就压到指示灯上、320px 会被裁掉一半：
+     overflow 一写，flex 项的最小尺寸也跟着降到 0，它能自己缩到省略号 */
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--vp-c-accent, #096dd9);
 }
 
 .home-live-meta {
   font-size: 11px;
   letter-spacing: 0.2px;
-  color: #a397b2;
+  /* 这行小字窄屏会折行：限死宽度，别让它把同排的在线卡一起撑高（卡片区是 stretch 对齐的） */
+  max-width: 100%;
+  overflow: hidden;
+  /* 原来那版 #a397b2 在白色卡片上只有 2.76:1，11px 要 4.5:1 才达标；
+     换成站内已有的次级文字色（标题行右侧小字同款），实测 4.76:1 */
+  color: #7d6c8e;
+}
+
+html.dark .home-live-meta {
+  /* 深色下卡片底是 rgba(30, 34, 42, 0.86)，实测 6.5:1 */
+  color: #a9a2b8;
 }
 
 .home-live-light {
@@ -3965,6 +4071,21 @@ html.dark .home-live-avatar {
   }
 }
 
+/* 「左边 1 只、右边 2 只」那行小字躲开标题：父组件里同样这两条是 scoped 的
+   （带 data-v-<HomeIntro>），命不中这里用自己模板渲染的同名类，所以照抄一份。
+   不补的话多窗口时那行三百来像素的小字会跟标题挤在一条线上 */
+@media (max-width: 768px) {
+  .home-intro-title {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .home-intro-sub {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
 /* 窄屏改两张平分，各让一半宽度就不会换行成一上一下。
    必须放在各卡片宽度定义之后，同特异性下才覆盖得掉 */
 @media (max-width: 560px) {
@@ -3988,6 +4109,20 @@ html.dark .home-live-avatar {
   .home-live-cards :deep(.home-online-meta) {
     white-space: normal;
     line-height: 1.35;
+  }
+
+  /* 与在线卡同款的折行策略，再压到两行：这行小字折到第三行就会把同排那张卡一起拉高 */
+  .home-live-meta {
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* 卡片只有半个屏宽，气泡再按槽宽收就只剩十来字一行：
+     放宽到接近半屏（375 下 179.5px），但两头仍留出槽位到视口边的余量，既不裁字也不出屏 */
+  .home-live-bubble {
+    max-width: calc(50vw - 8px);
   }
 }
 

@@ -35,6 +35,14 @@ const SHAKE_SWING_STEP = 20;
 const SHAKE_SWING_WINDOW_MS = 900;
 /** 叠猫猫：两张卡的中心离这么近就算叠上了 */
 export const STACK_GAP_PX = 60;
+/** 手（指针）贴到视口上/下边缘这么近，页面就自己滚起来（px）。窄屏上寄养处与
+    「快速上手 / 拉进群」都在视口外，拖拽又被锁在视口内，不给自动滚页就够不到 */
+export const EDGE_SCROLL_ZONE_PX = 60;
+/** 自动滚页的速度：刚进边缘区最慢、贴到边缘线最快（px/帧，按 60fps 基准写） */
+export const EDGE_SCROLL_MIN_PX = 8;
+export const EDGE_SCROLL_MAX_PX = 12;
+/** 60fps 一帧的毫秒数：低帧率下按实际帧间隔折算，滚动才不会一顿一顿 */
+export const EDGE_SCROLL_FRAME_MS = 1000 / 60;
 
 /** 一只手拎着的那张卡，从按下去到松手期间的所有现场 */
 export interface DragState {
@@ -155,6 +163,22 @@ export function cardPointAbs(
 /** 手移动多快就把猫甩多歪 */
 export function leanFromSpeed(speed: number): number {
   return Math.max(-SWING_MAX, Math.min(SWING_MAX, speed * SWING_PER_SPEED));
+}
+
+/** 拎着卡片的手贴到上/下边缘时这一帧该滚多少像素：负数往上、正数往下，0 表示不用滚。
+    速度从边缘线往里线性递减，越贴边滚得越快；离开边缘带立刻回 0 */
+export function edgeScrollSpeed(y: number, viewportHeight: number): number {
+  const above = EDGE_SCROLL_ZONE_PX - y;
+  if (above > 0) return -edgeScrollRate(above);
+  const below = y - (viewportHeight - EDGE_SCROLL_ZONE_PX);
+  if (below > 0) return edgeScrollRate(below);
+  return 0;
+}
+
+/** 越进边缘带多深（0 到 ZONE_PX）：从最慢线性加到最快 */
+function edgeScrollRate(depth: number): number {
+  const ratio = Math.min(depth / EDGE_SCROLL_ZONE_PX, 1);
+  return EDGE_SCROLL_MIN_PX + (EDGE_SCROLL_MAX_PX - EDGE_SCROLL_MIN_PX) * ratio;
 }
 
 /** 从某条边滑进来：先摆到窗口外，再把过渡交还给样式，让卡片自己跑回原位 */

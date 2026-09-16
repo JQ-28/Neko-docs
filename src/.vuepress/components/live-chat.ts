@@ -11,11 +11,13 @@ import {
   CHAT_TURNS,
   JUST_DRAGGED_MS,
   JUST_PLAYED_MS,
+  IMPROV_WARMUP_S,
   LINE_GESTURES,
   MEME_GAP_MS,
   MOOD_GESTURES,
   MOOD_LINES,
   MOMENT_CHANCE,
+  MOMENT_GATE_CHANCE,
   SPEECH_LINES,
   STARE_GAP_MS,
   type ChatAct,
@@ -24,6 +26,7 @@ import {
   type ChatTurn,
   type EmoState,
   type GestureName,
+  type MomentGates,
   type SpeechLines,
 } from "./live-lines";
 
@@ -190,6 +193,18 @@ function castOf(kinds: ReadonlySet<CardSpec["kind"]>): ChatCast | null {
   if (kinds.has("neko")) return "neko";
   if (kinds.has("online")) return "online";
   return null;
+}
+
+/** 每轮只摇一次的骰子：带闸的档（梗 / 对拍 / 盯看后两段）整类放行与否。
+    骰子留在台词档的 when 里的话，成组生成的上百段梗各自独立摇一遍，
+    「至少一段过闸」约等于必然，「梗 25%」那道闸就形同虚设了。
+    返回类型是 Record：以后往 MomentGate 里加一道闸，这里少写一个就会编译报错 */
+function rollGates(): MomentGates {
+  return {
+    meme: Math.random() < MOMENT_GATE_CHANCE.meme,
+    xterfusion: Math.random() < MOMENT_GATE_CHANCE.xterfusion,
+    stare: Math.random() < MOMENT_GATE_CHANCE.stare,
+  };
 }
 
 export function useLiveTalk(host: TalkHost): LiveTalk {
@@ -382,8 +397,8 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     return speaker;
   }
 
-  /** 把眼下的光景读一遍 */
-  function readMood(): ChatMood {
+  /** 把眼下的光景读一遍（连这一轮的骰子一起，每轮只摇一次） */
+  function readMood(gates: MomentGates): ChatMood {
     const cards = host.cards();
     const kinds = new Set(cards.map((card) => card.kind));
     const now = Date.now();
@@ -405,6 +420,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       stareReady: now - lastStareAt >= STARE_GAP_MS,
       justReturned: host.justReturned(),
       memeReady: now - lastMemeAt >= MEME_GAP_MS,
+      gates,
       cursorIdle: host.cursorIdle(),
       tapBurst: host.tapBurst(),
       scrollDash: host.scrollDash(),
@@ -418,7 +434,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
 
   /** 挑一段当下说得成的对话：正赶上什么光景就多说几句那档的，剩下的留给常备的那几套 */
   function pickChatTurns(): PickedChat | null {
-    const mood = readMood();
+    const mood = readMood(rollGates());
     // 即兴的那几段读的是真数字，优先级最高：错过这会儿就说不成了
     const improv = pickImprov(mood);
     if (improv) return improv;
@@ -431,11 +447,12 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
         // 稀客才说的话说过一次就歇一阵，别絮叨
         (!moment.once || now - (lastOnce.get(moment.once) ?? 0) >= ONCE_GAP_MS)
     );
-    // 「那个人类一直在看」是专门为这一刻写的，轮到了就优先说，不跟别的档抢
-    const stares = moments.filter((moment) => moment.stare);
+    // 「那个人类一直在看」的第一段（那颗蛋的入口）是为这一刻专门写的，轮到了就优先说，不跟别的档抢；
+    // 后两段没标 priority，跟大家一样排队，还各自带着那道闸 —— 原来它们必说且独占，六分钟能连说三段
+    const priority = moments.filter((moment) => moment.priority);
     const pool: readonly PickedChat[] =
-      stares.length > 0
-        ? stares
+      priority.length > 0
+        ? priority
         : moments.length > 0 && Math.random() < MOMENT_CHANCE
           ? moments
           : CHAT_TURNS[mood.cast].map((turns) => ({ turns }));
@@ -460,6 +477,9 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   function pickImprov(mood: ChatMood): PickedChat | null {
     const now = Date.now();
     if (now - lastImprovAt < IMPROV_GAP_MS) return null;
+    // 刚进页面这一会儿先别报数：这几句读的是停留时长、今天第几次来，
+    // 首屏还没读完就报出来太急了（改前第一轮 20–45 秒就放行）
+    if (mood.linger < IMPROV_WARMUP_S) return null;
 
     // 台词是拿此刻的数字现拼的，挑之前先拼一遍：数字不成立（返回 null）、
     // 或者这一段里的角色在手头这几张卡里没人能说，都直接出局
@@ -569,8 +589,14 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   /** 轮到说话了：偶尔只是自己嘀咕一句，多数时候两张以上就来一段你一句我一句 */
   function startChat(): void {
     const cards = host.cards();
-    const mutter = cards.length === 1 || Math.random() < MUTTER_CHANCE;
-    const picked = !mutter && cards.length > 1 ? pickChatTurns() : null;
+    // 只剩一张卡：不合成段对话（凑不出对手戏，这是刻意挡的），但即兴档读的是真数字
+    // （在线几只、你在这儿待了多久），跟几张卡无关 —— 单卡也得轮到它，不然这层整层失效
+    const picked =
+      cards.length === 1
+        ? pickImprov(readMood(rollGates()))
+        : Math.random() < MUTTER_CHANCE
+          ? null
+          : pickChatTurns();
     if (!picked) {
       const speaker = nextSpeaker();
       if (speaker) showSpeech(speaker.id, pickLine(speaker, cards.length === 1 ? "solo" : "idle"));
@@ -623,7 +649,13 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     mood,
     speech,
     say: (card, type) => showSpeech(card.id, pickLine(card, type)),
-    sayLine: (card, line) => showSpeech(card.id, line),
+    // 与 pickLine 一个口径：记下这张卡上一句说了什么、这句已经说过了 ——
+    // 反复把同一张卡拎到同一个落点，才不会一字不差地复述同一句
+    sayLine: (card, line) => {
+      lastLine.set(card.id, line);
+      markSaid(line);
+      showSpeech(card.id, line);
+    },
     lingerSpeech: () => {
       window.clearTimeout(speechTimer);
       speechTimer = window.setTimeout(() => {

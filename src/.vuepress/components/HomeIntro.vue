@@ -546,7 +546,8 @@ html.dark .home-more {
 .home-recent-time {
   flex: none;
   font-size: 12px;
-  color: #a397b2;
+  /* 原来那版 #a397b2 在白色卡片上只有 2.76:1，换成站内已有的次级文字色，实测 4.76:1 */
+  color: #7d6c8e;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.5px;
 }
@@ -569,7 +570,8 @@ html.dark .home-recent-item {
 }
 
 html.dark .home-recent-time {
-  color: #8b8398;
+  /* 跟着浅色一起换成站内次级文字色：在 rgba(44, 44, 44, 0.6) 的卡片底上实测约 5.7:1 */
+  color: #a9a2b8;
 }
 
 @media (max-width: 768px) {

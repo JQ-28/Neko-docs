@@ -64,7 +64,8 @@ onBeforeUnmount(() => window.clearTimeout(hideTimer));
 .card-courier {
   position: fixed;
   right: 20px;
-  bottom: 20px;
+  /* 全面屏手机的手势条正好压在这一带，照站内既有范式（.neko-egg-tips）让出安全区 */
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   z-index: 58;
   display: flex;
   align-items: center;
@@ -78,6 +79,8 @@ onBeforeUnmount(() => window.clearTimeout(hideTimer));
   font-size: 13px;
   line-height: 1.5;
   color: var(--vp-c-text-1, #333333);
+  /* 它本来就是 aria-hidden 的纯装饰：这 3.4 秒别把右下角（回顶按钮那一带）的点击吞掉 */
+  pointer-events: none;
 }
 
 .card-courier-face {
