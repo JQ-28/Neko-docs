@@ -115,7 +115,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "./egg-utils";
-import { GREETING_REPLY_MS, useLiveTalk } from "./live-chat";
+import { GREETING_REPLY_MS, speechLingerMs, useLiveTalk } from "./live-chat";
 import { anyDropLines, dropLineFor, nekoMetaLine, recentLine } from "./live-lines";
 import {
   cardPointAbs,
@@ -883,6 +883,8 @@ function receiveCard(payload: HandoffPayload): void {
 function handleCardLeave(cardId: string): void {
   // 它欠着的那笔换页账跟它一起作废：一张已经不在手上的卡不该把页面带走
   cancelCarry(cardId);
+  // 停在落点上等话说完的那笔停留也一样作废：卡都搬走了，别再让收尾去动那个槽位
+  if (dropLingerCardId === cardId) clearDropLinger();
   if (drag?.cardId === cardId) releaseDrag();
   if (roamingIds.value.includes(cardId)) setRoaming(false, cardId);
   // 说的话、以及这张卡的记录一起收掉
@@ -1140,6 +1142,10 @@ function beginDrag(
     // 交给冒泡上来的事件处理，不影响的
   }
   draggingId.value = card.id;
+  // 这张卡要是正停在某个落点上「把话说完」（见 lingerAfterDrop），又被拎起来了：那笔停留作废。
+  // 不清掉的话，定时器到点会去清位移 —— 而那时它已经被拖着走了，卡片会当场弹回原位。
+  // 位移留着，所以它接着从眼下这个位置跟手；另一张的停留不归这次管，它自己会到点回位
+  if (dropLingerCardId === card.id) clearDropLinger();
   // 拎起来那一刻这张卡身上还欠着一笔「等着换页」的账吗（见 cancelCarry）
   const carrying = carryTimers.get(card.id);
   staleCarry = carrying === undefined ? null : { cardId: card.id, timer: carrying };
@@ -1382,6 +1388,44 @@ function restoreOtherCards(timers: Map<string, number>, keepCardId: string): voi
   }
 }
 
+/** 说完落点那句话之后，卡片额外再多留一会儿再回原位：气泡刚收就飞走会显得很赶 */
+const DROP_LINGER_EXTRA_MS = 600;
+/** 眼下正停在落点上「把话说完」的那张卡，以及那笔收尾 */
+let dropLingerCardId = "";
+let dropLingerTimer = 0;
+
+/** 松手那一刻，这张卡的原位（文档流里那个位置，不含手上的位移）还在屏幕上吗。
+    手机上把卡片拖到页面靠下的元素上时，原位早跟着页面滚出视口上方了 ——
+    这时候立刻回位，等于这句台词说给空气听 */
+function homeOffscreen(): boolean {
+  if (!drag) return false;
+  // baseTop 是拎起来时记下的原位，页面滚动时 compensateScroll 会跟着补，所以它始终是「现在的原位」
+  return drag.baseTop + drag.height < 0 || drag.baseTop > window.innerHeight;
+}
+
+/** 卡片先留在落点上别回去，把这句话说完（停留时长与气泡的可见时长一模一样）再自己滑回原位 */
+function lingerAfterDrop(cardId: string, line: string): void {
+  const slot = slotEls.get(cardId);
+  if (!slot) return;
+  clearDropLinger();
+  dropLingerCardId = cardId;
+  // 角度先归正：留在那儿说话的时候歪着脖子不像话（位移留着，位置稳稳停在落点上）
+  slot.style.rotate = "";
+  dropLingerTimer = window.setTimeout(() => {
+    const lingering = dropLingerCardId;
+    dropLingerTimer = 0;
+    dropLingerCardId = "";
+    restoreCard(lingering);
+  }, speechLingerMs(line) + DROP_LINGER_EXTRA_MS);
+}
+
+/** 那笔停留不作数了（卡片又被拎起来、或者已经自己回了原位） */
+function clearDropLinger(): void {
+  if (dropLingerTimer) window.clearTimeout(dropLingerTimer);
+  dropLingerTimer = 0;
+  dropLingerCardId = "";
+}
+
 /** 把一张卡欠着的那笔换页账清掉并让它复原：卡已经不在手上了（被隔壁要走、被销毁、
     又回到自己手里），再让它过 320 毫秒把页面带跳走就是错的了 */
 function cancelCarry(cardId: string): void {
@@ -1442,36 +1486,48 @@ function retireCard(card: CardSpec): void {
   );
 }
 
-/** 松手把卡放在落点上：真接住了返回 true，接不住就当没这回事、卡片自己弹回原位 */
-function useDrop(hit: DropHit, card: CardSpec): boolean {
+/** 松手放在落点上的结果：接住了没有，以及卡片要不要先留在原地把那句话说完 */
+interface DropResult {
+  taken: boolean;
+  lingers: boolean;
+}
+
+/** 松手把卡放在落点上：真接住了 taken 为真，接不住就当没这回事、卡片自己弹回原位 */
+function useDrop(hit: DropHit, card: CardSpec): DropResult {
   const { el, kind } = hit;
 
   if (kind === "goto") {
     const to = el.dataset.dropTo;
-    if (!to) return false;
+    if (!to) return { taken: false, lingers: false };
     carryAway(card, to, el);
-    return true;
+    return { taken: true, lingers: false };
   }
 
   if (kind === "bin") {
     flashDrop(el, kind);
     retireCard(card);
-    return true;
+    return { taken: true, lingers: false };
   }
 
   const line = dropLine(hit, card);
-  if (!line) return false;
+  if (!line) return { taken: false, lingers: false };
   flashDrop(el, kind);
   talk.sayLine(card, line);
   // 回顶按钮：它本来就是干这个的，只是平时用鼠标点；猫放上去就真的把页面送回顶部。
   // 让它先把那句说完 —— 立刻滚的话舞台转眼出了视野，话刚出口就被闭麦
-  if (isBackToTop(el)) {
+  const toTop = isBackToTop(el);
+  if (toTop) {
     window.clearTimeout(topScrollTimer);
     topScrollTimer = window.setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }, TOP_SCROLL_MS);
   }
-  return true;
+  // 这句话说完之前卡片先别回去 —— 但只在「回去之后没人看得见」时才留：
+  // 原位还在屏幕上（桌面、手机拖到同屏的元素）就照旧立刻回位，别平白把节奏拖慢。
+  // 回顶按钮也除外：它过一会儿就把页面滚回顶部，卡片原位自然进视野
+  const lingers = !toTop && homeOffscreen();
+  if (lingers) lingerAfterDrop(card.id, line);
+  return { taken: true, lingers };
 }
 
 /** 手上这张卡的中心这会儿落在屏幕哪儿：落点判定一律用它。
@@ -1697,7 +1753,8 @@ function onPointerUp(event: PointerEvent): void {
   // 泛化落点给「换位」让路：卡片中心正压在另一张卡上时，那是要换位 ——
   // 这时候 hitTest 可能只看得见盖在上面的浮层（公告、更新卡），别用一个泛化落点把它抢了
   const swapWins = target?.category != null && reorderTarget(slot, cardId) !== null;
-  if (dropped && target && !swapWins && useDrop(target, dropped)) {
+  const drop = dropped && target && !swapWins ? useDrop(target, dropped) : null;
+  if (dropped && target && drop?.taken) {
     // 被跳转位收进按钮的那张留在原地，别回弹；其它落点都让它跳回原位。
     // 两个都要留住刚落点说的那句，收尾别出声
     if (target.kind === "goto") {
@@ -1705,6 +1762,10 @@ function onPointerUp(event: PointerEvent): void {
       // 不然换页被取消（接着又丢了张卡到别处）时那张卡会带着残留偏移停在半路
       slot.style.translate = "";
       slot.style.rotate = "";
+      dropRelease(true);
+    } else if (drop.lingers) {
+      // 这句话还没说完，而且回位之后没人看得见：卡片先原地停着，到点由 lingerAfterDrop 送回去。
+      // 位移得留着 —— 所以走 dropRelease（只收跟手状态）而不是 releaseDrag（那个会把位移清掉）
       dropRelease(true);
     } else {
       releaseDrag(true);
@@ -1859,6 +1920,8 @@ onBeforeUnmount(() => {
   window.clearTimeout(roamerTimer);
   window.clearTimeout(touchHoldTimer);
   window.clearTimeout(topScrollTimer);
+  // 停在落点上那笔「把话说完再回去」的收尾：组件都走了，别再回来动 DOM
+  clearDropLinger();
   // 组件走了就别再滚页面：拖拽中切页时循环可能正跑着
   stopEdgeScroll();
   stopGlide();

@@ -49,6 +49,15 @@ const SHOW_CHAT_MAX_MS = 16_000;
 /** 一句话最少挂多久，以及每个字多挂的时长：长句子给够读完的时间 */
 const SPEECH_LINGER_MS = 1600;
 const SPEECH_CHAR_MS = 170;
+
+/** 一句话的气泡要挂多久：短句有个底、长句按字数加。
+    导出是给落点用的 —— 手机把卡片丢到页面靠下的元素上时，卡片会先停在落点把这句话说完
+    （原位早滚出视口了，立刻回位等于说给空气听），停留多久必须与气泡的可见时长一模一样，
+    不然要么话没说完就飞走、要么卡片多杵着一会儿不知道在等什么 */
+export function speechLingerMs(line: string): number {
+  return Math.max(SPEECH_LINGER_MS, line.length * SPEECH_CHAR_MS);
+}
+
 /** 说完带戏的那句、插戏还没落地时的兜底：演不出来也不能把后半截晾着 */
 const ACT_FALLBACK_MS = 6_000;
 /** 带 once 的档（稀客才说的话）说过一次，歇这么久才允许再说 */
@@ -335,11 +344,6 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       同值不写：Vue 的 ref 收到同一个值不会触发更新，状态灯上的 --live-beat 也就不会被重启 */
   function refreshMood(): void {
     currentEmo(host.cards().length);
-  }
-
-  /** 话长就多挂一会儿 */
-  function speechLingerMs(line: string): number {
-    return Math.max(SPEECH_LINGER_MS, line.length * SPEECH_CHAR_MS);
   }
 
   /** 下一句等多久再说：气泡只有一份，下一句一执行，上一句的气泡立刻就没，
