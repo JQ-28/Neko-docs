@@ -318,7 +318,6 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
     idle: [
       "刚刚冒出来一个新数字",
       "数着呢，一只都没跑",
-      "深夜档还有猫在逛",
       "这波人流挺稳的",
       "我就负责盯着这个数字",
       "谁来谁走，我都记着",
@@ -329,7 +328,7 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
       "喵口普查进行中",
       "这数字刚刚跳了一下",
       "有人来了，我先眨个眼",
-      "今天来的人比昨天多呢",
+      "今天这一份，我记完了",
       "统计猫也是猫呀",
       "本月预算：猫条还有剩",
       "预算外支出，不予批准",
@@ -3523,8 +3522,8 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那这顿算你请的，喵" },
     ],
     [
-      { by: "neko", line: "首页今晚好安静啊喵" },
-      { by: "online", line: "这个点还亮着的，都是没睡的" },
+      { by: "neko", line: "首页这会儿好安静啊喵" },
+      { by: "online", line: "还亮着的这些，都是没睡的" },
       { by: "neko", line: "那我们算陪着它了喵" },
       { by: "online", line: "是他们没睡，还是我们没睡", act: "meet" },
       { by: "neko", line: "那…一起值班到天亮吧" },
@@ -3802,7 +3801,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那是猫猫在充电喵" },
     ],
     [
-      { by: "neko", line: "深夜也要看文档吗？哈基观众，你这家伙……" },
+      { by: "neko", line: "还在看文档吗？哈基观众，你这家伙……" },
       { by: "online", line: "停留时长还在计，用途正当" },
       { by: "neko", line: "那猫猫也要被看了吗喵？" },
       { by: "online", line: "你已经在被看了" },
@@ -4629,7 +4628,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那我备份布丁喵" },
     ],
     [
-      { by: "neko", line: "他还在改？都这么晚了喵" },
+      { by: "neko", line: "他还在改？都改这么久了喵" },
       { by: "online", line: "他说最后一行" },
       { by: "neko", line: "上一次他也这么说喵" },
     ],
