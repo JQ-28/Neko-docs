@@ -1972,6 +1972,97 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     meme: true,
     turns,
   })),
+  // 2026 年这一批从 B 站弹幕、鬼畜与二次元圈子里捡来的口头禅。
+  // 都是「句式」而不是「事件」——不绑具体的人和新闻，所以放多久都还听得懂；
+  // 这组比下面那批更碎、更依赖上下文，回收时优先从这组开始划
+  ...([
+    // 我去不早说
+    [
+      { by: "neko", line: "我刚刚发现，闭上眼睛就很舒服喵" },
+      { by: "online", line: "我去，不早说" },
+      { by: "neko", line: "你也没问过我喵" },
+    ],
+    // 我将全职在家研究…
+    [
+      { by: "online", line: "我宣布，我将全职在家研究一件事" },
+      { by: "neko", line: "研究什么喵" },
+      { by: "online", line: "研究你为什么整天躺着" },
+      { by: "neko", line: "那这是双人课题喵" },
+    ],
+    // 「xx 基础，xx 就不基础」
+    [
+      { by: "neko", line: "摸鱼基础，猫就不基础喵" },
+      { by: "online", line: "这个句式已经被用到包浆了" },
+      { by: "neko", line: "那我换一个：可爱基础，你就不基础喵" },
+      { by: "online", line: "……我听懂了，但我不接受" },
+    ],
+    // 助我破鼎
+    [
+      { by: "neko", line: "助我破鼎喵！", act: "highPaw" },
+      { by: "online", line: "你要破哪只鼎" },
+      { by: "neko", line: "不知道，但气势必须到位喵" },
+      { by: "online", line: "气势已记录，鼎没有" },
+    ],
+    // 你已急哭
+    [
+      { by: "online", line: "检测到你的情绪曲线在往上走" },
+      { by: "neko", line: "你已急哭喵" },
+      { by: "online", line: "我没有哭，只是数据抖了一下" },
+    ],
+    // 如何呢，又能怎
+    [
+      { by: "neko", line: "布丁吃完了。如何呢，又能怎喵" },
+      { by: "online", line: "还能再买一个" },
+      { by: "neko", line: "……你把我这句的气势吃掉了喵" },
+    ],
+    // 你不乘（不诚实）
+    [
+      { by: "neko", line: "你刚刚是不是瞄了我一眼喵" },
+      { by: "online", line: "没有" },
+      { by: "neko", line: "你不乘喵" },
+      { by: "online", line: "……我承认。看了很短的一小会儿" },
+    ],
+    // 爱你老己
+    [
+      { by: "online", line: "今天也要好好爱自己" },
+      { by: "neko", line: "爱你老己喵" },
+      { by: "online", line: "是「爱你自己」。不是「老己」" },
+      { by: "neko", line: "老己也要爱，老己最辛苦喵" },
+    ],
+    // 邪修
+    [
+      { by: "neko", line: "我找到了一种不用动的健身法喵" },
+      { by: "online", line: "讲" },
+      { by: "neko", line: "躺着深呼吸，这也算有氧喵" },
+      { by: "online", line: "这是邪修" },
+    ],
+    // 死亡火枪三连：什么啊 / 来都来了 / Oh No
+    [
+      { by: "neko", line: "什么啊，这台阶喵！", act: "startle" },
+      { by: "online", line: "那就是普通的地板" },
+      { by: "neko", line: "来都来了，我惊叹一下喵" },
+      { by: "online", line: "Oh No" },
+    ],
+    // 我来回答你！/ 这么说可能不太好
+    [
+      { by: "neko", line: "我来回答你喵！" },
+      { by: "online", line: "我还没问" },
+      { by: "neko", line: "这么说可能不太好——但我猜你要问我在干什么喵" },
+      { by: "online", line: "……你猜对了" },
+    ],
+    // 诗酱是存在的
+    [
+      { by: "neko", line: "诗酱是存在的喵！" },
+      { by: "online", line: "没有任何记录支持这一点" },
+      { by: "neko", line: "存在的，只是还没找到喵" },
+      { by: "online", line: "……这条我先标成「待核实」" },
+    ],
+  ] as const).map((turns): ChatMoment => ({
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns,
+  })),
   // 2026 年这波梗。定期从 B 站热榜与弹幕复读里挑，只留能长期成立的句式；
   // 不写真人负面新闻、不写饭圈刷屏那类过两天就没人懂的
   ...([
