@@ -254,6 +254,7 @@ function rollGates(): MomentGates {
     meme: Math.random() < MOMENT_GATE_CHANCE.meme,
     xterfusion: Math.random() < MOMENT_GATE_CHANCE.xterfusion,
     stare: Math.random() < MOMENT_GATE_CHANCE.stare,
+    hobby: Math.random() < MOMENT_GATE_CHANCE.hobby,
   };
 }
 
@@ -552,13 +553,18 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     if (improv) return improv;
 
     const now = Date.now();
-    const moments = CHAT_MOMENTS.filter(
-      (moment) =>
-        moment.cast === mood.cast &&
-        moment.when(mood) &&
-        // 稀客才说的话说过一次就歇一阵，别絮叨
-        (!moment.once || now - (lastOnce.get(moment.once) ?? 0) >= ONCE_GAP_MS)
-    );
+    // 稀客才说的话说过一次就歇一阵，别絮叨
+    const eligible = (moment: (typeof CHAT_MOMENTS)[number]): boolean =>
+      moment.cast === mood.cast &&
+      moment.when(mood) &&
+      (!moment.once || now - (lastOnce.get(moment.once) ?? 0) >= ONCE_GAP_MS);
+    const all = CHAT_MOMENTS.filter(eligible);
+    // 梗闸摇中的这一轮就只放梗：四百多段挤在同一个池子里互相稀释，而梗本来就被
+    // MEME_GAP_MS 压到五分钟才轮到一回 —— 这一轮整个留给它，别让日常档来分。
+    // 这一屏没有梗档时（比如只有猫卡的窗口）退回全部，别白白空一轮
+    const memeOnly =
+      mood.memeReady && mood.gates.meme ? all.filter((moment) => moment.meme === true) : [];
+    const moments = memeOnly.length > 0 ? memeOnly : all;
     // 「那个人类一直在看」的第一段（那颗蛋的入口）是为这一刻专门写的，轮到了就优先说，不跟别的档抢；
     // 后两段没标 priority，跟大家一样排队，还各自带着那道闸 —— 原来它们必说且独占，六分钟能连说三段
     const priority = moments.filter((moment) => moment.priority);

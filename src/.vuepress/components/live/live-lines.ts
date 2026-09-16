@@ -71,7 +71,7 @@ export type ChatCast = "mixed" | "neko" | "online";
 /** 带概率闸的档：骰子由 live-chat 每轮只摇一次（摇不中就把这类档整个剔掉），
     when 里只读光景与这一轮的骰子、自己不摇 —— 骰子留在 when 里的话，
     成组生成的上百段梗各自独立摇一遍，「至少一段过闸」约等于必然，那道 25% 就成了摆设 */
-export type MomentGate = "meme" | "xterfusion" | "stare";
+export type MomentGate = "meme" | "xterfusion" | "stare" | "hobby";
 
 /** 这一轮各道闸的结果 */
 export type MomentGates = Readonly<Record<MomentGate, boolean>>;
@@ -1198,6 +1198,10 @@ export const MEME_CHANCE = 0.25;
 export const MEME_GAP_MS = 300_000;
 /** 恰好两张卡才凑得成那段对拍，比一般的梗还稀罕 */
 const XTERFUSION_CHANCE = 0.25;
+/** 她聊自己爱好那几档（写代码 / 音游 / 甜食）共用的骰子。
+    这几组原来跟梗挤在一个池子里，四百多段一起稀释，人设里点名的专长反倒三周才说得上一回；
+    给它们一道自己的闸、不再走梗那条线，也就不会再被梗的五分钟冷却压着 */
+const HOBBY_CHANCE = 0.3;
 /** 盯看后两段的骰子：过不了就照常走别处的光景，不再必说且独占 */
 const STARE_CHANCE = 0.5;
 
@@ -1206,6 +1210,7 @@ export const MOMENT_GATE_CHANCE: Record<MomentGate, number> = {
   meme: MEME_CHANCE,
   xterfusion: XTERFUSION_CHANCE,
   stare: STARE_CHANCE,
+  hobby: HOBBY_CHANCE,
 };
 
 /** 盯看这一档该开口吗：看够久了，而且离上一段隔开了 */
@@ -1240,6 +1245,10 @@ const stareLongReady = (mood: ChatMood): boolean =>
 /** 梗档共用的门槛：这一轮轮得到梗（骰子摇好放在 mood.gates 里，这里不摇） */
 const memeReady = (mood: ChatMood): boolean =>
   mood.memeReady && mood.gates.meme;
+
+/** 她自己的爱好（写代码 / 音游 / 甜食）那几档的门槛：
+    跟梗分开算 —— 不算梗，也就不占梗的五分钟冷却，更不被它压着 */
+const hobbyReady = (mood: ChatMood): boolean => mood.gates.hobby;
 
 /** 光景档：眼下正赶上什么光景就说这一档。
     绝大多数是 cast: "mixed" —— 默认一屏恒是一张猫卡 + 一张在线卡；
@@ -4285,7 +4294,8 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     meme: true,
     turns,
   })),
-  // 节奏游戏与音游：人设里点名「超喜欢节奏游戏」，Xterfusion 那段对拍也是从这儿来的
+  // 节奏游戏与音游：人设里点名「超喜欢节奏游戏」，Xterfusion 那段对拍也是从这儿来的。
+  // 这一组走 hobby 闸、不再算梗：人设点名的专长不该被四百多段梗稀释成三周才一回
   ...([
     [
       { by: "neko", line: "这首歌的拍子我记住了喵", act: "hop" },
@@ -4346,8 +4356,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
   ] as const).map((turns): ChatMoment => ({
     cast: "mixed",
-    when: (mood) => memeReady(mood) && mood.count === 2,
-    meme: true,
+    when: (mood) => hobbyReady(mood) && mood.count === 2,
     turns,
   })),
   // 学生党与考试：群里不少人还在上学，这些场景他们天天经历
@@ -4484,8 +4493,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
   ] as const).map((turns): ChatMoment => ({
     cast: "mixed",
-    when: (mood) => memeReady(mood) && mood.count === 2,
-    meme: true,
+    when: (mood) => hobbyReady(mood) && mood.count === 2,
     turns,
   })),
   // 猫的日常：踩奶、舔毛、纸箱、追光点。台面上的两只本来就是猫，这一类不用梗也能立住
@@ -4622,8 +4630,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
   ] as const).map((turns): ChatMoment => ({
     cast: "mixed",
-    when: (mood) => memeReady(mood) && mood.count === 2,
-    meme: true,
+    when: (mood) => hobbyReady(mood) && mood.count === 2,
     turns,
   })),
   // 三张以上：多方一起说话。同上一批，默认两张卡时永远不成立（见「三只以上」那段说明）
@@ -4993,7 +5000,7 @@ export const CHAT_IMPROV: readonly ChatImprov[] = [
     lines: (mood) => [
       { by: "neko", line: `你今天已经碰了我${chineseNumber(mood.patToday)}次了喵` },
       { by: "online", line: "我这边记的是同一本账" },
-      { by: "neko", line: "你们两个都在数是吧喵" },
+      { by: "neko", line: "你俩都在数是吧喵" },
     ],
   },
   {

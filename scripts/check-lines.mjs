@@ -74,6 +74,8 @@ const NUMBER_WHITELIST = [
 
 const errors = [];
 const warnings = [];
+/** 既不是错也不是要改的提示，只是把体检时算出来的规模说出来 */
+const notes = [];
 
 /** 单句池：池名 → 该池里的台词 */
 const singlePools = new Map();
@@ -125,6 +127,7 @@ const {
   ANY_DROP_LINES,
   DOING_LINES,
   ARRIVE_BACK_TURNS,
+  MOMENT_CHANCE,
   MOMENT_GATE_CHANCE,
   IMPROV_WARMUP_S,
   chineseNumber,
@@ -282,10 +285,15 @@ for (const name of definedPlays) {
 // 一段都命中不到，就说明它的 when 写死了（比如要求两个不可能同时成立的条件，
 // 或者用错了字段名 —— `mood.sides.left > 0` 写成 `mood.sides.neko` 是查不出来的）
 const AUDIT_RUNS = 20000;
-let auditSeed = 20240916;
+/** 32 位的 mulberry32。原来那句 `seed * 1103515245` 在 JS 里会超过 2^53，
+    乘出来的低位全被浮点精度吃掉，采样会退化成反复造出同一批光景 */
+let auditSeed = 20240916 >>> 0;
 const auditRandom = () => {
-  auditSeed = (auditSeed * 1103515245 + 12345) & 0x7fffffff;
-  return auditSeed / 0x7fffffff;
+  auditSeed = (auditSeed + 0x6d2b79f5) >>> 0;
+  let t = auditSeed;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
 const pickOne = (list) => list[Math.floor(auditRandom() * list.length)];
 
@@ -336,6 +344,7 @@ function makeMood() {
       meme: auditRandom() < MOMENT_GATE_CHANCE.meme,
       xterfusion: auditRandom() < MOMENT_GATE_CHANCE.xterfusion,
       stare: auditRandom() < MOMENT_GATE_CHANCE.stare,
+      hobby: auditRandom() < MOMENT_GATE_CHANCE.hobby,
     },
     cursorIdle: idle,
     cursorIdleMs: idleMs,
@@ -367,10 +376,10 @@ function makeMood() {
     when 现在是纯函数（骰子放在 mood.gates 里），同一份采样每次跑出来的数字都一样 */
 const momentMatches = (moment, mood) => moment.cast === mood.cast && moment.when(mood);
 
+const auditMoods = Array.from({ length: AUDIT_RUNS }, () => makeMood());
 const momentHits = CHAT_MOMENTS.map(() => 0);
 const improvHits = CHAT_IMPROV.map(() => 0);
-for (let run = 0; run < AUDIT_RUNS; run += 1) {
-  const mood = makeMood();
+for (const mood of auditMoods) {
   CHAT_MOMENTS.forEach((moment, index) => {
     if (momentMatches(moment, mood)) momentHits[index] += 1;
   });
@@ -408,6 +417,72 @@ CHAT_IMPROV.forEach((improv, index) => {
   }
 });
 
+/**
+ * 光景档之间是在抢同一个池子：上面只算了「这一档成不成立」，成不成立跟说不说得到是两回事。
+ * 这里按每轮的实际出口摊一遍 —— 同一轮里所有成立的档平分那一轮的 MOMENT_CHANCE，
+ * priority（盯看第一段）命中的那轮由它独占。算出来的是期望值，不靠抽样，也就没有噪声。
+ * 池子的过滤方式必须跟 live-chat 的 pickChatTurns 一致，改那边要回来对一眼。
+ */
+/** 一轮说话的排期是 20–45 秒（live-chat 的 CHAT_MIN_MS / CHAT_MAX_MS），折算天数时取中间的 30 秒 */
+const ROUND_SECONDS = 30;
+const momentOdds = CHAT_MOMENTS.map(() => 0);
+let momentOut = 0;
+for (const mood of auditMoods) {
+  const allIdx = [];
+  const memeIdx = [];
+  CHAT_MOMENTS.forEach((moment, index) => {
+    if (moment.cast !== mood.cast || !moment.when(mood)) return;
+    allIdx.push(index);
+    if (moment.meme === true) memeIdx.push(index);
+  });
+  // 梗闸摇中的这一轮只放梗，梗档为空时退回全部（跟 live-chat 一个口径）
+  const pool = mood.memeReady && mood.gates.meme && memeIdx.length > 0 ? memeIdx : allIdx;
+  if (pool.length === 0) continue;
+  const priority = pool.filter((index) => CHAT_MOMENTS[index].priority);
+  if (priority.length > 0) {
+    priority.forEach((index) => {
+      momentOdds[index] += 1 / priority.length;
+    });
+    momentOut += 1;
+    continue;
+  }
+  const share = MOMENT_CHANCE / pool.length;
+  pool.forEach((index) => {
+    momentOdds[index] += share;
+  });
+  momentOut += MOMENT_CHANCE;
+}
+const roundsOf = (odds) => (odds <= 0 ? Infinity : 1 / odds);
+const humanRounds = (rounds, unit = "rounds") =>
+  rounds === Infinity
+    ? "永远轮不到"
+    : `${Math.round(rounds).toLocaleString()} ${unit}（≈ ${((rounds * ROUND_SECONDS) / 86_400).toFixed(1)} 天）`;
+const sortedOdds = [...momentOdds].sort((a, b) => a - b);
+notes.push(
+  `光景档出口合计 ${((momentOut / AUDIT_RUNS) * 100).toFixed(1)}%，中位那一段 ${humanRounds(
+    roundsOf(sortedOdds[Math.floor(sortedOdds.length / 2)] / AUDIT_RUNS),
+    "轮"
+  )}才轮到一回`
+);
+/** 比这么多轮还稀的档：被同池的别的档稀释掉了，值得看一眼 */
+const SPARSE_ROUNDS = 20000;
+const sparse = CHAT_MOMENTS.map((moment, index) => ({ index, odds: momentOdds[index] / AUDIT_RUNS }))
+  .filter((item) => item.odds > 0 && roundsOf(item.odds) > SPARSE_ROUNDS)
+  .sort((a, b) => a.odds - b.odds);
+if (sparse.length > 0) {
+  const sample = sparse
+    .slice(0, 3)
+    .map((item) => `[${item.index}]「${CHAT_MOMENTS[item.index].turns[0]?.line}」`)
+    .join("、");
+  notes.push(
+    `有 ${sparse.length} 段光景比 ${humanRounds(SPARSE_ROUNDS, "轮")}还稀，最稀的三段：${sample}`
+  );
+  notes.push(
+    "想让某几段常出现，只有两条路：把 when 收窄（独占一个小池子），或减少同池的段数。" +
+      "按题材分组抽签没用 —— 均匀抽签下每段的概率就是「出口 ÷ 段数」，怎么分组都不变"
+  );
+}
+
 // 即兴档的句子是现读数字拼出来的，静态看不到长短；拿几组极端数值各拼一遍，长度和禁用词照样得查
 const IMPROV_EXTREMES = [
   { note: "盯着看了将近一整天", patch: { linger: 86_399 } },
@@ -439,9 +514,16 @@ function checkImprovNumber(line, where, mood) {
   checkNumber(residue, `${where}（模板原句：${line}）`, "即兴档的模板里写死了数字（要报数就用现读的真数拼）");
 }
 
+/**
+ * 渲染即兴档时基础光景里这几个字段固定住：它们的值会被当成「动态 token」从台词里抹掉，
+ * 而抹除是无差别的字符串替换 —— 基础光景每次都随机的话，句子里凑巧相同的字会被一起抹掉，
+ * 同一份台词重跑一遍就可能报出不同的结果。踩过一次：随机序列一变，「你们两个」的
+ * 「两」正好被 online 抽到 2 抹掉了，一句写死的数字凭空躲过检查
+ */
+const IMPROV_BASE = { online: 9, visitTimes: 3, firstSeenDays: 45, patToday: 12, linger: 120 };
 CHAT_IMPROV.forEach((improv, index) => {
   IMPROV_EXTREMES.forEach(({ note, patch }) => {
-    const mood = { ...makeMood(), ...patch };
+    const mood = { ...makeMood(), ...IMPROV_BASE, ...patch };
     if (!improv.when(mood)) return;
     (improv.lines(mood) ?? []).forEach((turn, turnIndex) => {
       const where = `CHAT_IMPROV[${index}]（${note}）[${turnIndex}]`;
@@ -595,6 +677,11 @@ const blockCount = CHAT_MOMENTS.length + Object.values(CHAT_TURNS).reduce((sum, 
 const lineCount = [...singlePools.values()].reduce((sum, lines) => sum + lines.length, 0);
 
 console.log(`台词体检：对话 ${blockCount} 段、单句 ${lineCount} 条\n`);
+if (notes.length > 0) {
+  console.log(`统计 ${notes.length} 条：`);
+  for (const note of notes) console.log(`  · ${note}`);
+  console.log("");
+}
 if (warnings.length > 0) {
   console.log(`提示 ${warnings.length} 条：`);
   for (const warning of warnings) console.log(`  · ${warning}`);
