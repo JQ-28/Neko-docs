@@ -240,13 +240,71 @@ html.dark .home-live-slot.is-dragging :deep(.home-online) {
      限宽到槽位宽度内 + 允许换行：气泡最宽也就跟卡片一样，任何视口都不会出屏；
      它是绝对定位，折行只往上长，不会把卡片撑变形，也不会盖住卡片本体 */
   max-width: 100%;
+  /* 打字机是两层叠着放的（整句那层撑宽度、逐字那层显示），所以走网格 */
+  display: inline-grid;
   white-space: normal;
   line-height: 1.4;
   text-align: center;
   overflow-wrap: break-word;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--vp-c-accent, #096dd9) 16%, transparent);
   pointer-events: none;
-  animation: home-live-bubble-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+  /* 缩放的中心钉在底边（尖角那一头）：气泡是从卡片里冒出来的，不是凭空在原地长大。
+     挂到卡片下面时（data-bubble-below）会翻到顶边 */
+  transform-origin: bottom center;
+}
+
+/* 气泡的两端：出现时放大淡入（曲线带一点超调），收起时原路缩回去 ——
+   进去和出来走同一条路，才认得出是同一个气泡。
+   两边的时长故意不一样：开口要有点弹性，收口越快越干净 */
+.home-live-bubble-enter-active {
+  transition: opacity 0.32s cubic-bezier(0.34, 1.4, 0.64, 1),
+    scale 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.home-live-bubble-enter-from {
+  opacity: 0;
+  scale: 0.9;
+}
+
+.home-live-bubble-leave-active {
+  transition: opacity 0.16s ease-out, scale 0.16s ease-out;
+}
+
+.home-live-bubble-leave-to {
+  opacity: 0;
+  scale: 0.97;
+}
+
+/* 打字机的两层：底下那层放整句，只负责把气泡撑到最终宽度 —— 少了它，
+   一个字一个字往外冒的时候气泡会跟着一鼓一鼓，换行位置也跟着跳；
+   上面那层才是看得见的正文。两层占同一个网格格子，严丝合缝地重叠 */
+.home-live-bubble-ghost,
+.home-live-bubble-text {
+  grid-area: 1 / 1;
+}
+
+.home-live-bubble-ghost {
+  visibility: hidden;
+}
+
+/* 正在往外冒的时候，光标跟在字尾一起走（伪元素挂在文字层上，天然跟着走） */
+.home-live-bubble.is-typing .home-live-bubble-text::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.15em;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.5;
+  animation: home-live-caret 1s step-end infinite;
+}
+
+@keyframes home-live-caret {
+  50% {
+    opacity: 0.08;
+  }
 }
 
 /* 朝下的小尖角，颜色跟着气泡底走 */
@@ -269,6 +327,7 @@ html.dark .home-live-slot.is-dragging :deep(.home-online) {
 .home-live-slot[data-bubble-below] .home-live-bubble {
   bottom: auto;
   top: calc(100% + 9px);
+  transform-origin: top center;
   box-shadow: 0 -8px 20px color-mix(in srgb, var(--vp-c-accent, #096dd9) 16%, transparent);
 }
 
@@ -405,18 +464,6 @@ html.dark .home-live-roamer {
   }
 }
 
-@keyframes home-live-bubble-in {
-  from {
-    opacity: 0;
-    scale: 0.86;
-  }
-
-  to {
-    opacity: 1;
-    scale: 1;
-  }
-}
-
 /* 让在线卡与右边的 Neko 卡取同一个宽度，并排才整齐。
    Neko 卡在左，在线卡在右，内边距取 Neko 卡的镜像值 */
 .home-live-cards :deep(.home-online) {
@@ -460,13 +507,17 @@ html.dark .home-live-roamer {
    被拎在手上、或者两张卡正演对手戏时让位给那两种动作（不然会互相打断） */
 .home-live-slot.is-talking:not(.is-dragging):not(.is-playing) .home-live-card {
   animation: home-live-in 0.44s cubic-bezier(0.22, 1, 0.36, 1),
-    neko-card-talk 0.68s ease-in-out infinite;
+    neko-card-breathe 4.8s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite,
+    neko-card-talk-prep 0.2s ease-in-out,
+    neko-card-talk var(--talk-dur, 0.68s) ease-in-out 0.2s infinite;
 }
 
 /* 在线卡的入场动画名字在它自己的 scoped 块里（被哈希过），这里只挂说话那层
    ——说话时它的慢浮动让位给点头，跟旁边那只同一个节奏（相位错开一点） */
 .home-live-slot.is-talking:not(.is-dragging):not(.is-playing) :deep(.home-online) {
-  animation: neko-card-talk 0.68s ease-in-out 0.06s infinite;
+  animation: neko-card-breathe 4.8s cubic-bezier(0.455, 0.03, 0.515, 0.955) 0.9s infinite,
+    neko-card-talk-prep 0.2s ease-in-out,
+    neko-card-talk var(--talk-dur, 0.68s) ease-in-out 0.26s infinite;
 }
 
 /* 对方在说话：听的那张轻轻点头回应。幅度只有说话那张的三分之一，
@@ -498,19 +549,22 @@ html.dark .home-live-roamer {
    等动作演完（延迟一个 --g-dur）接手接着点头。只挂动作的话，撑不到半秒卡片就不动了，
    而落点那句台词往往要挂好几秒，看着像说完就断电 */
 .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) .home-live-card {
-  animation-name: home-live-in, neko-card-gesture, neko-card-talk;
-  animation-duration: 0.44s, var(--g-dur, 0.68s), 0.68s;
-  animation-delay: 0s, 0s, var(--g-dur, 0.68s);
-  animation-iteration-count: 1, 1, infinite;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-in-out, ease-in-out;
+  animation-name: home-live-in, neko-card-gesture, neko-card-breathe, neko-card-talk-prep,
+    neko-card-talk;
+  animation-duration: 0.44s, var(--g-dur, 0.68s), 4.8s, 0.2s, var(--talk-dur, 0.68s);
+  animation-delay: 0s, 0s, 0s, var(--g-dur, 0.68s), calc(var(--g-dur, 0.68s) + 0.2s);
+  animation-iteration-count: 1, 1, infinite, 1, infinite;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-in-out,
+    cubic-bezier(0.455, 0.03, 0.515, 0.955), ease-in-out, ease-in-out;
 }
 
 .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) :deep(.home-online) {
-  animation-name: neko-card-gesture, neko-card-talk;
-  animation-duration: var(--g-dur, 0.68s), 0.68s;
-  animation-delay: 0s, var(--g-dur, 0.68s);
-  animation-iteration-count: 1, 1, infinite;
-  animation-timing-function: ease-in-out, ease-in-out;
+  animation-name: neko-card-gesture, neko-card-breathe, neko-card-talk-prep, neko-card-talk;
+  animation-duration: var(--g-dur, 0.68s), 4.8s, 0.2s, var(--talk-dur, 0.68s);
+  animation-delay: 0s, 0.9s, var(--g-dur, 0.68s), calc(var(--g-dur, 0.68s) + 0.2s);
+  animation-iteration-count: 1, infinite, 1, infinite;
+  animation-timing-function: ease-in-out, cubic-bezier(0.455, 0.03, 0.515, 0.955), ease-in-out,
+    ease-in-out;
 }
 
 /* 十一个小动作，说穿了只是改几个数：抬爪、摇、弹、抖、蔫、后缩、凑近、歪头、探头、伸腰、闪一下 */
@@ -564,7 +618,22 @@ html.dark .home-live-roamer {
   --g-op: 0.68;
 }
 
-/* 说话时的小幅上下：抬两像素、压一像素，节奏比心跳快一点，像嘴里在出字 */
+/* 安静时的浮动：十秒一个来回，两个多像素，看得出在轻轻呼吸就够了。
+   两张卡挂的入场延迟一正一负（那张 -4.3 秒、这张 0.7 秒），正好差半个周期，
+   一上一下，像在互相招呼。轮到自己说话时这条会被整条盖掉，所以只在安静时露脸 */
+@keyframes neko-card-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -2.5px;
+  }
+}
+
+/* 说话时的小幅上下：抬两像素、压一像素，节奏比心跳快一点，像嘴里在出字。
+   幅度与周期交给心情档（--talk-amp / --talk-dur）：高兴就点得快而深，困了就慢半拍、只肯轻轻动 */
 @keyframes neko-card-talk {
   0%,
   100% {
@@ -572,11 +641,46 @@ html.dark .home-live-roamer {
   }
 
   32% {
-    translate: 0 -2px;
+    translate: 0 calc(-2px * var(--talk-amp, 1));
   }
 
   64% {
+    translate: 0 calc(1px * var(--talk-amp, 1));
+  }
+}
+
+/* 开口前的那一下：先轻轻沉半分、再回到静止，然后才进点头。
+   没有它，气泡一出现就是一段匀速往复，像机器在开合；有这一下才像「吸了口气再开口」。
+   结束时回到 0，跟下面点头动画的第一帧接得上，不会顿一下 */
+@keyframes neko-card-talk-prep {
+  from {
+    translate: 0 0;
+    scale: 1;
+  }
+
+  55% {
     translate: 0 1px;
+    scale: 0.982;
+  }
+
+  to {
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+/* 垫在点头底下的慢呼吸：4.8 秒一个来回，幅度只有百分之一出头。
+   点头是 0.68 秒一循环的匀速往复，只听这一层，看久了发木；
+   一快一慢两层叠着，才像有个活物在呼吸着说话。走 scale 这条独立属性，
+   跟点头的 translate 互不打架（两个动画抢同一个属性时，后面的会把前面的整条吃掉） */
+@keyframes neko-card-breathe {
+  0%,
+  100% {
+    scale: 1;
+  }
+
+  50% {
+    scale: 1.012;
   }
 }
 
@@ -743,29 +847,39 @@ html.dark .home-live-meta {
   transition: border-color 0.45s ease;
 }
 
-/* 心情档：灯跟着心情走，但只改几个数。正常心情就用兜底那盏绿，不单写一条 */
+/* 心情档：灯跟着心情走，但只改几个数。正常心情就用兜底那盏绿，不单写一条。
+   说话那点头也归这儿管：--talk-dur 是它的周期、--talk-amp 是幅度，
+   没写的档就用默认的 0.68s / 1。下面几条按「快而弹 → 慢而沉」排下来 */
 .home-live-slot[data-mood="happy"] {
   --live-hue: #10b981;
   --live-beat: 1.7s;
   --live-dim: 0.86;
+  --talk-dur: 0.54s;
+  --talk-amp: 1.1;
 }
 
 .home-live-slot[data-mood="shy"] {
   --live-hue: #f472b6;
   --live-beat: 2s;
   --live-dim: 0.8;
+  --talk-dur: 0.8s;
+  --talk-amp: 0.85;
 }
 
 .home-live-slot[data-mood="sulky"] {
   --live-hue: #f59e0b;
   --live-beat: 2.6s;
   --live-dim: 0.66;
+  --talk-dur: 0.95s;
+  --talk-amp: 0.75;
 }
 
 .home-live-slot[data-mood="sleepy"] {
   --live-hue: #7c8aa0;
   --live-beat: 4.6s;
   --live-dim: 0.46;
+  --talk-dur: 1.15s;
+  --talk-amp: 0.7;
 }
 
 .home-live-slot[data-mood="lost"] {
@@ -906,7 +1020,7 @@ html.dark .home-live-avatar {
 .home-live-slot[data-pat] .home-live-glass,
 .home-live-slot[data-pat] :deep(.home-online-glass) {
   opacity: 1;
-  animation: neko-pat-shine 2.4s linear infinite;
+  animation: neko-pat-shine 6s linear infinite;
 }
 
 .home-live-slot[data-pat] .home-live-avatar,
@@ -5130,7 +5244,6 @@ html.dark .home-live-avatar {
   .home-live-slot.is-talking:not(.is-dragging):not(.is-playing) :deep(.home-online),
   .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) .home-live-card,
   .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) :deep(.home-online),
-  .home-live-bubble,
   .home-live-card,
   .home-live-avatar.is-moving,
   .home-live-light-core,
@@ -5138,6 +5251,12 @@ html.dark .home-live-avatar {
   .home-live-slot[data-carried],
   .home-live-slot[data-retired] {
     animation: none;
+  }
+
+  /* 气泡的两端走的是 transition（见 .home-live-bubble-enter-active），
+     这里得单独禁：动效减弱时气泡直接出现、直接消失，不做缩放 */
+  .home-live-bubble {
+    transition: none;
   }
 
   .home-live-card {

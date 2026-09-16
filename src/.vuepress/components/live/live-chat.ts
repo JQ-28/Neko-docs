@@ -76,6 +76,16 @@ export function speechLingerMs(line: string): number {
     所以它必须比「被台词点名的动作里最长的那一段」还长，否则动作还剩一截就被截断。
     目前最长的是 leanNap（6.5 秒），改 live-show.ts 的时长时要一起看这里 */
 const ACT_FALLBACK_MS = 7_000;
+/** 打字机：短句整句直给，长句一个字一个字往外冒。整句的打字时长压在这个比例内，
+    剩下的时间留给访客把话读完 —— 预算直接从气泡的停留时长推出来，两者不会打架 */
+const TYPE_BUDGET_RATIO = 0.4;
+/** 一个字最快、最慢多久冒一个：快了像贴纸刷出来，慢了像卡带 */
+const TYPE_MIN_MS = 45;
+const TYPE_MAX_MS = 130;
+/** 逗号句号这些地方多停一拍，像真的在换气 */
+const TYPE_PUNCT_WEIGHT = 2.6;
+/** 去掉标点后不超过这么多字就整句直给：这么短的句子打字反而显得拖 */
+const TYPE_DIRECT_CHARS = 4;
 /** 带 once 的档（稀客才说的话）说过一次，歇这么久才允许再说 */
 const ONCE_GAP_MS = 10 * 60_000;
 /** 正赶上某种心情时，单句台词有多大概率从心情池里挑 */
@@ -179,6 +189,8 @@ export interface LiveTalk {
   readonly speakingId: Ref<string>;
   /** 冒出来的那句话 */
   readonly speech: Ref<string>;
+  /** 已经冒出来的那部分：气泡上显示的是它 —— 长句一个字一个字往外冒，短句整句直给 */
+  readonly speechShown: Ref<string>;
   /** 这句配的小动作（没标就是空，老老实实点头） */
   readonly speakingGesture: Ref<GestureName | "">;
   /** 眼下的心情：卡片上的状态灯照着它变色 */
@@ -265,7 +277,10 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   const speakingId = ref("");
   const speakingGesture = ref<GestureName | "">("");
   const speech = ref("");
+  /** 已经冒出来的那部分：气泡上显示的是它，不是整句 */
+  const speechShown = ref("");
   let speechTimer = 0;
+  let typeTimer = 0;
   let chatTimer = 0;
   let turnTimer = 0;
   /** 下一句已经排上了（还没到点）：用来判断「话还没说完」 */
@@ -429,6 +444,50 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     return Math.min(Math.max(speechLingerMs(line), CHAT_TURN_MS), CHAT_TURN_MAX_MS);
   }
 
+  /** 带戏的那句：气泡一读完就起手演。
+      turnGapMs 的下限那 2400ms 是留给「不带戏的两句之间」的静场 —— 那时上一句的气泡已经收了，
+      空一拍像换了个人说；而带戏的句子后面紧跟着一段动作，再空出这一拍，
+      动作就跟那句话断了（短句最明显：气泡 1.6 秒就收，动作却要等到 2.4 秒才起，
+      中间那 0.8 秒卡片只是杵着）。读得完、又不断档，就是下面这个数 */
+  function actLeadMs(line: string): number {
+    return Math.min(speechLingerMs(line), CHAT_TURN_MAX_MS);
+  }
+
+  /** 每个字该停多久：普通字一份、标点两份多。整句的预算由气泡的停留时长推出来，
+      再按权重分到每个字 —— 长句也不会打到天黑，短句也不会慢得发慌 */
+  function typingDelays(line: string): number[] {
+    const chars = [...line];
+    const weights = chars.map((char) => (/[，。！？…、；：～—]/.test(char) ? TYPE_PUNCT_WEIGHT : 1));
+    const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
+    const budget = Math.min(speechLingerMs(line) * TYPE_BUDGET_RATIO, chars.length * TYPE_MAX_MS);
+    const unit = Math.max(TYPE_MIN_MS, budget / total);
+    return weights.map((weight) => weight * unit);
+  }
+
+  /** 把一句话摆到气泡上：短句整句直给，长句一个字一个字往外冒。
+      动效减弱时也直给 —— 逐字往外冒对怕闪的人来说同样是负担 */
+  function startTyping(line: string): void {
+    window.clearTimeout(typeTimer);
+    const bare = line.replace(/[，。！？…、；：～—\s]/g, "").length;
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (bare <= TYPE_DIRECT_CHARS || reduceMotion) {
+      speechShown.value = line;
+      return;
+    }
+    const chars = [...line];
+    const delays = typingDelays(line);
+    let index = 0;
+    speechShown.value = "";
+    const step = (): void => {
+      index += 1;
+      speechShown.value = chars.slice(0, index).join("");
+      if (index < chars.length) typeTimer = window.setTimeout(step, delays[index] ?? delays[0]);
+    };
+    typeTimer = window.setTimeout(step, delays[0] ?? TYPE_MAX_MS);
+  }
+
   /** 让某张卡冒一句话，过一会儿自己收（同一时刻只有一张卡在说话） */
   function showSpeech(cardId: string, line: string): void {
     // 空台词（池子恰好是空的）直接不开口：先把 speakingId / speech 写下去再往回退的话，
@@ -436,13 +495,17 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     if (!line) return;
     speakingId.value = cardId;
     speech.value = line;
+    // 摆到气泡上：长句一个字一个字冒，短句整句直给
+    startTyping(line);
     // 说这句时配什么小动作：台词上标了就用标的，没标就照眼下的心情来
     speakingGesture.value =
       LINE_GESTURES[line] ?? MOOD_GESTURES[currentEmo(host.cards().length)] ?? "";
     window.clearTimeout(speechTimer);
     speechTimer = window.setTimeout(() => {
+      // 这里只收 speakingId，不清 speech：气泡还要带着这句话淡出，
+      // 提前清空会剩一个空框子在那儿缩。这句话本身留给下一次开口时覆盖。
+      // 读屏那条道看的是 speakingId（spokenLine 在没有发言者时返回空串），不受影响
       speakingId.value = "";
-      speech.value = "";
     }, speechLingerMs(line));
   }
 
@@ -696,7 +759,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
           return;
         }
         turnTimer = window.setTimeout(resumePending, ACT_FALLBACK_MS);
-      }, turnGapMs(turn.line));
+      }, actLeadMs(turn.line));
       return;
     }
 
@@ -776,6 +839,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
 
   onBeforeUnmount(() => {
     window.clearTimeout(speechTimer);
+    window.clearTimeout(typeTimer);
     window.clearTimeout(chatTimer);
     window.clearTimeout(turnTimer);
   });
@@ -788,6 +852,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     speakingGesture,
     mood,
     speech,
+    speechShown,
     say: (card, type) => showSpeech(card.id, pickLine(card, type)),
     // 与 pickLine 一个口径：记下这张卡上一句说了什么、这句已经说过了 ——
     // 反复把同一张卡拎到同一个落点，才不会一字不差地复述同一句
@@ -801,13 +866,12 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       window.clearTimeout(speechTimer);
       speechTimer = window.setTimeout(() => {
         speakingId.value = "";
-        speech.value = "";
       }, speechLingerMs(speech.value));
     },
     hush: () => {
       window.clearTimeout(speechTimer);
+      window.clearTimeout(typeTimer);
       speakingId.value = "";
-      speech.value = "";
     },
     forget: (cardId) => {
       lastLine.delete(cardId);

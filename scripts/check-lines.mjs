@@ -280,6 +280,30 @@ for (const name of actNames) {
 for (const name of definedPlays) {
   if (!actNames.has(name)) warnings.push(`样式里写了演出 ${name}，但脚本里没有这一段`);
 }
+// CSS 里点名的动画必须有 @keyframes 定义：名字写错不会有任何报错，只是那一段不动
+// （踩过：安静时该有的 neko-card-float 一直没有定义，两张卡的漂浮从来没生效过）
+const onlineCounterSource = await readFile(path.join(liveDir, "OnlineCounter.vue"), "utf8");
+const styleBlocks = `${homeSource}\n${onlineCounterSource}`;
+const definedKeyframes = new Set(
+  [...styleBlocks.matchAll(/@keyframes\s+([\w-]+)/g)].map((match) => match[1])
+);
+const ANIMATION_KEYWORDS = new Set([
+  "none", "infinite", "linear", "ease", "ease-in", "ease-out", "ease-in-out",
+  "step-end", "step-start",
+  "normal", "reverse", "alternate", "alternate-reverse",
+  "forwards", "backwards", "both", "running", "paused",
+]);
+for (const match of styleBlocks.matchAll(/animation(?:-name)?:\s*([^;{}]+)[;}]/g)) {
+  for (const chunk of match[1].split(",")) {
+    for (const token of chunk.trim().split(/\s+/)) {
+      if (!/^[a-z][\w-]*$/i.test(token) || ANIMATION_KEYWORDS.has(token)) continue;
+      if (token.startsWith("ease") || token.startsWith("var") || token.startsWith("calc")) continue;
+      if (!definedKeyframes.has(token)) {
+        errors.push(`动画 ${token} 被用到，但没有 @keyframes 定义（那一段不会动，也不报错）`);
+      }
+    }
+  }
+}
 // 台词里点名要演的，必须是真有的那一段：名字写错不会有任何报错，
 // live-chat 那边 host.act() 返回 false 就只是没演（踩过：把卡片手势 guard
 // 当成了演出名写进 act，那一段动作等于白写）。手势（data-gesture）与演出（data-play）是两套，别混

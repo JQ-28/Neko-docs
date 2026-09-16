@@ -76,11 +76,17 @@
         </div>
         <OnlineCounter v-else :static="staticMode" @count="onOnlineCount" />
         <!-- 随口的嘀咕是看的东西，不是读的东西：别让读屏软件一路念下去 -->
-        <span
-          v-if="speakingId === card.id"
-          class="home-live-bubble"
-          aria-hidden="true"
-        >{{ speech }}</span>
+        <Transition name="home-live-bubble">
+          <span
+            v-if="speakingId === card.id"
+            class="home-live-bubble"
+            :class="{ 'is-typing': speechShown.length < speech.length }"
+            aria-hidden="true"
+          >
+            <span class="home-live-bubble-ghost">{{ speech }}</span>
+            <span class="home-live-bubble-text">{{ speechShown }}</span>
+          </span>
+        </Transition>
       </div>
 
       <span
@@ -889,7 +895,7 @@ const talk = useLiveTalk({
 });
 
 const { playingName, playSide, playingIds } = show;
-const { speakingId, speech, speakingGesture, mood } = talk;
+const { speakingId, speech, speechShown, speakingGesture, mood } = talk;
 
 /** 猫卡名字下面那行小字：跟着心情、卡片数和时段换，不再永远同一句 */
 const nekoMeta = computed(() =>
