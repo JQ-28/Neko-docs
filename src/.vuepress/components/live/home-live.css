@@ -643,24 +643,33 @@ html.dark .home-live-roamer {
   animation: home-live-peek 0.86s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 「她看得见你」：指针或手指走到哪，头像就朝哪边偏一点点，像余光扫到有人走近。
-   幅度刻意小 —— 是瞟一眼，不是瞪着；方向由 HomeLive 写在这两个变量上（-1..1）。
-   写在头像的 translate 上（独立属性）：头像的 rotate 归摸头、transform 归 peek，
-   三本账各算各的，谁也盖不掉谁。
-   桌面用鼠标、手机上用手指走同一条 pointermove —— 两边都成立，
-   只是手机上手指多半正按着卡，那会儿卡片本来就在跟手，所以那时不动（见下面的禁用那几条） */
-.home-live-avatar,
-.home-online-avatar {
-  translate: calc(var(--look-x, 0) * 4px) calc(var(--look-y, 0) * 3px);
-  transition: translate 0.5s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+/* 「她看得见你」：指针或手指走到哪，两张卡就朝那边轻轻转一点，像扭头看过去。
+   方向写在 --look-x / --look-y 上（-1..1，相对卡片区正中间），HomeLive 每帧更新一次。
+   角度刻意小 —— 是瞟一眼，不是整个转过来（指令速查那张卡的最大值是 5 度，这里 3.5）。
+   透视参数跟指令卡统一（720px），两张卡转起来才是同一个手感。
+   走 transform：卡片自己的浮动在 translate 上、歪头在 rotate 上、说话点头也在 translate 上、
+   演出在 slot 上 —— 四本账各记各的，谁也盖不掉谁。
+   那 0.5 秒过渡是给「手停下之后把头转回来」用的；跟着指针走的时候每帧都在写新值，
+   过渡追的是一小步一小步，所以只会显得柔顺，不会拖出黏滞感。
+   在线卡的选择器必须带 :deep —— 这份样式是 scoped 的，不穿透就选不到子组件里的元素，
+   再加 .home-live-slot 一层是为了压过它自己那份 transition，又不影响别处用到这个组件的地方 */
+.home-live-card,
+.home-live-slot :deep(.home-online) {
+  transform: perspective(720px) rotateX(calc(var(--look-y, 0) * -3.5deg))
+    rotateY(calc(var(--look-x, 0) * 3.5deg));
+  transition: transform 0.5s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    scale 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    translate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    box-shadow 0.45s ease, border-color 0.3s ease;
 }
 
-/* 正被拎着、正演着一段、或者正说到一半的时候别偏头：那会儿手和动作才是主角 */
-.home-live-slot.is-dragging .home-live-avatar,
-.home-live-slot.is-dragging .home-online-avatar,
-.home-live-slot.is-playing .home-live-avatar,
-.home-live-slot.is-playing .home-online-avatar {
-  translate: none;
+/* 正被拎着、正演着一段的时候别转：那会儿手和动作才是主角，转过去反而像在抢戏 */
+.home-live-slot.is-dragging .home-live-card,
+.home-live-slot.is-playing .home-live-card,
+.home-live-slot.is-dragging :deep(.home-online),
+.home-live-slot.is-playing :deep(.home-online) {
+  transform: none;
 }
 
 .home-live-text {
@@ -920,10 +929,13 @@ html.dark .home-live-avatar {
     animation: none;
   }
 
-  /* 怕晃的人这边也一并收掉：视线跟随也属于「会动的东西」 */
-  .home-live-avatar,
-  .home-online-avatar {
-    translate: none;
+  /* 怕晃的人这边也一并收掉：跟着指针转头也属于「会动的东西」 */
+  .home-live-card {
+    transform: none;
+  }
+
+  .home-live-slot :deep(.home-online) {
+    transform: none;
   }
 }
 
