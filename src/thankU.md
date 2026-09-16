@@ -186,10 +186,11 @@ html.dark .name-card { color: #e6e8ee; }
 # 感谢名单 <img class="title-ico" src="https://api.iconify.design/mdi:heart-multiple.svg?color=%23f9bdeb" alt="heart">
 
 :::info 致赞助者
-感谢你们对 Neko 的支持！
+谢谢你们。
 
-作为一个非盈利性质的 QQ Bot，我们的运营离不开大家的慷慨赞助。\
-正是你们的支持，才让 Neko 得以持续发展，让更多群友享受 Bot 的乐趣。
+Neko 的电费、网费、话费一直是 JQ 自己扛着的，日复一日。你们帮的这一把，实实在在让她能接着跑下去 —— 具体够她跑多久，我没敢细算，怕算完又想去找份活干（笑）。
+
+她不需要很多，只是别让她因为"养不起"而停下来。谢谢你们一起分担了这件事 ฅ^•ﻌ•^ฅ
 :::
 
 ***
