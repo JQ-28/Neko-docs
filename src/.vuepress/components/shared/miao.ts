@@ -25,7 +25,8 @@ function applyMiaoText(): void {
     const value = textNode.nodeValue ?? "";
     if (!value.trim()) continue;
     // 组件可显式声明「这段文字别管」（如每帧重写的打字机），否则每改一次就被追加一个喵
-    if (textNode.parentElement?.closest("[data-miao-skip]")) continue;
+    // 代码块同样跳过：它是给人原样复制的内容，被加上尾巴就废了（脚本、指令示例、可粘走的文案都在这类里）
+    if (textNode.parentElement?.closest("[data-miao-skip], pre")) continue;
     if (isMiao.value) {
       if (originalText.has(textNode)) continue;
       originalText.set(textNode, value);
