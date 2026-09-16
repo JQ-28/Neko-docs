@@ -98,15 +98,22 @@ const IMPROV_GAP_MS = 6 * 60_000;
 /** 手里不止一张卡时，也留一点机会让它自己嘀咕一句——心情就是从这儿露出来的 */
 const MUTTER_CHANCE = 0.3;
 /** 事件带起来的心情各挂多久 */
-const SULKY_HOLD_MS = 45_000;
 const HAPPY_HOLD_MS = 90_000;
 const SHY_HOLD_MS = 120_000;
-/** 拖完闹别扭的概率：原来是每次都必闹、还挂满一分半，爱拖着玩的人整天看它摆臭脸 */
-const SULKY_ON_DRAG_CHANCE = 0.33;
 /** 手在卡片区停够这么久算「黏人」（毫秒，这个信号由 HomeLive 喂进来） */
 const CLINGY_HOVER_MS = 6_000;
 /** 在卡片区待够这么久、这期间又没被戳过也没被拖过，算「无聊」（秒，停留时长由 HomeLive 喂进来） */
 const BORED_LINGER_S = 300;
+/** 今天被碰够这么多次之后、又被摸一下：从「好舒服」升成「摸服了」，挂着表不放 */
+const PURR_PAT_COUNT = 6;
+const PURR_HOLD_MS = 100_000;
+/** 隔这么多天没来又回来，刚进门那阵子算「久别重逢」（天） */
+const MISS_AWAY_DAYS = 7;
+/** 重逢只在进门头这几分钟里成立（秒）：坐久了就该回到当下的光景 */
+const MISS_WINDOW_S = 180;
+/** 页面上真有这么多只猫时才算「热闹」（只，读的是在线卡报上来的真数）。
+    导出是给 HomeLive 用的：人数跨过这道线时它得当场把心情重算一遍 */
+export const CROWD_ONLINE = 3;
 /** 被戳之后隔这么久才回一句：连着戳不该一句接一句地刷屏 */
 const POKE_GAP_MS = 2_200;
 /** 摸头同理：手一直在卡面上摸来摸去，不该一路念下去 */
@@ -217,7 +224,7 @@ export interface LiveTalk {
   markDragged(): void;
   /** 刚演完一段：让它们说说刚才那一下 */
   markPlayed(): void;
-  /** 被戳了一下：不好意思一下（戳得勤就闹别扭），隔两秒才回一句 */
+  /** 被戳了一下：不好意思一下，隔两秒才回一句 */
   poke(card: CardSpec): void;
   /** 被摸头顶了：鼠标不点不按、只是搁在卡面上摸来摸去，隔几秒回一句 */
   pat(card: CardSpec): void;
@@ -393,7 +400,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     saveSaid();
   }
 
-  /** 记一笔心情：被人拎过就闹别扭、演完一段就得意、被盯着看就害羞 */
+  /** 记一笔心情：演完一段就得意、被盯着看就害羞、到了饭点就饿 */
   function holdEmo(next: EmoState, holdMs: number): void {
     mood.value = next;
     emoUntil = Date.now() + holdMs;
@@ -405,25 +412,37 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     return now - lastPokeAt >= ms && now - lastDragAt >= ms;
   }
 
-  /** 这会儿是什么心情：事件带起来的优先，其次是被观众的动作带起来的那两档
-      （好奇 / 黏人），再往后才是夜里、饭点、只剩自己这些客观档，
-      最后才是「什么都没发生」的无聊。
-      动作那两档不走 holdEmo 的定时 —— 它们靠条件实时成立，条件一散自己就回落。
+  /** 这会儿是什么心情：事件带起来的优先，其次是被观众的动作带起来的那几档
+      （被滚晕 / 好奇 / 黏人），再往后是只剩自己、久别重逢、夜里、饭点这些客观档，
+      然后是「人多热闹」，最后才是「什么都没发生」的无聊。
+      动作那几档不走 holdEmo 的定时 —— 它们靠条件实时成立，条件一散自己就回落。
       顺序上「手在动」排在「手停在卡上」前面：cursorFresh 只在最后这几秒里动过时为真，
       手真停下来它自己就是 false，所以不会把「手搁着不动」误判成好奇；
       反过来把黏人放前面的话，手在卡片区里晃来晃去也永远是黏人，好奇那一档根本出不来。
+      被滚晕压在最先：那一下刚过去，屏幕还晃着，别的什么都顾不上。
       无聊压在最后：它靠的是「累计看满多久 + 多久没互动」，两个都是只增不减的量，
       一满足就长期成立；排在时段档前面的话，深夜、饭点、只剩一张猫这三档再也看不到了 */
   function currentEmo(count: number): EmoState {
     // 事件带起来的心情还没到点，就照它算
     if (mood.value !== "normal" && Date.now() < emoUntil) return mood.value;
     const hour = new Date().getHours();
+    // 一口气滚到底那一下：滚动信号自己会过期，不用挂表
+    if (host.scrollDash()) mood.value = "dizzy";
     // cursorFresh 与 hoverHoldMs 这两个信号由 HomeLive 喂进来（可选调用，没喂就当没有）
-    if (host.cursorFresh?.()) mood.value = "curious";
+    else if (host.cursorFresh?.()) mood.value = "curious";
     else if ((host.hoverHoldMs?.() ?? 0) >= CLINGY_HOVER_MS) mood.value = "clingy";
     else if (count === 1) mood.value = "lost";
+    // 隔了一周以上又回来、刚进门那阵子：重逢排在夜里跟饭点前面，那是当天最该说的事
+    else if (
+      host.awayDays() >= MISS_AWAY_DAYS &&
+      host.visitTimes() === 1 &&
+      host.linger() <= MISS_WINDOW_S
+    )
+      mood.value = "miss";
     else if (hour < 5 || hour >= 23) mood.value = "sleepy";
     else if (hour >= 17 && hour < 19) mood.value = "hungry";
+    // 页面上真是好几只猫在逛：人多她就精神，压过无聊
+    else if (host.online() >= CROWD_ONLINE) mood.value = "excited";
     else if (host.linger() >= BORED_LINGER_S && quietFor(BORED_LINGER_S * 1000)) mood.value = "bored";
     else mood.value = "normal";
     return mood.value;
@@ -892,13 +911,8 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     isChatting: () => speakingId.value !== "" || turnPending || pending !== null,
     markDragged: () => {
       lastDragAt = Date.now();
-      // 刚被人拎来拎去：不一定闹别扭 —— 每次都必闹、还挂满一分半的话，爱拖着玩的人
-      // 整天看着卡片摆臭脸；所以只按一个不高的概率闹。
-      // 已经是 sulky 就直接跳过：一路拖着玩会把这段计时无限续期，等于一直在闹。
-      // 没抽中的那次什么也不改：保持它当下的心情，不硬塞一个别的档
-      if (mood.value !== "sulky" && Math.random() < SULKY_ON_DRAG_CHANCE) {
-        holdEmo("sulky", SULKY_HOLD_MS);
-      }
+      // 被拎来拎去不再换心情：会拎着玩的人多半正开心，卡片这时候摆臭脸是扫兴。
+      // 这段只负责把「趁热嘀咕两句」排上
       schedule(DRAG_CHAT_MIN_MS + Math.random() * (DRAG_CHAT_MAX_MS - DRAG_CHAT_MIN_MS));
     },
     markPlayed: () => {
@@ -906,27 +920,30 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       holdEmo("happy", HAPPY_HOLD_MS);
       schedule(SHOW_CHAT_MIN_MS + Math.random() * (SHOW_CHAT_MAX_MS - SHOW_CHAT_MIN_MS));
     },
-    // 被戳：先羞一下（戳得勤就闹别扭），隔两秒才回一句 —— 连点不该刷屏；
+    // 被戳：先羞一下，隔两秒才回一句 —— 连点不该刷屏；
     // 卡片正拎在手上、飘去隔壁时自然不该开口（那会儿它正被搬着走）
     poke: (card) => {
       const now = Date.now();
       if (now - lastPokeAt < POKE_GAP_MS) return;
       if (!host.visible() || !host.canPoke()) return;
-      // 心情改在两道闸之后：真的回话这一下才改。搁在闸前面的话，连戳会把 shy / sulky
-      // 一直续下去，把「深夜打盹」「傍晚饿了」这类时段心情长期压住
-      holdEmo(host.tapBurst() ? "sulky" : "shy", SHY_HOLD_MS);
+      // 心情改在两道闸之后：真的回话这一下才改。搁在闸前面的话，连戳会把 shy
+      // 一直续下去，把「深夜打盹」「傍晚饿了」这类时段心情长期压住。
+      // 戳得再勤也只是更害羞 —— 早先这里会翻脸成「闹别扭」，被连点几下就摆臭脸太凶了
+      holdEmo("shy", SHY_HOLD_MS);
       lastPokeAt = now;
       showSpeech(card.id, pickLine(card, "poke"));
     },
     // 被摸头顶：鼠标不点不按、只是搁在卡面上摸来摸去。跟戳不是一回事 ——
-    // 摸头是好事，不换心情（poke 那套害羞 / 闹别扭搁这儿会让人一头雾水），
-    // 但这一下算「互动过了」：手明明一直在动，不该这时候判它无聊
+    // 摸头是好事，不换心情（poke 那套害羞搁这儿会让人一头雾水），
+    // 但这一下算「互动过了」：手明明一直在动，不该这时候判它无聊。
+    // 例外是今天已经被摸过好几回：这一下就把她摸服了，挂着表软一会儿
     pat: (card) => {
       const now = Date.now();
       if (now - lastPatAt < PAT_GAP_MS) return;
       if (!host.visible() || !host.canPoke()) return;
       lastPatAt = now;
       lastPokeAt = now;
+      if ((host.patToday?.() ?? 0) >= PURR_PAT_COUNT) holdEmo("purr", PURR_HOLD_MS);
       showSpeech(card.id, pickLine(card, "pat"));
     },
     // 今天头一回打开这一页：先把第一轮提前，好让进站那句问候早点说出口（见 ARRIVE_CHAT_MIN_MS）。

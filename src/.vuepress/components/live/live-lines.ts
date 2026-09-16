@@ -392,18 +392,22 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
 };
 
 /** 心情：刚被拎过、被戳过、被盯着看，说话的味道会不一样，过一阵自己回到平常。
-    后三档（好奇 / 黏人 / 无聊）是被观众的动作带起来的，不挂定时，条件一散就回落 */
+    好奇 / 黏人 / 无聊 / 被滚晕 / 久别重逢 / 人多热闹这几档不挂定时，
+    由观众当下真实做的事带起来，条件一散就自己回落 */
 export type EmoState =
   | "normal"
   | "happy"
   | "shy"
-  | "sulky"
   | "sleepy"
   | "lost"
   | "hungry"
   | "curious"
   | "clingy"
-  | "bored";
+  | "bored"
+  | "dizzy"
+  | "purr"
+  | "miss"
+  | "excited";
 
 /** 每种心情下顺口念叨的话（只用在单句场合：独处、搭话、被拎起来、落地） */
 export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, readonly string[]>>> = {
@@ -429,17 +433,6 @@ export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, reado
       "谢谢……那个……谢谢你喵",
       "也没有那么厉害啦喵",
       "你别一直说，我会记很久的",
-    ],
-    // 刚被拎起来、被拖来拖去
-    sulky: [
-      "喵。我现在很不高兴",
-      "别碰我，缓一会儿就好",
-      "这件事我要记很久喵",
-      "不是你的错，但我不看你了",
-      "你道歉的话我就听一半",
-      "我没有生气，我只是有点难过",
-      "喵……我不说了",
-      "我先坐一会儿，别理我",
     ],
     // 深夜、清晨
     sleepy: [
@@ -507,6 +500,50 @@ export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, reado
       "我盯着这片空白发呆喵",
       "你忙你的，我等着喵",
     ],
+    // 一口气把整页滚到底：屏幕还在转，她先晕一会儿
+    dizzy: [
+      "别滚那么快喵……",
+      "我还没站稳，天就翻过来了喵",
+      "抓一下我，我找不到北了喵",
+      "刚才那下够猛的喵",
+      "眼睛跟上了，脑子还没跟上喵",
+      "晕……先让我趴一会儿喵",
+      "你这是在替我减肥喵",
+      "尾巴是直的，路是弯的喵",
+    ],
+    // 今天被摸熟了：从「好舒服」升成彻底服软
+    purr: [
+      "呼噜呼噜……继续喵",
+      "别停手，就这个位置喵",
+      "毛都被你摸顺了喵",
+      "我现在哪儿都不想去喵",
+      "摸到耳朵后面那下最舒服喵",
+      "记好了，这是可以常摸的意思喵",
+      "就这个力道，别改喵",
+      "我趴下了，随你摸喵",
+    ],
+    // 隔了一周以上又回来，刚进门那阵子
+    miss: [
+      "……你是不是把我忘了喵",
+      "我算过日子了喵",
+      "回来就行，我不多问喵",
+      "我以为你换地方住了喵",
+      "这几天我都在老位子上喵",
+      "先别走，坐一会儿再走喵",
+      "你不在的时候，这一页安静得很",
+      "我记着你上回是什么时候走的喵",
+    ],
+    // 页面上真的有好几只猫：人多她就精神
+    excited: [
+      "今天好热闹喵！",
+      "这么多人，我得精神点喵",
+      "别挤别挤，尾巴在这儿喵",
+      "来都来了，一起玩喵",
+      "今天可不能说困喵",
+      "我要挨个打招呼喵",
+      "人一多，我就想表演点什么喵",
+      "你们都在，我可看着呢喵",
+    ],
   },
   online: {
     happy: [
@@ -528,16 +565,6 @@ export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, reado
       "曲线往上跳了一下。不是我",
       "我把它算成噪声，可以吗",
       "别盯着我的日志看",
-    ],
-    sulky: [
-      "我现在不想报数",
-      "数字没有问题。问题在于我",
-      "已记录一次情绪偏差",
-      "稍等，我先安静一会儿",
-      "今天的数据我不打算美化",
-      "别问我心情，我只管数",
-      "翻页的动作轻一点",
-      "这条我不记录。就这样",
     ],
     sleepy: [
       "凌晨的曲线很平",
@@ -599,6 +626,50 @@ export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, reado
       "等待也计入停留时长",
       "这一页安静得很标准",
     ],
+    // 一口气滚到底：视图缓冲重排
+    dizzy: [
+      "垂直坐标变化过速",
+      "正在重新对齐视图缓冲",
+      "记录里出现了残影",
+      "这一帧我没跟上",
+      "数据没乱，是屏幕在晃",
+      "刷新几次就能站稳",
+      "滚动速率超出常规区间",
+      "这一下先挂起，稍后归类",
+    ],
+    // 今天被摸熟了
+    purr: [
+      "该项互动已转为长期有效",
+      "接触次数超出常规值。接受",
+      "状态：运行得很顺",
+      "这一条我不标异常",
+      "曲线被摸平了，也可以",
+      "手别停，我在记",
+      "温度读数稳定。继续",
+      "允许这双手多留一会儿",
+    ],
+    // 隔了一周以上又回来
+    miss: [
+      "间隔天数已记入台账",
+      "这段空白我没有删",
+      "样本回来了。继续观测",
+      "离开与返回，都算事件",
+      "这些天只有心跳，没人说话",
+      "欢迎回来。这条不客套",
+      "空白行留着，等你来填",
+      "台账上那一格，终于有数了",
+    ],
+    // 页面上真的有好几只猫
+    excited: [
+      "在线数超出日常区间",
+      "样本变多了。可以",
+      "今天的曲线很长",
+      "日志有点热闹",
+      "这一波峰值我留着",
+      "人多的时候，数字也好看",
+      "同时在线：够我记一阵子",
+      "这种日子不常有",
+    ],
   },
 };
 
@@ -621,7 +692,6 @@ export const MOOD_GESTURES: Record<EmoState, GestureName | ""> = {
   normal: "",
   happy: "hop",
   shy: "leanBack",
-  sulky: "droop",
   sleepy: "stretch",
   lost: "droop",
   hungry: "leanIn",
@@ -629,6 +699,11 @@ export const MOOD_GESTURES: Record<EmoState, GestureName | ""> = {
   curious: "peek",
   clingy: "leanIn",
   bored: "stretch",
+  // 后补的四档：被滚晕了站不稳、被摸服了歪头蹭过来、久别重逢凑近、人多精神足
+  dizzy: "sway",
+  purr: "tilt",
+  miss: "leanIn",
+  excited: "hop",
 };
 
 /** 台词原文 → 说这句时的小动作；只挑有身体感的那几句，别的交给心情底色 */
@@ -647,7 +722,6 @@ export const LINE_GESTURES: Record<string, GestureName> = {
   "特啦啦泪落——特啦啦啦喵！": "hop",
   "法修散打喵！法修散打！": "guard",
   "看我神威，无坚不摧喵！": "guard",
-  "别碰我，缓一会儿就好": "leanBack",
   "有被冒犯到，但布丁是无辜的喵": "leanBack",
   "唔……你、你别看这边喵": "leanBack",
   "别扯我尾巴喵": "shiver",
@@ -4954,7 +5028,6 @@ export function humanSeconds(seconds: number): string {
 /** 猫卡名字下面那行小字：照着眼下的状态挑一句，别永远挂着同一句 */
 export function nekoMetaLine(emo: EmoState, count: number, hour: number): string {
   if (emo === "shy") return "有点不好意思";
-  if (emo === "sulky") return "正在闹别扭";
   if (emo === "hungry") return "在等布丁";
   if (emo === "happy") return "今天心情不错";
   if (emo === "sleepy") return "打盹中，别吵";
@@ -4963,6 +5036,11 @@ export function nekoMetaLine(emo: EmoState, count: number, hour: number): string
   if (emo === "curious") return "在看你下一步点哪";
   if (emo === "clingy") return "赖在这儿不想走";
   if (emo === "bored") return "闲得数天花板";
+  // 后补的四档
+  if (emo === "dizzy") return "刚被滚晕了";
+  if (emo === "purr") return "被摸得服服帖帖";
+  if (emo === "miss") return "有日子没见你了";
+  if (emo === "excited") return "今天这儿有点热闹";
   if (hour >= 23 || hour < 5) return "这个点还醒着的不多";
   if (hour >= 17 && hour < 19) return "傍晚有点饿";
   if (count >= 3) return "挤一挤也坐得下";

@@ -123,7 +123,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "../eggs/egg-utils";
-import { GREETING_REPLY_MS, speechLingerMs, useLiveTalk } from "./live-chat";
+import { CROWD_ONLINE, GREETING_REPLY_MS, speechLingerMs, useLiveTalk } from "./live-chat";
 import {
   anyDropLines,
   dropLineFor,
@@ -408,7 +408,11 @@ let onlineCount = 0;
 
 /** 在线卡报到的人数 */
 function onOnlineCount(value: number): void {
+  const wasCrowd = onlineCount >= CROWD_ONLINE;
   onlineCount = value;
+  // 人数跨过「热闹」那道线时当场重算心情：等那半分钟一次的兜底时钟，
+  // 人到齐了灯还是原来那盏，等它转过神来人可能已经走了
+  if (wasCrowd !== (value >= CROWD_ONLINE)) talk.refreshMood();
 }
 
 /** 手一动（划、点、敲键盘）就重新计时：静下来三十秒才轮到那句「手放下了」 */
@@ -716,7 +720,12 @@ function onScroll(): void {
     topAt = now;
     return;
   }
-  if (top >= max - 8 && now - topAt < SCROLL_DASH_MS) scrollDashAt = now;
+  if (top >= max - 8 && now - topAt < SCROLL_DASH_MS) {
+    scrollDashAt = now;
+    // 这一下也算「情况变了」：状态灯当场换成被滚晕那档。
+    // 心情那半分钟一次的兜底时钟撞不上这三十秒的信号窗口，靠它来算多半就错过了
+    talk.refreshMood();
+  }
 }
 
 /** 今天第几次打开这个页面：换一天就从头数，隐私模式读不到就当头一回 */

@@ -826,15 +826,18 @@ html.dark .home-live-meta {
   border-radius: 50%;
 }
 
-/* 指示灯的色与节奏全从槽位上传下来：几个数一变就是一档心情，灯自己的规则不用动。
+/* 指示灯的色、节奏与「怎么呼吸」全从槽位上传下来：几个数一变就是一档心情，灯自己的规则不用动。
    --live-hue 颜色 / --live-beat 呼吸周期 / --live-dim 呼吸最暗到哪 / --live-glow 外圈光晕半径。
-   颜色和光晕走 transition，换档时是「缓过来」而不是「啪一下跳过去」 */
+   决定形态的是后面四个：--live-shrink 每次呼吸缩到多小（大于 1 就是撑一下，像被弹了）、
+   --live-ring-scale 外圈涟漪扩到几倍、--live-ring-alpha 涟漪刚冒出来时多亮、--live-ease 这一档的曲线。
+   颜色和光晕是静态属性，走 transition 缓过来而不是「啪一下跳过去」；
+   形态那几个只改关键帧里的数、不动 animation 本身，所以换档时灯不会从头再呼吸一遍 */
 .home-live-light-core {
   width: 9px;
   height: 9px;
   background: var(--live-state);
   box-shadow: 0 0 0 var(--live-glow, 3px) color-mix(in srgb, var(--live-state) 18%, transparent);
-  animation: home-live-breathe var(--live-beat, 2.4s) ease-in-out infinite;
+  animation: home-live-breathe var(--live-beat, 2.4s) var(--live-ease, ease-in-out) infinite;
   transition: background-color 0.45s ease, box-shadow 0.45s ease, border-color 0.45s ease;
 }
 
@@ -849,11 +852,16 @@ html.dark .home-live-meta {
 
 /* 心情档：灯跟着心情走，但只改几个数。正常心情就用兜底那盏绿，不单写一条。
    说话那点头也归这儿管：--talk-dur 是它的周期、--talk-amp 是幅度，
-   没写的档就用默认的 0.68s / 1。下面几条按「快而弹 → 慢而沉」排下来 */
+   没写的档就用默认的 0.68s / 1。
+   形态按「弹 → 收 → 沉」排下来：高兴弹一下、好奇利落地推开、黏人贴身收着、
+   犯困一呼一吸差得最大、重逢最弱、热闹推得最远 */
 .home-live-slot[data-mood="happy"] {
   --live-hue: #10b981;
   --live-beat: 1.7s;
   --live-dim: 0.86;
+  --live-shrink: 0.7;
+  --live-ring-scale: 2.5;
+  --live-ring-alpha: 0.8;
   --talk-dur: 0.54s;
   --talk-amp: 1.1;
 }
@@ -862,22 +870,22 @@ html.dark .home-live-meta {
   --live-hue: #f472b6;
   --live-beat: 2s;
   --live-dim: 0.8;
+  /* 往回收：缩得浅、涟漪几乎不外扩 */
+  --live-shrink: 0.88;
+  --live-ring-scale: 1.5;
+  --live-ring-alpha: 0.32;
   --talk-dur: 0.8s;
   --talk-amp: 0.85;
-}
-
-.home-live-slot[data-mood="sulky"] {
-  --live-hue: #f59e0b;
-  --live-beat: 2.6s;
-  --live-dim: 0.66;
-  --talk-dur: 0.95s;
-  --talk-amp: 0.75;
 }
 
 .home-live-slot[data-mood="sleepy"] {
   --live-hue: #7c8aa0;
   --live-beat: 4.6s;
   --live-dim: 0.46;
+  /* 困：一呼一吸差得最明显，涟漪淡到几乎没有 */
+  --live-shrink: 0.6;
+  --live-ring-scale: 1.5;
+  --live-ring-alpha: 0.2;
   --talk-dur: 1.15s;
   --talk-amp: 0.7;
 }
@@ -886,12 +894,19 @@ html.dark .home-live-meta {
   --live-hue: #8fa89b;
   --live-beat: 3.4s;
   --live-dim: 0.58;
+  --live-shrink: 0.76;
+  --live-ring-scale: 1.7;
+  --live-ring-alpha: 0.24;
 }
 
 .home-live-slot[data-mood="hungry"] {
   --live-hue: #fbbf24;
   --live-beat: 2.1s;
   --live-dim: 0.82;
+  /* 惦记吃的：缩得急，涟漪也急不可耐 */
+  --live-shrink: 0.72;
+  --live-ring-scale: 2.2;
+  --live-ring-alpha: 0.6;
 }
 
 /* 后补的三档：都是「被用户当下的动作带起来」的，条件一撤就自己回落 */
@@ -899,18 +914,83 @@ html.dark .home-live-meta {
   --live-hue: #38bdf8;
   --live-beat: 1.5s;
   --live-dim: 0.84;
+  /* 探头看：亮起得快，涟漪利落地推开 */
+  --live-shrink: 0.86;
+  --live-ring-scale: 2.7;
+  --live-ring-alpha: 0.72;
+  --live-ease: ease-out;
 }
 
 .home-live-slot[data-mood="clingy"] {
   --live-hue: #fb7185;
   --live-beat: 2.3s;
   --live-dim: 0.88;
+  /* 贴着人：呼吸浅，涟漪收在近处 */
+  --live-shrink: 0.9;
+  --live-ring-scale: 1.5;
+  --live-ring-alpha: 0.3;
 }
 
 .home-live-slot[data-mood="bored"] {
   --live-hue: #94a3b8;
   --live-beat: 3.6s;
   --live-dim: 0.55;
+  --live-shrink: 0.72;
+  --live-ring-scale: 1.6;
+  --live-ring-alpha: 0.18;
+}
+
+/* 再补的四档，同样是条件一散就回落：
+   被滚晕了还在晃（灯抖得快）、被摸服了软下来（橙、慢而稳）、
+   久别重逢（青、暗一点、像刚回过神）、人多热闹（品红、亮得最足、说话又快又大） */
+.home-live-slot[data-mood="dizzy"] {
+  --live-hue: #a78bfa;
+  --live-beat: 1.1s;
+  --live-dim: 0.72;
+  /* 站不稳：不是往里缩，是往外撑一下，涟漪贴着灯抖 */
+  --live-shrink: 1.18;
+  --live-ring-scale: 1.4;
+  --live-ring-alpha: 0.5;
+  --live-ease: ease-out;
+  --talk-dur: 0.95s;
+  --talk-amp: 0.75;
+}
+
+.home-live-slot[data-mood="purr"] {
+  --live-hue: #fb923c;
+  --live-beat: 3.2s;
+  --live-dim: 0.9;
+  /* 呼噜：缩得深但极慢，光柔柔地散开一点 */
+  --live-shrink: 0.64;
+  --live-ring-scale: 1.6;
+  --live-ring-alpha: 0.3;
+  --talk-dur: 1s;
+  --talk-amp: 0.8;
+}
+
+.home-live-slot[data-mood="miss"] {
+  --live-hue: #2dd4bf;
+  --live-beat: 2.8s;
+  --live-dim: 0.66;
+  /* 重逢：快灭下去又亮起来，涟漪最弱 —— 像在等你注意到她 */
+  --live-shrink: 0.5;
+  --live-ring-scale: 1.8;
+  --live-ring-alpha: 0.22;
+  --talk-dur: 0.86s;
+  --talk-amp: 0.9;
+}
+
+.home-live-slot[data-mood="excited"] {
+  --live-hue: #e879f9;
+  --live-beat: 1.2s;
+  --live-dim: 0.95;
+  /* 热闹：几乎不缩（一直亮着），涟漪推得最远最亮 */
+  --live-shrink: 0.94;
+  --live-ring-scale: 3.4;
+  --live-ring-alpha: 0.9;
+  --live-ease: ease-out;
+  --talk-dur: 0.46s;
+  --talk-amp: 1.2;
 }
 
 /* 被戳了一下的那一小会儿：灯闪一下，像被手碰过 */
@@ -922,7 +1002,8 @@ html.dark .home-live-meta {
 
 /* 状态档压在心情上面：演对手戏时两盏灯一起亮着，开口说话时灯再亮一档，
    被拎在手上则换成悬空的蓝 —— 状态是状态，心情是心情。
-   这几档只动明暗和大小，**不动 --live-beat**：改周期会让浏览器把动画从头再来一遍，
+   这几档只动明暗、大小与形态，**不动 --live-beat、也不动 --live-ease**：
+   这两样写在 animation 上，改一下浏览器就把动画从头再来，
    而说话每几秒就切换一次，灯就会一直在起点上跳 */
 .home-live-slot.is-playing {
   --live-glow: 4px;
@@ -941,6 +1022,9 @@ html.dark .home-live-meta {
   --live-glow: 4px;
   --live-dim: 0.9;
   --live-ring-scale: 2.6;
+  /* 拎在半空：呼吸收着、涟漪也收着，一副被拎着不乱动的样子 */
+  --live-shrink: 0.92;
+  --live-ring-alpha: 0.34;
 }
 
 /* 深底上这几个色得提亮一档才看得清；拎在手上那盏蓝也要重新盖一次 */
@@ -950,10 +1034,6 @@ html.dark .home-live-slot[data-mood="happy"] {
 
 html.dark .home-live-slot[data-mood="shy"] {
   --live-hue: #f9a8d4;
-}
-
-html.dark .home-live-slot[data-mood="sulky"] {
-  --live-hue: #fbbf24;
 }
 
 html.dark .home-live-slot[data-mood="sleepy"] {
@@ -978,6 +1058,22 @@ html.dark .home-live-slot[data-mood="clingy"] {
 
 html.dark .home-live-slot[data-mood="bored"] {
   --live-hue: #a8b6c6;
+}
+
+html.dark .home-live-slot[data-mood="dizzy"] {
+  --live-hue: #c4b5fd;
+}
+
+html.dark .home-live-slot[data-mood="purr"] {
+  --live-hue: #fdba74;
+}
+
+html.dark .home-live-slot[data-mood="miss"] {
+  --live-hue: #5eead4;
+}
+
+html.dark .home-live-slot[data-mood="excited"] {
+  --live-hue: #f0abfc;
 }
 
 html.dark .home-live-slot.is-dragging {
@@ -1089,7 +1185,7 @@ html.dark .home-live-avatar {
   }
 
   50% {
-    transform: scale(0.82);
+    transform: scale(var(--live-shrink, 0.82));
     opacity: var(--live-dim, 0.72);
   }
 }
@@ -1097,7 +1193,7 @@ html.dark .home-live-avatar {
 @keyframes home-live-ripple {
   0% {
     transform: scale(1);
-    opacity: 0.7;
+    opacity: var(--live-ring-alpha, 0.7);
   }
 
   70%,

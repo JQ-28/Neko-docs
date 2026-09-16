@@ -401,14 +401,16 @@ html.dark .home-online-meta:not(.is-hint) {
   border-radius: 50%;
 }
 
-/* 指示灯的色与节奏可以由外面（首页那排卡片）从槽位上传下来，
-   没传就是原来那盏绿 —— 其它地方引这个组件时不用管这些变量 */
+/* 指示灯的色、节奏与形态可以由外面（首页那排卡片）从槽位上传下来，
+   没传就是原来那盏绿 —— 其它地方引这个组件时不用管这些变量。
+   形态那三样（--live-shrink / --live-ring-scale / --live-ring-alpha）与首页那盏灯同名同义，
+   两边各写一份关键帧，但读的是同一组变量，所以换心情时两盏灯一起变形 */
 .home-online-light-core {
   width: 9px;
   height: 9px;
   background: var(--online-state);
   box-shadow: 0 0 0 var(--live-glow, 3px) color-mix(in srgb, var(--online-state) 18%, transparent);
-  animation: home-online-breathe var(--live-beat, 2.4s) ease-in-out infinite;
+  animation: home-online-breathe var(--live-beat, 2.4s) var(--live-ease, ease-in-out) infinite;
 }
 
 .home-online-light-ring {
@@ -465,7 +467,7 @@ html.dark .home-online-avatar {
   }
 
   50% {
-    transform: scale(0.82);
+    transform: scale(var(--live-shrink, 0.82));
     opacity: var(--live-dim, 0.72);
   }
 }
@@ -473,7 +475,7 @@ html.dark .home-online-avatar {
 @keyframes home-online-ripple {
   0% {
     transform: scale(1);
-    opacity: 0.7;
+    opacity: var(--live-ring-alpha, 0.7);
   }
 
   70%,
