@@ -323,6 +323,10 @@ onBeforeUnmount(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   /* 从偏下处转，歪头才像歪脖子而不是原地打转 */
   transform-origin: 58% 82%;
+  /* 头像不吃指针事件：手指按在头像上也算按着这张卡（否则安卓会把它当成「拖走这张图」，
+     iOS 长按还会弹出「存储图像」那一套）。事件穿到卡片本体上，拖拽那几条判断才连得上 */
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 /* 偶尔歪下头，或被人来惊动一下 */

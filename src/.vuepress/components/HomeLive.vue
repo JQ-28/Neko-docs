@@ -49,6 +49,7 @@
         @pointerup="onPointerUp"
         @pointercancel="onPointerCancel"
         @keydown="onSlotKeydown($event, card)"
+        @contextmenu.prevent
       >
         <div v-if="card.kind === 'neko'" class="home-live-card">
           <span class="home-live-glass" aria-hidden="true"></span>
@@ -369,12 +370,14 @@ function noteActivity(): void {
 
 /** 被戳一下时灯亮多久 */
 const TAP_LIGHT_MS = 620;
-/** 手机上按住多久才算「拎」、以及这段时间里手指能动多少像素 */
+/** 手机上按住多久才算「拎」，以及这段时间里手指能动多少像素。
+    这个「能动多少」不能太小：手指按下去之后多少都会抖、也常顺势滑动一点，
+    原来只给 10px，手一动就转成滚页面了，表现就是「想拎猫，十次有八次在滑页面」 */
 const TOUCH_HOLD_MS = 180;
 /** 按住之后过这么久才抬起来给人看：一压就抬的话，快速点一下也成了「抬起」，
     那一下的「按下」反馈就整没了 —— 手机上点卡片会显得毫无反应 */
 const ARMING_DELAY_MS = 90;
-const TOUCH_SLOP_PX = 10;
+const TOUCH_SLOP_PX = 16;
 /** 页面刚滚过之后这么久内按住卡片不给拎 —— 那多半是想让页面停下来 */
 const SCROLL_SETTLE_MS = 180;
 /** 拖动中的命中测试节流：手指挪过这么多、或者离上次测试过了这么久，才重新测一次。
@@ -392,6 +395,83 @@ function cancelHold(): void {
   window.clearTimeout(armTimer);
   if (touchHoldAt) delete touchHoldAt.slot.dataset.arming;
   touchHoldAt = null;
+}
+
+/** 手指落在卡片上、但还没够「按住」那 180 毫秒就动了：这一下是想滚页面。
+    卡片身上写着 `touch-action: none`（不然浏览器会先把这段手势抢走滚页面，只留给我们一个
+    pointercancel），所以这一下得自己滚 —— 往后每个 pointermove 按手指走了多少滚多少，
+    抬手再照末速带一小段惯性，手感才跟原生那条路对得上 */
+let pageScroll: { pointerId: number; lastY: number; lastAt: number; speed: number } | null = null;
+/** 抬手那一刻手指的速度（像素/毫秒，手指往上滑是负的） */
+let glideSpeed = 0;
+let glideFrame = 0;
+/** 惯性每毫秒保留多少：0.985 大约滑一秒收住，接近系统「甩一下」的收尾 */
+const GLIDE_DECAY = 0.985;
+/** 慢到这个速度（像素/毫秒）就别再滚了 */
+const GLIDE_MIN_SPEED = 0.04;
+
+/** 自己滚一屏。主题全局写着 scroll-behavior: smooth，光写 behavior: "instant" 压不住它 ——
+    压不住的话每一小步都被抹成一段平滑滚动，页面跟不上手指（实测抖 ±55px）。
+    所以临时把根元素的 scroll-behavior 按回 auto，滚完立刻还原 */
+function scrollWindowBy(delta: number): void {
+  if (delta === 0) return;
+  const root = document.documentElement;
+  const previous = root.style.scrollBehavior;
+  root.style.scrollBehavior = "auto";
+  window.scrollBy({ top: delta, behavior: "instant" });
+  root.style.scrollBehavior = previous;
+}
+
+/** 手指在卡片上滑动：1:1 跟着滚，顺手记下速度给抬手时的惯性用 */
+function scrollPageWith(event: PointerEvent): void {
+  if (!pageScroll) return;
+  const now = performance.now();
+  const dy = event.clientY - pageScroll.lastY;
+  const elapsed = Math.max(now - pageScroll.lastAt, 1);
+  // 手指往上滑（dy < 0）页面往下走，所以要取反
+  pageScroll.speed = -dy / elapsed;
+  pageScroll.lastY = event.clientY;
+  pageScroll.lastAt = now;
+  scrollWindowBy(-dy);
+}
+
+/** 从「按住」改成「滚页面」：按住那笔账作废，旧的惯性也一并停掉 */
+function beginPageScroll(event: PointerEvent): void {
+  cancelHold();
+  stopGlide();
+  pageScroll = {
+    pointerId: event.pointerId,
+    lastY: event.clientY,
+    lastAt: performance.now(),
+    speed: 0,
+  };
+}
+
+/** 抬手：照最后那一小段的速度再滑一小段，不然「在卡片上滑一下」是硬停的 */
+function glideAway(): void {
+  glideSpeed = pageScroll?.speed ?? 0;
+  pageScroll = null;
+  if (glideFrame || Math.abs(glideSpeed) < GLIDE_MIN_SPEED) return;
+  let last = performance.now();
+  const step = (now: number): void => {
+    // 低帧率下按真实间隔折算，封顶两帧：切后台回来别一下窜出老远
+    const elapsed = Math.min(now - last, 50);
+    last = now;
+    glideSpeed *= GLIDE_DECAY ** elapsed;
+    if (Math.abs(glideSpeed) < GLIDE_MIN_SPEED) {
+      glideFrame = 0;
+      return;
+    }
+    scrollWindowBy(glideSpeed * elapsed);
+    glideFrame = requestAnimationFrame(step);
+  };
+  glideFrame = requestAnimationFrame(step);
+}
+
+function stopGlide(): void {
+  if (glideFrame) window.cancelAnimationFrame(glideFrame);
+  glideFrame = 0;
+  glideSpeed = 0;
 }
 
 /** 每张卡自己那个「灯还亮着」的计时器：连着戳时要把上一个撤掉，不然会一闪一闪 */
@@ -940,8 +1020,8 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   flashTap(slot);
   talk.poke(card);
 
-  // 正在演互动动画、已经有一张在手上、另一根手指还按着，都别再拎
-  if (drag || touchHoldAt || show.isPlaying()) return;
+  // 正在演互动动画、已经有一张在手上、另一根手指还按着 / 正在滚页面，都别再拎
+  if (drag || touchHoldAt || pageScroll || show.isPlaying()) return;
   // 页面刚滚过：这一下多半是想让页面停下来，不是想拎猫
   if (Date.now() - lastScrollAt < SCROLL_SETTLE_MS) return;
 
@@ -1004,12 +1084,11 @@ function holdToDrag(
     if (drag) return;
     delete slot.dataset.arming;
     beginDrag(event, card, slot, handle);
-    // 拎起来了就别再让页面跟着手指滚
-    slot.style.touchAction = "none";
     // 手上轻轻震一下，有个「抓住了」的分界（安卓有，iOS 没这能力就算了）
     navigator.vibrate?.(12);
   }, TOUCH_HOLD_MS);
   // 先把指针接管过来：手指滑出卡片也收得到消息，好及时判断人家其实是想滚页面
+  // （卡片身上的 touch-action: none 已经把整段手势交给我们了，浏览器不会再抢）
   try {
     handle.setPointerCapture(event.pointerId);
   } catch {
@@ -1081,11 +1160,9 @@ function beginDrag(
     keepSpeech 是给落点用的 —— 刚落点说的话不能跟着「拎着时那句抱怨」一起收掉 */
 function dropRelease(keepSpeech = false): void {
   if (!drag) return;
-  const { handle, pointerId, slot } = drag;
+  const { handle, pointerId } = drag;
   if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
   draggingId.value = "";
-  // 手机上拎完，竖向滚动还给页面
-  slot.style.touchAction = "";
   // 松手、被接住、被取消三条路都从这儿出去：自动滚页的循环也归拖拽的生命周期管
   stopEdgeScroll();
   drag = null;
@@ -1108,6 +1185,9 @@ function releaseDrag(keepSpeech = false): void {
     drag 是空的时候也能调：那多半只是还有一根手指在等长按，收掉就好 */
 function abortDrag(): void {
   cancelHold();
+  // 在卡片上滚页面那条路也一并收掉：窗口失焦这类情况手指不会再回来了，惯性也不该再滑
+  pageScroll = null;
+  stopGlide();
   if (drag) {
     // 猫正飘在隔壁的屏幕上：这张卡得放回来，不然它就永远留在对面了
     setRoaming(false, drag.cardId);
@@ -1115,7 +1195,7 @@ function abortDrag(): void {
     drag.slot.style.translate = "";
     drag.slot.style.rotate = "";
   }
-  // 释放指针捕获、把 touchAction 还给页面、清掉手上这张卡
+  // 释放指针捕获、清掉手上这张卡
   dropRelease();
   lightDrop(null);
   show.resume();
@@ -1452,18 +1532,7 @@ function edgeScrollStep(): void {
   const elapsed = Math.min(now - edgeScrollAt, EDGE_SCROLL_FRAME_MS * 2);
   const slowdown = reduceMotionQuery?.matches ? 0.6 : 1;
   edgeScrollAt = now;
-  // 主题全局写着 scroll-behavior: smooth，光写 behavior: "instant" 压不住它 ——
-  // 压不住的话每一小步都会被抹成一段平滑滚动，页面在几帧里慢慢走，而卡片是照
-  // 「已经滚了多少」补的，于是看着一路跟它错开、发飘（实测抖 ±55px）。
-  // 所以临时把根元素的 scroll-behavior 按回 auto，滚完立刻还原
-  const root = document.documentElement;
-  const previousBehavior = root.style.scrollBehavior;
-  root.style.scrollBehavior = "auto";
-  window.scrollBy({
-    top: (speed * elapsed * slowdown) / EDGE_SCROLL_FRAME_MS,
-    behavior: "instant",
-  });
-  root.style.scrollBehavior = previousBehavior;
+  scrollWindowBy((speed * elapsed * slowdown) / EDGE_SCROLL_FRAME_MS);
   // 立刻补位移，不等 scroll 事件（那个要慢一帧，卡片会跟手脱节一下）
   compensateScroll();
   // 页面滚了，卡片底下的东西就换了：高亮跟着重算
@@ -1483,10 +1552,15 @@ function updateEdgeScroll(): void {
 }
 
 function onPointerMove(event: PointerEvent): void {
-  // 还在等长按：手指挪开了就说明人家是想滚页面，这次不算拎
+  // 手指已经在卡片上滑起来了：这一下是滚页面，不拎猫
+  if (pageScroll && event.pointerId === pageScroll.pointerId) {
+    scrollPageWith(event);
+    return;
+  }
+  // 还在等长按：手指挪开了就说明人家是想滚页面，从这一下起自己滚
   if (touchHoldAt && event.pointerId === touchHoldAt.pointerId) {
     const moved = Math.hypot(event.clientX - touchHoldAt.x, event.clientY - touchHoldAt.y);
-    if (moved > TOUCH_SLOP_PX) cancelHold();
+    if (moved > TOUCH_SLOP_PX) beginPageScroll(event);
     return;
   }
   if (!drag || event.pointerId !== drag.pointerId) return;
@@ -1574,6 +1648,11 @@ function onPointerMove(event: PointerEvent): void {
 }
 
 function onPointerUp(event: PointerEvent): void {
+  // 这一下从头到尾都是滚页面：抬手只把惯性交给它，不落点、不换位、也不拎猫
+  if (pageScroll && event.pointerId === pageScroll.pointerId) {
+    glideAway();
+    return;
+  }
   // 还在等长按：抬手就是一次普通点击，不是拎
   if (touchHoldAt && event.pointerId === touchHoldAt.pointerId) cancelHold();
   if (!drag || event.pointerId !== drag.pointerId) return;
@@ -1653,8 +1732,6 @@ function onPointerUp(event: PointerEvent): void {
   drag = null;
   // 同理：这条路径没进落点，等着换页的那笔账也得作废，不然页面照样会被带走
   forgetStaleCarry();
-  // 拎完了，竖向滚动还给页面（换位那条路走的是 reorderCards，同样要还）
-  slot.style.touchAction = "";
 
   // 刚被拎起来玩过，过一小会儿就让它们嘀咕两句——趁这会儿还记得
   talk.lingerSpeech();
@@ -1666,6 +1743,11 @@ function onPointerUp(event: PointerEvent): void {
 /** 指针被浏览器抢走了（手机上竖向拖动会被接管成滚动页面）：
     只收拾现场，不落点、不换位、也不换页 —— 那一下本来就不是在丢猫 */
 function onPointerCancel(event: PointerEvent): void {
+  // 卡片上那次滚页面被系统打断了（来电、手势被系统收走）：就地停住，不给惯性
+  if (pageScroll && event.pointerId === pageScroll.pointerId) {
+    pageScroll = null;
+    stopGlide();
+  }
   if (touchHoldAt && event.pointerId === touchHoldAt.pointerId) cancelHold();
   // 另一根手指的取消别去打断手上这张卡
   if (!drag || event.pointerId !== drag.pointerId) return;
@@ -1679,16 +1761,20 @@ function onPointerCancel(event: PointerEvent): void {
     正常松手仍归 onPointerUp 管：这里是捕获阶段，本来排在它前面，
     所以要等这一轮事件派发走完再判断（同一根指针的松手，onPointerUp 会先把 drag 清掉） */
 function onPointerEndFallback(event: PointerEvent): void {
-  if (!drag || event.pointerId !== drag.pointerId) return;
-  const pointerId = drag.pointerId;
+  // 「在卡片上滚页面」那条路也在这儿兜：抬手要是没送到槽位上，pageScroll 会一直挂着，
+  // 下一次按在任何地方都会被当成接着滚
+  const scrollId = pageScroll?.pointerId;
+  const dragId = drag?.pointerId;
+  if (event.pointerId !== scrollId && event.pointerId !== dragId) return;
   window.setTimeout(() => {
-    if (drag?.pointerId === pointerId) abortDrag();
+    if (scrollId !== undefined && pageScroll?.pointerId === scrollId) glideAway();
+    if (dragId !== undefined && drag?.pointerId === dragId) abortDrag();
   }, 0);
 }
 
 /** 窗口失去焦点（切到别的应用、Alt+Tab）：指针消息不会再有下文了，直接收拾 */
 function onWindowBlur(): void {
-  if (drag || touchHoldAt) abortDrag();
+  if (drag || touchHoldAt || pageScroll) abortDrag();
 }
 
 onMounted(() => {
@@ -1775,6 +1861,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(topScrollTimer);
   // 组件走了就别再滚页面：拖拽中切页时循环可能正跑着
   stopEdgeScroll();
+  stopGlide();
   for (const timer of carryTimers.values()) window.clearTimeout(timer);
   carryTimers.clear();
   for (const timer of retireTimers.values()) window.clearTimeout(timer);
@@ -1944,15 +2031,19 @@ html.dark .home-intro-sub {
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
   /* 连戳两下以上是这块卡片的主要互动，得关掉双击缩放（pan-y 关不掉它）。
-     放槽位这一层是取祖先交集：卡片上的 pan-y 保住纵滑，拖动时 JS 写的 none 照样压得住 */
+     放槽位这一层是取祖先交集：卡片那边写死了 none，槽位里的空隙仍能按原生那样滚 */
   touch-action: manipulation;
 }
 
-/* 两张卡都能拎：鼠标抓着走，手机上先按住再动；竖直方向留给页面滚动 */
+/* 两张卡都能拎：鼠标抓着走，手机上先按住再动。
+   卡片身上**不让浏览器碰手势**（none）：写过 pan-y 的话，按住的那 180 毫秒里手指一动，
+   浏览器就先一步把这段手势接管成滚页面，我们只收到一个 pointercancel ——
+   表现就是「想拎猫，十次有八次变成滑页面」。关掉之后整段手势归我们，
+   手指在卡片上上下滑改成自己滚页面（见 onPointerMove 那条 pageScroll） */
 .home-live-card,
 .home-live-cards :deep(.home-online) {
   cursor: grab;
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 .home-live-slot.is-dragging .home-live-card,
@@ -2388,6 +2479,10 @@ html.dark .home-live-roamer {
   background: #f0e6f6;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transform-origin: 42% 82%;
+  /* 头像不吃指针事件：手指按在头像上也算按着这张卡（否则安卓会把它当成「拖走这张图」，
+     iOS 长按还会弹出「存储图像」那一套）。事件穿到卡片本体上，拖拽那几条判断才连得上 */
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 /* 朝右歪，像在打量旁边的在线猫猫 */
@@ -4418,6 +4513,13 @@ html.dark .home-live-avatar {
 .home-live.is-static :deep(.home-online),
 .home-live.is-static :deep(.home-online *) {
   animation: none;
+}
+
+/* 静态模式的卡片只是摆着看，不给拎也不回应：手势还给浏览器，
+   手指正好压在卡片上时照样能滑页面（常态下这块被我们自己接管了，见卡片那条 touch-action: none） */
+.home-live.is-static .home-live-card,
+.home-live.is-static :deep(.home-online) {
+  touch-action: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
