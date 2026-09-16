@@ -100,7 +100,7 @@ const PAT_GAP_MS = 5_000;
 /** 上班时段：工作日九点到十八点 */
 const WORK_START_HOUR = 9;
 const WORK_END_HOUR = 18;
-/** 说过的话记在本地：越久没说的越容易被挑中，一台机器上尽量不重样 */
+/** 说过的话记在本地：从没说过的先挑，全说过才按新旧轮换，一台机器上尽量不重样 */
 const SAID_KEY = "neko-live-said";
 const SAID_KEEP_MS = 30 * 86_400_000;
 const SAID_LIMIT = 400;
@@ -167,7 +167,7 @@ export interface LiveTalk {
   say(card: CardSpec, type: keyof SpeechLines): void;
   /** 让某张卡说指定的这一句（把卡拎到首页某个落点上时用） */
   sayLine(card: CardSpec, line: string): void;
-  /** 从一堆候选里挑一句：优先挑最久没说过的（复用「说过的账本」），都说过就挑最旧那句 */
+  /** 从一堆候选里挑一句：优先挑从没说过的（复用「说过的账本」），全说过就挑最旧那句 */
   pickFresh: (pool: readonly string[]) => string;
   /** 松手了：刚那句话再挂一会儿再收，像还在嘀咕 */
   lingerSpeech(): void;
@@ -324,24 +324,30 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     return 1 + Math.min((Date.now() - at) / SAID_FRESH_MS, SAID_MAX_WEIGHT - 1);
   }
 
-  /** 按「越久没说越容易被挑中」抽一条；刚说过的那条先排除掉 */
+  /** 按「越久没说越容易被挑中」抽一条；刚说过的那条先排除掉。
+      池子里还有从没说过的时候只在那些里面挑 —— 光靠权重压不住重复：
+      「没说过」10 分、「刚说过」1 分，算下来仍有一成多的轮次落回已经听过的段上，
+      而光景档有两百多段，靠权重慢慢摊平要几十小时才轮得完一遍 */
   function pickByFreshness<T>(
     pool: readonly T[],
     keyOf: (item: T) => string,
     skipKey: string
   ): T {
-    const weights = pool.map((item) => {
+    // 没听过的一律优先，全听过了才回头按新旧轮换
+    const unheard = pool.filter((item) => !saidAt.has(keyOf(item)));
+    const candidates = unheard.length > 0 ? unheard : pool;
+    const weights = candidates.map((item) => {
       const key = keyOf(item);
       return key === skipKey ? 0 : freshnessWeight(key);
     });
     const total = weights.reduce((sum, weight) => sum + weight, 0);
-    if (total <= 0) return pool[Math.floor(Math.random() * pool.length)];
+    if (total <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
     let roll = Math.random() * total;
-    for (let index = 0; index < pool.length; index += 1) {
+    for (let index = 0; index < candidates.length; index += 1) {
       roll -= weights[index];
-      if (roll <= 0) return pool[index];
+      if (roll <= 0) return candidates[index];
     }
-    return pool[pool.length - 1];
+    return candidates[candidates.length - 1];
   }
 
   /** 这段话说出去了，记一笔（顺手把旧账清一清） */
@@ -451,7 +457,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
         (saidAt.get(line) ?? 0) < (saidAt.get(oldest) ?? 0) ? line : oldest
       );
     }
-    // 还有没说过（或很久没说）的：走挑台词那同一套权重，pickByFreshness 本身一个字没动
+    // 还有没说过（或很久没说）的：走挑台词那同一套，pickByFreshness 会优先照顾没听过的
     return pickByFreshness(pool, (item) => item, "");
   }
 

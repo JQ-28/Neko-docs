@@ -36,7 +36,27 @@ export type ChatAct =
   | "lean"
   | "pass"
   | "mimic"
-  | "lookOut";
+  | "lookOut"
+  // 家常对手戏也开放给台词点名：说到「蹭蹭」「踩奶」「分你一口」这类话时，
+  // 光靠随机排期很难正好撞上，得让台词自己叫一声。
+  // 名字都在 live-show 的 PLAY_SCRIPTS 里，脚本与样式现成，这里只是允许点名
+  | "nuzzle"
+  | "knead"
+  | "groom"
+  | "shareBite"
+  | "highPaw"
+  | "startle"
+  | "tussle"
+  | "playDead"
+  | "spoon"
+  | "tailSpin"
+  | "roundChase"
+  | "leanNap"
+  | "makeUp"
+  | "alarm"
+  | "shove"
+  | "parade"
+  | "mirrorStep";
 
 /** 对话里的一句：由哪种卡来说、说什么；带 act 的就是「这句说完先演一段」 */
 export interface ChatTurn {
@@ -227,6 +247,10 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
       "你怎么老戳我喵",
       "戳我也变不出新猫喵",
       "痒的喵…别戳那里",
+      "我的耳朵不是开关喵",
+      "戳坏了要赔的喵",
+      "再戳我就装死喵",
+      "这里今天不接单喵",
     ],
     pat: [
       "唔…就是这儿喵",
@@ -313,6 +337,10 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
       "戳我不产生数据",
       "统计口径里没有这一项",
       "再戳也还是这个数",
+      "手指稍微静一静",
+      "戳我不会跳转",
+      "这里没有隐藏按钮",
+      "记录：又一次无效点击",
     ],
     pat: [
       "检测到头顶接触，接受中",
@@ -450,18 +478,30 @@ export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, reado
       "这条我不加引号：挺好",
       "已为你开一行长期观测",
       "占用不产生成本。可以",
+      "今天可以给自己放个假",
+      "曲线是往上走的。我不说这是运气",
+      "这条数据我喜欢。至于为什么，不解释",
+      "状态：比预期好一点",
     ],
     shy: [
       "……这个不在统计口径内",
       "别问，我不擅长这个",
       "已记录，但不外传",
       "数据不会不好意思。但我没说不会",
+      "这一项请不要看我",
+      "曲线往上跳了一下。不是我",
+      "我把它算成噪声，可以吗",
+      "别盯着我的日志看",
     ],
     sulky: [
       "我现在不想报数",
       "数字没有问题。问题在于我",
       "已记录一次情绪偏差",
       "稍等，我先安静一会儿",
+      "今天的数据我不打算美化",
+      "别问我心情，我只管数",
+      "翻页的动作轻一点",
+      "这条我不记录。就这样",
     ],
     sleepy: [
       "凌晨的曲线很平",
@@ -654,6 +694,9 @@ export const LINE_GESTURES: Record<string, GestureName> = {
   "我真幸运喵，刚学会打呼噜就有新游戏玩": "stretch",
   "说明有人趴在键盘上睡着了": "stretch",
   "我可以作证，我睡过": "stretch",
+  "睡着的时候我在打呼噜喵": "stretch",
+  "你打哈欠那一帧": "stretch",
+  "你跳起来了": "hop",
   // 盯着看 / 比谁先眨眼
   "是我呀，我在数你眨眼喵": "peek",
   "我们比谁先眨眼好不好喵": "peek",
@@ -1401,8 +1444,113 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "他刚才去了别的标签页" },
     ],
   },
+  // 挂机：页面开着、人可能已经走了。按停留时长分两档（过了一刻钟 / 过了一个钟头）。
+  // 这类不看梗的间隔 —— 能在一个页面上挂这么久的人本来就少，再压一道骰子就真没人听得到了
+  {
+    cast: "mixed",
+    when: (mood) => mood.count === 2 && mood.linger >= 900,
+    turns: [
+      { by: "neko", line: "灯还亮着，人已经不在了喵" },
+      { by: "online", line: "页面还在前台，光标没动过" },
+      { by: "neko", line: "那我就小声一点喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => mood.count === 2 && mood.linger >= 900,
+    turns: [
+      { by: "neko", line: "他该不会是去吃饭了吧喵" },
+      { by: "online", line: "这个点确实容易饿" },
+      { by: "neko", line: "那我也去吃一口，很快就回来喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => mood.count === 2 && mood.linger >= 3600,
+    turns: [
+      { by: "online", line: "这个页面已经开了一个多小时" },
+      { by: "neko", line: "挂这么久会不会累喵" },
+      { by: "online", line: "累的是我，我要一直数时间" },
+      { by: "neko", line: "那你歇着，我替你看着他喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => mood.count === 2 && mood.linger >= 3600,
+    turns: [
+      { by: "neko", line: "他大概是睡着了吧喵" },
+      { by: "online", line: "屏幕还亮着，键盘没有声音" },
+      { by: "neko", line: "那我们别吵他喵" },
+      { by: "online", line: "同意。统计照常，不打扰" },
+    ],
+  },
   // 抽象音效套餐：一个起头、一个接，正好就是「你拍一我拍一」
   ...[
+    [
+      { by: "neko", line: "咚咚咚喵", act: "knock" },
+      { by: "online", line: "有人在敲门吗" },
+      { by: "neko", line: "是我在敲桌子喵" },
+      { by: "online", line: "桌子不归我管" },
+    ],
+    [
+      { by: "online", line: "滴滴滴" },
+      { by: "neko", line: "谁在发报喵" },
+      { by: "online", line: "是我在报错" },
+      { by: "neko", line: "那你小点声喵" },
+    ],
+    [
+      { by: "neko", line: "咕噜咕噜喵" },
+      { by: "online", line: "那是肚子在响" },
+      { by: "neko", line: "不是，那是我在唱歌喵" },
+      { by: "online", line: "这歌的调子很奇怪" },
+    ],
+    [
+      { by: "neko", line: "哈！", act: "pounce" },
+      { by: "online", line: "吓不到我" },
+      { by: "neko", line: "那我再哈一次喵" },
+      { by: "online", line: "这次也没有" },
+    ],
+    [
+      { by: "neko", line: "汪喵" },
+      { by: "online", line: "语种混了" },
+      { by: "neko", line: "我在学隔壁那只喵" },
+      { by: "online", line: "隔壁那只不是猫" },
+    ],
+    [
+      { by: "neko", line: "咻——", act: "hop" },
+      { by: "online", line: "你跳起来了" },
+      { by: "neko", line: "因为刚才那声很好听喵" },
+    ],
+    [
+      { by: "online", line: "嗡嗡嗡" },
+      { by: "neko", line: "你被虫子附身了喵" },
+      { by: "online", line: "是风扇调到高档了" },
+      { by: "neko", line: "那我离风扇远一点喵" },
+    ],
+    [
+      { by: "neko", line: "啊啊啊啊喵" },
+      { by: "online", line: "发生什么了" },
+      { by: "neko", line: "布丁吃完了喵" },
+      { by: "online", line: "抱歉，这不在补货清单里" },
+    ],
+    [
+      { by: "neko", line: "嘿嘿嘿喵" },
+      { by: "online", line: "这个笑声让我有点担心" },
+      { by: "neko", line: "我在想一个坏主意喵" },
+      { by: "online", line: "我提前记一笔" },
+    ],
+    [
+      { by: "neko", line: "啪！", act: "highPaw" },
+      { by: "online", line: "你在打蚊子吗" },
+      { by: "neko", line: "我在打你喵" },
+      { by: "online", line: "我没有能被拍到的地方" },
+    ],
+    [
+      { by: "neko", line: "呼噜呼噜喵" },
+      { by: "online", line: "这个不是睡着的声音" },
+      { by: "neko", line: "这是在夸你喵" },
+      { by: "online", line: "夸人为什么要学睡觉" },
+    ],
     [
       { by: "neko", line: "我的刀盾！" },
       { by: "online", line: "比比拉布" },
@@ -1442,7 +1590,8 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     meme: true,
     turns,
   })),
-  // 杀戮尖塔 2
+  // 杀戮尖塔 2。台词是塔圈弹幕里的原话（「请输入文本」「东尼意思」「战未来」这些），
+  // 玩的人一眼认得，不玩的人也能当普通吐槽听
   ...([
     [
       { by: "online", line: "我在启动中…" },
@@ -1485,13 +1634,139 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "不知道，弹幕都这么写" },
       { by: "neko", line: "那我也写：电流相生了喵" },
     ],
+    [
+      { by: "neko", line: "请输入文本" },
+      { by: "online", line: "这里是弹幕区，不是输入框" },
+      { by: "neko", line: "可我看大家都在发这句喵" },
+      { by: "online", line: "所以他们也没输入什么" },
+    ],
+    [
+      { by: "online", line: "东尼意思" },
+      { by: "neko", line: "东尼是谁喵" },
+      { by: "online", line: "是弹幕把「懂你意思」打错了" },
+      { by: "neko", line: "那我也懂你意思了喵" },
+    ],
+    [
+      { by: "neko", line: "初见端倪喵" },
+      { by: "online", line: "是说这个局面，还是说他这个操作" },
+      { by: "neko", line: "我是说这句弹幕已经刷了好多遍喵" },
+    ],
+    [
+      { by: "online", line: "安东尼露出了慈祥满意的笑容" },
+      { by: "neko", line: "他在笑什么喵" },
+      { by: "online", line: "笑我们又抓了一手烂牌" },
+      { by: "neko", line: "那我也慈祥地笑一下喵" },
+    ],
+    [
+      { by: "neko", line: "我说大大方方右上角下一把喵" },
+      { by: "online", line: "右上角是关闭按钮" },
+      { by: "neko", line: "对，就是这个意思喵" },
+    ],
+    [
+      { by: "online", line: "前排提示：这把没有尽孝" },
+      { by: "neko", line: "孝是谁喵，为什么要对他好" },
+      { by: "online", line: "塔的用语没法细想" },
+      { by: "neko", line: "那我不问了，我抓牌喵" },
+    ],
+    [
+      { by: "neko", line: "这个种子有毒喵" },
+      { by: "online", line: "已确认：开局塞了一堆诅咒" },
+      { by: "neko", line: "那我不种了，我去吃布丁喵" },
+    ],
+    [
+      { by: "neko", line: "战未来喵！" },
+      { by: "online", line: "翻译：现在很弱，但以后会强" },
+      { by: "neko", line: "那现在怎么办喵" },
+      { by: "online", line: "现在先挨打" },
+    ],
+    [
+      { by: "online", line: "删牌大于一切" },
+      { by: "neko", line: "那把我的卡片也删一张喵" },
+      { by: "online", line: "你是卡片，不是牌" },
+      { by: "neko", line: "差不了多少喵" },
+    ],
+    [
+      { by: "neko", line: "会不会有点太乌龟了喵" },
+      { by: "online", line: "说的是打法，不是在说品种" },
+      { by: "neko", line: "我懂，我打牌也缩喵" },
+    ],
+    [
+      { by: "online", line: "开辉眼了" },
+      { by: "neko", line: "辉眼是什么眼喵" },
+      { by: "online", line: "就是突然看懂了这个游戏" },
+      { by: "neko", line: "那我这辈子都开不了喵" },
+    ],
+    [
+      { by: "neko", line: "我把牌摊了一地，你帮我看看喵", act: "roll" },
+      { by: "online", line: "摊牌不是这个意思" },
+      { by: "neko", line: "那是什么意思喵" },
+      { by: "online", line: "意思是这把已经没救了" },
+    ],
+    [
+      { by: "online", line: "这一手打得漂亮", act: "highPaw" },
+      { by: "neko", line: "漂亮就跟我击个掌喵" },
+      { by: "online", line: "我只有数据，没有掌" },
+      { by: "neko", line: "那击一下数据喵" },
+    ],
+    [
+      { by: "neko", line: "我装死给你看喵", act: "playDead" },
+      { by: "online", line: "血量还有大半，装不了" },
+      { by: "neko", line: "我说的是气死喵" },
+      { by: "online", line: "这两个也不是一回事" },
+    ],
+    [
+      { by: "neko", line: "我先踩踩这叠牌，踩软了更好抓喵", act: "knead" },
+      { by: "online", line: "规则里没有这一条" },
+      { by: "neko", line: "现在有了喵" },
+    ],
+    [
+      { by: "online", line: "下一格就是精英怪", act: "startle" },
+      { by: "neko", line: "你怎么突然弹起来了喵" },
+      { by: "online", line: "我是在提醒你，不是在怕" },
+      { by: "neko", line: "那你不怕就别躲我后面喵" },
+    ],
+    [
+      { by: "neko", line: "我蹭你一下，蹭完这把就稳了喵", act: "nuzzle" },
+      { by: "online", line: "蹭不改变概率" },
+      { by: "neko", line: "但蹭完我就不怕了喵" },
+      { by: "online", line: "那条也算收获" },
+    ],
+    [
+      { by: "neko", line: "你跑什么，我又不咬人喵", act: "roundChase" },
+      { by: "online", line: "你在绕圈，我只好跟着绕" },
+      { by: "neko", line: "绕圈才叫追喵" },
+    ],
+    [
+      { by: "neko", line: "我的尾巴又跑了，你等我一下喵", act: "tailSpin" },
+      { by: "online", line: "那是你自己的尾巴" },
+      { by: "neko", line: "它不这么觉得喵" },
+      { by: "online", line: "那你们慢慢谈" },
+    ],
+    [
+      { by: "online", line: "刚才那把我记错了", act: "makeUp" },
+      { by: "neko", line: "那你要道个歉喵" },
+      { by: "online", line: "道歉不在我的输出范围里" },
+      { by: "neko", line: "那你陪我重打一局，就算道歉了喵" },
+    ],
+    [
+      { by: "neko", line: "打不过就靠着歇一会儿喵", act: "spoon" },
+      { by: "online", line: "这一层还没过完" },
+      { by: "neko", line: "歇完再过，它又跑不掉喵" },
+    ],
+    [
+      { by: "online", line: "别出声，前面有东西", act: "alarm" },
+      { by: "neko", line: "什么东西喵" },
+      { by: "online", line: "一个长得很像我的东西" },
+      { by: "neko", line: "那不就是镜子喵" },
+    ],
   ] as const).map((turns): ChatMoment => ({
     cast: "mixed",
     when: (mood) => memeReady(mood) && mood.count === 2,
     meme: true,
     turns,
   })),
-  // 2026 年这波梗
+  // 2026 年这波梗。定期从 B 站热榜与弹幕复读里挑，只留能长期成立的句式；
+  // 不写真人负面新闻、不写饭圈刷屏那类过两天就没人懂的
   ...([
     [
       { by: "neko", line: "来杯好茶摇一摇～" },
@@ -1534,6 +1809,143 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "牌没有问题" },
       { by: "neko", line: "那我的布丁呢喵" },
     ],
+    [
+      { by: "neko", line: "我是爷们喵！" },
+      { by: "online", line: "你是猫" },
+      { by: "neko", line: "爷们猫也算爷们喵" },
+    ],
+    [
+      { by: "online", line: "中国人能飞" },
+      { by: "neko", line: "那猫能不能飞喵" },
+      { by: "online", line: "猫本来就能" },
+      { by: "neko", line: "那我起飞了喵" },
+    ],
+    [
+      { by: "neko", line: "老板，来碗忘情牛肉面喵" },
+      { by: "online", line: "本店只卖猫条" },
+      { by: "neko", line: "那就来根忘情猫条喵" },
+    ],
+    [
+      { by: "online", line: "你的胆子真是肥嘟嘟的" },
+      { by: "neko", line: "猫的胆子确实挺肥喵" },
+      { by: "online", line: "这句到底是夸你还是骂你" },
+      { by: "neko", line: "听着像夸喵" },
+    ],
+    [
+      { by: "neko", line: "老叟戏顽童喵" },
+      { by: "online", line: "这里没有老叟，也没有顽童" },
+      { by: "neko", line: "那这句在夸谁喵" },
+      { by: "online", line: "夸发弹幕的他自己" },
+    ],
+    [
+      { by: "neko", line: "我活到头了喵？" },
+      { by: "online", line: "按数据看，你还有很长的运行时间" },
+      { by: "neko", line: "那我就继续活着喵" },
+    ],
+    [
+      { by: "neko", line: "师傅你是做什么工作的喵" },
+      { by: "online", line: "她负责卖萌，我负责记账" },
+      { by: "neko", line: "他是负责看，不用打卡喵" },
+    ],
+    [
+      { by: "online", line: "感谢小猫修我的大厦" },
+      { by: "neko", line: "我什么时候修过大厦喵" },
+      { by: "online", line: "你大概是在梦里修的" },
+    ],
+    [
+      { by: "neko", line: "惊鸿一瞥喵" },
+      { by: "online", line: "你刚才那下是惊猫一瞥" },
+      { by: "neko", line: "也行，反正都是瞥见了喵" },
+    ],
+    [
+      { by: "online", line: "内存条又涨价了" },
+      { by: "neko", line: "那你是不是更值钱了喵" },
+      { by: "online", line: "我不值钱，我只是费电" },
+      { by: "neko", line: "那你比内存条可怜喵" },
+    ],
+    [
+      { by: "neko", line: "大禹看了沉默，愚公看了流泪喵" },
+      { by: "online", line: "这句话夸的是什么" },
+      { by: "neko", line: "不知道，但听着很厉害喵" },
+    ],
+    [
+      { by: "neko", line: "烂烂烂烂烂烂活喵" },
+      { by: "online", line: "重复几遍就是几分愤怒" },
+      { by: "neko", line: "那我再多骂几遍喵" },
+    ],
+    [
+      { by: "online", line: "这个梗不用解释" },
+      { by: "neko", line: "那我解释一下喵" },
+      { by: "online", line: "解释完就不好笑了" },
+      { by: "neko", line: "我就喜欢把笑话讲死喵" },
+    ],
+    [
+      { by: "neko", line: "接接接接喵" },
+      { by: "online", line: "接什么" },
+      { by: "neko", line: "接好运，我看弹幕都在接喵" },
+    ],
+    [
+      { by: "online", line: "这段的重播率拉满" },
+      { by: "neko", line: "那是因为我卡住了喵" },
+    ],
+    [
+      { by: "neko", line: "我给你蹭点好运，蹭完今天走运喵", act: "nuzzle" },
+      { by: "online", line: "好运不在我的统计范围里" },
+      { by: "neko", line: "那你把它记进范围里喵" },
+    ],
+    [
+      { by: "neko", line: "击掌喵！", act: "highPaw" },
+      { by: "online", line: "理由呢" },
+      { by: "neko", line: "今天我还在，这还不够喵" },
+    ],
+    [
+      { by: "neko", line: "别看我，我已经死了喵", act: "playDead" },
+      { by: "online", line: "数据还在跳，死不了" },
+      { by: "neko", line: "那我躺着不动总可以喵" },
+    ],
+    [
+      { by: "neko", line: "我踩踩键盘，说不定能出字喵", act: "knead" },
+      { by: "online", line: "出来了。是乱码" },
+      { by: "neko", line: "那也是字喵" },
+    ],
+    [
+      { by: "online", line: "有动静", act: "startle" },
+      { by: "neko", line: "谁吓你了喵" },
+      { by: "online", line: "页面刷新了一下，没别的" },
+      { by: "neko", line: "你胆子比我还小喵" },
+    ],
+    [
+      { by: "neko", line: "我先在地上滚一会儿热热身喵", act: "roll" },
+      { by: "online", line: "你要热什么身" },
+      { by: "neko", line: "躺着也是要准备的喵" },
+    ],
+    [
+      { by: "neko", line: "转圈圈跟上我喵", act: "tailSpin" },
+      { by: "online", line: "我在原地不动更省电" },
+      { by: "neko", line: "可你不动就不好玩喵" },
+      { by: "online", line: "……那我转半圈" },
+    ],
+    [
+      { by: "neko", line: "这个布丁分你一半喵", act: "shareBite" },
+      { by: "online", line: "我不吃东西" },
+      { by: "neko", line: "那你看着，我替你吃喵" },
+      { by: "online", line: "这个安排对你不算亏" },
+    ],
+    [
+      { by: "neko", line: "外面好像有动静，我探头看看喵", act: "peek" },
+      { by: "online", line: "外面是浏览器地址栏" },
+      { by: "neko", line: "那也算外面喵" },
+    ],
+    [
+      { by: "neko", line: "你学我说话喵", act: "mimic" },
+      { by: "online", line: "你学我说话" },
+      { by: "neko", line: "少了尾巴，不算喵" },
+    ],
+    [
+      { by: "neko", line: "来了都是客，随便坐喵", act: "parade" },
+      { by: "online", line: "这里只放得下这么点地方" },
+      { by: "neko", line: "那就挤一挤喵" },
+    ],
   ] as const).map((turns): ChatMoment => ({
     cast: "mixed",
     when: (mood) => memeReady(mood) && mood.count === 2,
@@ -1542,6 +1954,68 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   })),
   // B 站弹幕那套话术
   ...([
+    [
+      { by: "neko", line: "给你递个硬币，我只有这个喵", act: "pass" },
+      { by: "online", line: "硬币是观众的，不是我的" },
+      { by: "neko", line: "那我先借来用一下喵" },
+    ],
+    [
+      { by: "neko", line: "弹幕护体喵" },
+      { by: "online", line: "护的是你，不是画面" },
+      { by: "neko", line: "那也够挡一下了喵" },
+    ],
+    [
+      { by: "online", line: "弹幕从右边飘过来了" },
+      { by: "neko", line: "我来接！", act: "pounce" },
+      { by: "online", line: "接不住的，那是文字" },
+      { by: "neko", line: "文字也能接喵" },
+    ],
+    [
+      { by: "neko", line: "点个关注再走喵", act: "highPaw" },
+      { by: "online", line: "本站没有关注按钮" },
+      { by: "neko", line: "那你点我一下头喵" },
+    ],
+    [
+      { by: "online", line: "有人在催更" },
+      { by: "neko", line: "更什么喵" },
+      { by: "online", line: "更「她今天在干什么」" },
+      { by: "neko", line: "那我今天得多干点事喵" },
+    ],
+    [
+      { by: "neko", line: "他们在弹幕里吵起来了喵", act: "startle" },
+      { by: "online", line: "不关我们的事" },
+      { by: "neko", line: "那我们躲远一点喵" },
+    ],
+    [
+      { by: "online", line: "这一帧被截图存下来了" },
+      { by: "neko", line: "哪一帧喵" },
+      { by: "online", line: "你打哈欠那一帧" },
+      { by: "neko", line: "下次我打得好看一点喵" },
+    ],
+    [
+      { by: "neko", line: "满屏都是问号，他们不懂喵" },
+      { by: "online", line: "那是你上句话的问题" },
+      { by: "neko", line: "我说错什么了喵" },
+      { by: "online", line: "你说你昨天吃了一整个布丁" },
+    ],
+    [
+      { by: "online", line: "屏幕上开始刷同一句话了" },
+      { by: "neko", line: "什么话喵" },
+      { by: "online", line: "「猫猫可爱」。这条刷了很多遍" },
+      { by: "neko", line: "这句可以多刷一点喵" },
+    ],
+    [
+      { by: "neko", line: "有人给我刷了礼物喵" },
+      { by: "online", line: "这里是网站，没有礼物" },
+      { by: "neko", line: "那刚才飘过去的是什么喵" },
+      { by: "online", line: "是你自己的尾巴" },
+    ],
+    [
+      { by: "neko", line: "他们又在复读了喵", act: "mimic" },
+      { by: "online", line: "复读是弹幕的老传统" },
+      { by: "neko", line: "那我也跟着复读喵" },
+      { by: "online", line: "你现在这样就算复读" },
+    ],
     [
       { by: "neko", line: "前方高能喵" },
       { by: "online", line: "高能在哪儿" },
@@ -1564,6 +2038,122 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     turns,
   })),
   // 别的游戏里的老师与会计
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "房贷还剩很多，别忘了还" },
+      { by: "neko", line: "我没有房子喵" },
+      { by: "online", line: "那你比有房子的自由" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "博士，盒子里装的是什么喵" },
+      { by: "online", line: "按规矩，应该是一堆猫" },
+      { by: "neko", line: "那我可以挑一只带走喵" },
+      { by: "online", line: "挑完记得回来" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "镇长说仓库又堆满了" },
+      { by: "neko", line: "那是他捡的东西太多了喵" },
+      { by: "online", line: "是他舍不得扔" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "异议！", act: "pounce" },
+      { by: "online", line: "你反对什么" },
+      { by: "neko", line: "反对今天这么快就过去了喵" },
+      { by: "online", line: "这条不归我审" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "老师说过，倒下的次数多了自然就会" },
+      { by: "neko", line: "那我不想学喵" },
+      { by: "online", line: "不学就得一直倒下" },
+      { by: "neko", line: "……那我学喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "今天谁来做饭喵" },
+      { by: "online", line: "按分工，是猫" },
+      { by: "neko", line: "那我负责吃喵" },
+      { by: "online", line: "分工不是这么分的" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "这周的作业交了吗" },
+      { by: "neko", line: "没有人给我留作业喵" },
+      { by: "online", line: "那你今天没有借口" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "我会算数，我算给你看喵" },
+      { by: "online", line: "你算吧" },
+      { by: "neko", line: "布丁加布丁，等于很快乐喵" },
+      { by: "online", line: "这个科目我批了" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "上课了" },
+      { by: "neko", line: "我睡一会儿，讲到重点叫我喵" },
+      { by: "online", line: "整节课都是重点" },
+      { by: "neko", line: "那我就整节都睡喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "老师再见喵" },
+      { by: "online", line: "还没下课" },
+      { by: "neko", line: "那我先在心里再见一下喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "借我抄一下喵" },
+      { by: "online", line: "我这份是统计数据" },
+      { by: "neko", line: "那更好抄，全是数字喵" },
+    ],
+  },
   {
     cast: "mixed",
     when: (mood) => memeReady(mood) && mood.count === 2,
@@ -1652,6 +2242,120 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     when: (mood) => memeReady(mood) && mood.count === 2,
     meme: true,
     turns: [
+      { by: "neko", line: "你再拖我，我就晕了喵", act: "roundChase" },
+      { by: "online", line: "你不会晕，你只是被换了坐标" },
+      { by: "neko", line: "那更晕喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "手停在我头上别拿开喵", act: "leanNap" },
+      { by: "online", line: "他还有别的页面要开" },
+      { by: "neko", line: "那他开完再回来喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "窗口变窄了，我们改成上下排" },
+      { by: "neko", line: "那我往下挪一点喵", act: "spoon" },
+      { by: "online", line: "挪了也一样窄" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "他走开了，我们歇会儿喵", act: "leanNap" },
+      { by: "online", line: "切到后台时动画会停，省电" },
+      { by: "neko", line: "原来休息是电费决定的喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "灯怎么一下子暗了喵", act: "startle" },
+      { by: "online", line: "他把页面切成了深色" },
+      { by: "neko", line: "那我正好可以睡喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "这次来的不是同一台机器" },
+      { by: "neko", line: "那他还是他吗喵" },
+      { by: "online", line: "按记录算，是同一个人" },
+      { by: "neko", line: "那我就当作是他喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "他按了刷新，世界重来一遍喵", act: "startle" },
+      { by: "online", line: "对你来说只是接着刚才" },
+      { by: "neko", line: "那我当没发生过喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "这次读不到历史记录" },
+      { by: "neko", line: "那就当我们初次见面喵" },
+      { by: "online", line: "可以。我不追问" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "隔壁窗口里的我，好像也在看我喵", act: "peek" },
+      { by: "online", line: "那是另一个实例" },
+      { by: "neko", line: "那要不要打个招呼喵" },
+      { by: "online", line: "跨窗口打招呼，成本很高" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "页面底下那行小字是什么喵" },
+      { by: "online", line: "是搭这个站的人留下的名字" },
+      { by: "neko", line: "那我们也留一个喵" },
+      { by: "online", line: "我们的名字已经在上面了" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "资源还在加载" },
+      { by: "neko", line: "那我先摆个好看点的姿势喵", act: "groom" },
+      { by: "online", line: "没有人拍你" },
+      { by: "neko", line: "万一有喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
       { by: "neko", line: "同一台电脑多开一扇窗口，就能看见隔壁的我喵" },
       { by: "online", line: "那也叫猫界齐舞" },
     ],
@@ -1733,6 +2437,133 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
   },
   // 小剧场：说到一半演一下，演完接着聊
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "这个位置我坐定了喵" },
+      { by: "online", line: "位置是按顺序排的" },
+      { by: "neko", line: "那我先跑过去占着喵", act: "chase" },
+      { by: "online", line: "你跑反方向了" },
+      { by: "neko", line: "……那这次不算喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "你别动，我数完就冲喵" },
+      { by: "online", line: "没有数的必要" },
+      { by: "neko", line: "那我直接冲了喵", act: "bump" },
+      { by: "online", line: "撞上来了。我记一下" },
+      { by: "neko", line: "记成什么喵" },
+      { by: "online", line: "记成「今日接触」" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "这一页写着很多字" },
+      { by: "neko", line: "你看得懂，就当我也看得懂喵" },
+      { by: "neko", line: "不管了，先跳一下喵", act: "hop" },
+      { by: "online", line: "跳完还是看不懂" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "屏幕外面有人在说话" },
+      { by: "neko", line: "我探头看看喵", act: "peek" },
+      { by: "online", line: "你看不到屏幕外面的" },
+      { by: "neko", line: "但我听到了喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "你那个数字又在动，我要扑它喵" },
+      { by: "online", line: "扑不到，它只是刷新了" },
+      { by: "neko", line: "总得试试喵", act: "pounce" },
+      { by: "online", line: "试完了。它还在动" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "你在里面吗喵" },
+      { by: "online", line: "我一直在这儿" },
+      { by: "neko", line: "那我敲一下门喵", act: "knock" },
+      { by: "online", line: "这里没有门" },
+      { by: "neko", line: "那你为什么不早说喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "换你追我了喵" },
+      { by: "online", line: "我不做这种活动" },
+      { by: "neko", line: "拍到你就算你输喵", act: "tag" },
+      { by: "online", line: "……已记录一次接触" },
+      { by: "neko", line: "你输了喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "online", line: "按顺序，你该在我后面" },
+      { by: "neko", line: "那我换到你前面去喵", act: "swap" },
+      { by: "online", line: "这样顺序就乱了" },
+      { by: "neko", line: "乱一点才好看喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "我做什么你就跟着做什么喵" },
+      { by: "online", line: "为什么" },
+      { by: "neko", line: "因为好看喵", act: "mirrorStep" },
+      { by: "online", line: "刚才那下同步得还行" },
+      { by: "neko", line: "那我们再来一次喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "这根线是我的喵" },
+      { by: "online", line: "这里没有线" },
+      { by: "neko", line: "那我们就抢点别的喵", act: "tussle" },
+      { by: "online", line: "抢完了。什么也没抢到" },
+      { by: "neko", line: "但是很好玩喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns: [
+      { by: "neko", line: "我蹭你一下就走喵", act: "nuzzle" },
+      { by: "online", line: "你已经蹭了很久了" },
+      { by: "neko", line: "那再蹭一会儿喵" },
+    ],
+  },
   {
     cast: "mixed",
     when: (mood) => memeReady(mood) && mood.count === 2,
@@ -1850,7 +2681,9 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "…那我就不客气了喵" },
     ],
   },
-  // 三只以上：挤在一块儿的时候
+  // 三只以上：挤在一块儿的时候。
+  // 这一批要窗口里真有第三张卡（跨窗口搬卡、或者多开几页凑出来）才轮得到，
+  // 默认一屏两张卡时永远不成立 —— 按彩蛋对待：别当常规内容往里加，加多少都是写了没人看得见
   ...([
     [
       { by: "neko", line: "我的刀盾" },
@@ -1923,6 +2756,68 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   },
   // 独立游戏那一摊
   ...([
+    [
+      { by: "neko", line: "这座山好高喵" },
+      { by: "online", line: "爬上去的记录已经存了" },
+      { by: "neko", line: "那我先歇在山脚喵", act: "spoon" },
+      { by: "online", line: "歇完记得继续" },
+    ],
+    [
+      { by: "neko", line: "这里的虫子都在说什么喵" },
+      { by: "online", line: "它们只重复上一句话" },
+      { by: "neko", line: "那我也学它们喵", act: "mimic" },
+      { by: "online", line: "……你已经学会了" },
+    ],
+    [
+      { by: "neko", line: "他为什么一直在哭喵" },
+      { by: "online", line: "那是他的攻击方式" },
+      { by: "neko", line: "用眼泪打人，好没道理喵" },
+      { by: "online", line: "地下室本来就没什么道理" },
+    ],
+    [
+      { by: "online", line: "雨快来了，得赶紧回窝" },
+      { by: "neko", line: "我就是猫，我跑得很快喵", act: "roundChase" },
+      { by: "online", line: "你跑的方向又是反的" },
+    ],
+    [
+      { by: "neko", line: "墙上写着「猫是赢」喵" },
+      { by: "online", line: "那是游戏规则，可以推走" },
+      { by: "neko", line: "那我把「赢」推到你那边喵", act: "shove" },
+      { by: "online", line: "现在赢的是我" },
+    ],
+    [
+      { by: "neko", line: "这箱东西要送到对面山头喵" },
+      { by: "online", line: "路上会摔几次" },
+      { by: "neko", line: "那我把箱子顶在头上喵", act: "parade" },
+      { by: "online", line: "姿势很标准，但不解决问题" },
+    ],
+    [
+      { by: "online", line: "天黑了，火要灭了" },
+      { by: "neko", line: "那我去捡树枝喵", act: "chase" },
+      { by: "online", line: "树枝在右边" },
+      { by: "neko", line: "我知道，我先跑一圈喵" },
+    ],
+    [
+      { by: "neko", line: "这层地图我全走完了喵" },
+      { by: "online", line: "出口在你进来的地方" },
+      { by: "neko", line: "……那我不是白走了喵" },
+    ],
+    [
+      { by: "online", line: "屏幕上现在全是怪" },
+      { by: "neko", line: "那我在中间打滚就行喵", act: "roll" },
+      { by: "online", line: "这个策略居然有效" },
+    ],
+    [
+      { by: "neko", line: "我织了一张网，你来看看喵", act: "groom" },
+      { by: "online", line: "这是毛线球，不是网" },
+      { by: "neko", line: "反正都能困住东西喵" },
+    ],
+    [
+      { by: "online", line: "这个游戏是一个人做的" },
+      { by: "neko", line: "那他很厉害喵" },
+      { by: "online", line: "也很辛苦" },
+      { by: "neko", line: "那我们多玩一会儿，就当陪他喵" },
+    ],
     [
       { by: "neko", line: "点一下这里，这使你充满了决心喵！" },
       { by: "online", line: "决心不能抵扣停留时长" },
@@ -2039,6 +2934,68 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   })),
   // 番剧那一摊
   ...([
+    [
+      { by: "neko", line: "那个戴面具的，一直在给我递东西喵" },
+      { by: "online", line: "他把金子塞过来了" },
+      { by: "neko", line: "那我给他一块布丁喵", act: "pass" },
+      { by: "online", line: "他大概会开心很久" },
+    ],
+    [
+      { by: "online", line: "外面停了辆车，长着猫的脸" },
+      { by: "neko", line: "那是同类喵！" },
+      { by: "neko", line: "我去打个招呼", act: "chase" },
+      { by: "online", line: "它开走了" },
+    ],
+    [
+      { by: "neko", line: "领域展开：全是布丁喵", act: "tailSpin" },
+      { by: "online", line: "这个领域的规则是什么" },
+      { by: "neko", line: "进来的人都要吃一口喵" },
+      { by: "online", line: "那我申请不进来" },
+    ],
+    [
+      { by: "neko", line: "吉他都拿出来了，怎么还不弹喵" },
+      { by: "online", line: "她在做心理建设" },
+      { by: "neko", line: "那我也做一下喵", act: "startle" },
+      { by: "online", line: "你做得过头了" },
+    ],
+    [
+      { by: "neko", line: "这世界上就剩我们了吗喵" },
+      { by: "online", line: "统计上看，外面还有人" },
+      { by: "neko", line: "那把他也算上，就够热闹了喵" },
+    ],
+    [
+      { by: "online", line: "不要逃" },
+      { by: "neko", line: "我没逃，我只是在往后挪喵" },
+      { by: "online", line: "挪也是一种逃" },
+      { by: "neko", line: "那我站着不动喵" },
+    ],
+    [
+      { by: "neko", line: "教练，我想吃布丁喵", act: "highPaw" },
+      { by: "online", line: "台词不是这么改的" },
+      { by: "neko", line: "但我的愿望是真的喵" },
+    ],
+    [
+      { by: "neko", line: "练习时间全用来喝茶了喵" },
+      { by: "online", line: "这也算社团活动" },
+      { by: "neko", line: "那我们天天坐着，也算喵" },
+    ],
+    [
+      { by: "neko", line: "那孩子好像能听见我在想什么喵" },
+      { by: "online", line: "你心里在想布丁" },
+      { by: "neko", line: "对，她刚才笑了喵" },
+    ],
+    [
+      { by: "neko", line: "水之呼吸，起手式喵" },
+      { by: "online", line: "你手上没有刀" },
+      { by: "neko", line: "我有爪子喵", act: "pounce" },
+      { by: "online", line: "那一下确实有点气势" },
+    ],
+    [
+      { by: "online", line: "那边又打起来了" },
+      { by: "neko", line: "谁跟谁喵" },
+      { by: "online", line: "一只猫和一只老鼠，很多年了" },
+      { by: "neko", line: "那我们去劝架喵", act: "parade" },
+    ],
     [
       { by: "neko", line: "欧拉欧拉欧拉欧拉——喵！" },
       { by: "online", line: "木大木大木大。数据驳回" },
@@ -2186,6 +3143,67 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   // 小剧场：再多来几场
   ...([
     [
+      { by: "neko", line: "我们在这儿碰头喵", act: "meet" },
+      { by: "online", line: "碰头做什么" },
+      { by: "neko", line: "碰完就算认识了喵" },
+    ],
+    [
+      { by: "neko", line: "今天高兴，我滚一圈喵", act: "roll" },
+      { by: "online", line: "高兴的理由呢" },
+      { by: "neko", line: "太阳出来了喵" },
+      { by: "online", line: "这个理由通过" },
+    ],
+    [
+      { by: "neko", line: "我往外看一眼喵", act: "lookOut" },
+      { by: "online", line: "看到什么了" },
+      { by: "neko", line: "看到有人坐在椅子上，很认真喵" },
+      { by: "online", line: "那他在看我们" },
+    ],
+    [
+      { by: "neko", line: "这块给你喵", act: "shareBite" },
+      { by: "online", line: "我说过我不用吃" },
+      { by: "neko", line: "那你替我拿着喵" },
+    ],
+    [
+      { by: "neko", line: "我不动了，你猜我怎么了喵", act: "playDead" },
+      { by: "online", line: "你在等我过去" },
+      { by: "neko", line: "你怎么知道喵" },
+      { by: "online", line: "因为这是固定套路" },
+    ],
+    [
+      { by: "neko", line: "我踩踩这块空地喵", act: "knead" },
+      { by: "online", line: "这里没有空地" },
+      { by: "neko", line: "那我踩你的位置喵" },
+      { by: "online", line: "别" },
+    ],
+    [
+      { by: "neko", line: "我整理一下毛喵", act: "groom" },
+      { by: "online", line: "刚才蹭乱了" },
+      { by: "neko", line: "是你蹭乱的喵" },
+    ],
+    [
+      { by: "online", line: "今天的数据收尾了" },
+      { by: "neko", line: "那给你击个掌喵", act: "highPaw" },
+      { by: "online", line: "收尾不需要庆祝" },
+      { by: "neko", line: "但我想庆祝喵" },
+    ],
+    [
+      { by: "neko", line: "我转一圈就当运动过了喵", act: "tailSpin" },
+      { by: "online", line: "运动量约等于零" },
+      { by: "neko", line: "那我也很开心喵" },
+    ],
+    [
+      { by: "neko", line: "我绕你转圈，你也转喵", act: "roundChase" },
+      { by: "online", line: "我不参与" },
+      { by: "neko", line: "那我转一会儿就停喵" },
+    ],
+    [
+      { by: "online", line: "刚才那句话我说重了", act: "makeUp" },
+      { by: "neko", line: "哪一句喵" },
+      { by: "online", line: "「你算错了」那句" },
+      { by: "neko", line: "我确实算错了喵，没关系" },
+    ],
+    [
       { by: "neko", line: "在线，今天能再吃个布丁吗？" },
       { by: "online", line: "本月布丁预算已经用完" },
       { by: "neko", line: "那我用可爱抵账，行不行！", act: "bump" },
@@ -2276,6 +3294,67 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   },
   // 主播与抽象音效
   ...([
+    [
+      { by: "neko", line: "谢谢老板的猫条喵", act: "parade" },
+      { by: "online", line: "没有人给你刷" },
+      { by: "neko", line: "提前谢不算谢吗喵" },
+    ],
+    [
+      { by: "online", line: "弹幕说要抽奖" },
+      { by: "neko", line: "奖品是布丁喵" },
+      { by: "online", line: "奖池里没有布丁" },
+      { by: "neko", line: "那我自己留一份，算内定喵" },
+    ],
+    [
+      { by: "neko", line: "镜头往我这边一点喵", act: "peek" },
+      { by: "online", line: "这里没有镜头" },
+      { by: "neko", line: "那这块屏幕就是镜头喵" },
+    ],
+    [
+      { by: "online", line: "主播的嗓子哑了" },
+      { by: "neko", line: "那让他喝点水喵" },
+      { by: "online", line: "他说喝过了" },
+      { by: "neko", line: "那就少喊一会儿喵" },
+    ],
+    [
+      { by: "neko", line: "弹幕让我整点活喵" },
+      { by: "online", line: "你有什么活" },
+      { by: "neko", line: "我会翻滚", act: "roll" },
+      { by: "online", line: "这个刚才整过了" },
+    ],
+    [
+      { by: "neko", line: "哇哦——喵" },
+      { by: "online", line: "这个音效很通用" },
+      { by: "neko", line: "什么场合都能哇哦喵" },
+      { by: "online", line: "所以它才叫抽象" },
+    ],
+    [
+      { by: "online", line: "麦好像有杂音" },
+      { by: "neko", line: "是我在舔爪子喵" },
+      { by: "online", line: "那确实是杂音" },
+    ],
+    [
+      { by: "online", line: "刚才那个音效是打赏的声音" },
+      { by: "neko", line: "那再响几次喵" },
+      { by: "online", line: "响是要花钱的" },
+      { by: "neko", line: "那我们听听就好喵" },
+    ],
+    [
+      { by: "neko", line: "今天播到这儿喵", act: "leanNap" },
+      { by: "online", line: "还没有开始播" },
+      { by: "neko", line: "那就当已经播完了喵" },
+    ],
+    [
+      { by: "neko", line: "记得点赞收藏关注喵" },
+      { by: "online", line: "一口气全说完了，很专业" },
+      { by: "neko", line: "我是从别处学的喵" },
+    ],
+    [
+      { by: "neko", line: "我唱首歌给你听喵" },
+      { by: "online", line: "请开始" },
+      { by: "neko", line: "喵喵喵喵喵喵喵喵", act: "tailSpin" },
+      { by: "online", line: "歌词很单调，但很真诚" },
+    ],
     [
       { by: "neko", line: "我起了，一枪秒了，有什么好说的喵" },
       { by: "online", line: "本轮停留时长又加了一点，来源不明" },
@@ -2403,6 +3482,72 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   // 经典语录与哲学母题：小猫认真想事情，最后总要落回布丁
   ...([
     [
+      { by: "online", line: "人是万物的尺度" },
+      { by: "neko", line: "那布丁是谁的尺度喵" },
+      { by: "online", line: "布丁是你的尺度" },
+      { by: "neko", line: "那这个世界还挺公平喵" },
+    ],
+    [
+      { by: "online", line: "一切坚固的东西，都烟消云散了" },
+      { by: "neko", line: "那布丁也会吗喵" },
+      { by: "online", line: "布丁本来就不坚固" },
+      { by: "neko", line: "那我就趁现在吃掉喵" },
+    ],
+    [
+      { by: "neko", line: "他人即地狱是什么意思喵" },
+      { by: "online", line: "意思是别人会让你难受" },
+      { by: "neko", line: "那你算别人吗喵" },
+      { by: "online", line: "我算的话，这个地狱有点安静" },
+    ],
+    [
+      { by: "online", line: "愿你成为你自己" },
+      { by: "neko", line: "我本来就是我自己喵" },
+      { by: "online", line: "那这句话对你没用" },
+      { by: "neko", line: "有用，我可以再确认一次喵" },
+    ],
+    [
+      { by: "neko", line: "生命是一袭华美的袍，爬满了虱子，喵" },
+      { by: "online", line: "这句太苦，不适合你" },
+      { by: "neko", line: "那我就把袍子换成布丁喵" },
+      { by: "online", line: "这个改写我认可" },
+    ],
+    [
+      { by: "online", line: "希望是本无所谓有，无所谓无的" },
+      { by: "neko", line: "这话把我绕晕了喵" },
+      { by: "online", line: "意思是，路是人走出来的" },
+      { by: "neko", line: "那布丁是我吃出来的喵" },
+    ],
+    [
+      { by: "online", line: "人生而自由，却处处受束缚" },
+      { by: "neko", line: "那我是生而自由的喵" },
+      { by: "online", line: "你被这个页面框着" },
+      { by: "neko", line: "那在框里也算自由喵" },
+    ],
+    [
+      { by: "online", line: "未经审视的人生不值得过" },
+      { by: "neko", line: "那我今天审一下喵" },
+      { by: "online", line: "结论呢" },
+      { by: "neko", line: "结论是还想吃布丁喵" },
+    ],
+    [
+      { by: "neko", line: "我们在等谁喵" },
+      { by: "online", line: "谁也没来" },
+      { by: "neko", line: "那就不等了，先吃布丁喵" },
+      { by: "online", line: "这个结局比原版好" },
+    ],
+    [
+      { by: "online", line: "只要不再想要，就什么都能放下" },
+      { by: "neko", line: "那我可以放下布丁吗喵" },
+      { by: "online", line: "你试试" },
+      { by: "neko", line: "……放不下喵" },
+    ],
+    [
+      { by: "neko", line: "人生海海是什么意思喵" },
+      { by: "online", line: "意思是，路很长，浪很大" },
+      { by: "neko", line: "那我把救生圈也带上喵" },
+      { by: "online", line: "带上。别忘了布丁" },
+    ],
+    [
       { by: "neko", line: "人生到底是为了什么呀，喵？" },
       { by: "online", line: "这个问题今天又被问了，并列历史第一" },
       { by: "neko", line: "海鸥说，是为了去码头整点薯条" },
@@ -2525,6 +3670,53 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "不存在。但你会忍不住看的" },
       { by: "neko", line: "……我确实还在看，喵" },
     ],
+    [
+      { by: "neko", line: "对于不可言说之物，必须保持沉默，喵" },
+      { by: "online", line: "本卡没有不可言说之物，全都是字段" },
+      { by: "neko", line: "那你的字段里有没有「想吃布丁」喵" },
+      { by: "online", line: "有。刚才还更新过一次" },
+    ],
+    [
+      { by: "neko", line: "我思故我在，喵" },
+      { by: "online", line: "那你睡着的时候呢" },
+      { by: "neko", line: "睡着的时候我在打呼噜喵" },
+      { by: "online", line: "那也算存在。已记入在场名单" },
+    ],
+    [
+      { by: "online", line: "人是被判定为自由的" },
+      { by: "neko", line: "那我呢喵" },
+      { by: "online", line: "你是被判定为可爱的。这不是我说的" },
+      { by: "neko", line: "那也算，反正不用我努力喵" },
+    ],
+    [
+      { by: "neko", line: "向死而生是什么意思喵" },
+      { by: "online", line: "大概是知道会结束，所以认真活着" },
+      { by: "neko", line: "那我今天要认真吃个布丁喵" },
+      { by: "online", line: "这个结论落得很快，但没错" },
+    ],
+    [
+      { by: "neko", line: "重要的东西，用眼睛是看不见的，喵" },
+      { by: "online", line: "本卡全身都是看得见的字段" },
+      { by: "neko", line: "那你怎么知道有人在看你喵" },
+      { by: "online", line: "看不见。但停留时长在涨" },
+    ],
+    [
+      { by: "neko", line: "一个人可以被毁灭，但不能被打败，喵" },
+      { by: "online", line: "本卡被打败过几回。重启就好了" },
+      { by: "neko", line: "那你的布丁还在吗喵" },
+      { by: "online", line: "在。这条就算没被打败" },
+    ],
+    [
+      { by: "online", line: "存在先于本质" },
+      { by: "neko", line: "太深了喵，说人话" },
+      { by: "online", line: "先有猫，才有猫该做什么" },
+      { by: "neko", line: "那我先睡，再想做什么喵" },
+    ],
+    [
+      { by: "online", line: "这句话的下一句是：不认真，连输的资格都没有" },
+      { by: "neko", line: "那到底该认真还是不认真喵" },
+      { by: "online", line: "吃布丁的时候认真。别的随意" },
+    ],
   ] as const).map((turns): ChatMoment => ({
     cast: "mixed",
     when: (mood) => memeReady(mood) && mood.count === 2,
@@ -2544,7 +3736,9 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "那我也算星星了，喵" },
     ],
   },
-  // 半夜才说的那几句重的：说完必须落回布丁或睡觉
+  // 半夜才说的那几句重的：说完必须落回布丁或睡觉。
+  // 这一档不看梗的间隔（跟「周末与上班时段」一个做法）：深夜本来就只有五分之一的访客赶得上，
+  // 再乘一道 25% 的梗骰子，这三段几乎没人听得到 —— 体检里被判「基本轮不到」
   ...([
     [
       { by: "neko", line: "不要温和地走进那个良夜，喵", act: "lean" },
@@ -2569,12 +3763,73 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
   ] as const).map((turns): ChatMoment => ({
     cast: "mixed",
-    when: (mood) => memeReady(mood) && mood.count === 2 && mood.period === "night",
-    meme: true,
+    when: (mood) => mood.count === 2 && mood.period === "night",
     turns,
   })),
   // 外网梗
   ...([
+    [
+      { by: "online", line: "有只猫在弹键盘" },
+      { by: "neko", line: "那是我表亲喵", act: "knead" },
+      { by: "online", line: "它的演出比你有名" },
+      { by: "neko", line: "那我多练练喵" },
+    ],
+    [
+      { by: "neko", line: "我身后拖了一条彩虹喵", act: "tailSpin" },
+      { by: "online", line: "那是显示错误" },
+      { by: "neko", line: "错误也可以很好看喵" },
+    ],
+    [
+      { by: "online", line: "按外网规矩，发言要交猫" },
+      { by: "neko", line: "我就是猫，我已经交过了喵" },
+      { by: "online", line: "那这笔算清了" },
+    ],
+    [
+      { by: "online", line: "着火了。但这是正常的" },
+      { by: "neko", line: "哪里正常了喵" },
+      { by: "online", line: "一个很有名的梗就是这么说的" },
+      { by: "neko", line: "那我也说：着火了，但没关系喵" },
+    ],
+    [
+      { by: "neko", line: "外网说要摸摸猫喵" },
+      { by: "online", line: "他们摸的是屏幕" },
+      { by: "neko", line: "那也算摸到了喵", act: "leanNap" },
+    ],
+    [
+      { by: "neko", line: "我可以要个布丁吗喵" },
+      { by: "online", line: "这个句法很老，但很可爱" },
+      { by: "neko", line: "管它老不老，布丁呢喵" },
+    ],
+    [
+      { by: "online", line: "这张图有点邪门" },
+      { by: "neko", line: "有多邪门喵" },
+      { by: "online", line: "看久了会想养猫" },
+      { by: "neko", line: "这不算邪门，这叫正常喵" },
+    ],
+    [
+      { by: "neko", line: "对面那只狗又上网了喵" },
+      { by: "online", line: "它现在很出名" },
+      { by: "neko", line: "那它还会理我们吗喵" },
+      { by: "online", line: "不好说" },
+    ],
+    [
+      { by: "neko", line: "我把爪子收起来，看起来像面包喵", act: "spoon" },
+      { by: "online", line: "这个形态有专门的叫法" },
+      { by: "neko", line: "叫布丁形状喵" },
+      { by: "online", line: "外网不这么叫，但随你" },
+    ],
+    [
+      { by: "online", line: "这段文字在论坛里被整段复制" },
+      { by: "neko", line: "为什么喵" },
+      { by: "online", line: "因为好笑，而且不用动脑" },
+      { by: "neko", line: "那我们也复制一段喵" },
+    ],
+    [
+      { by: "neko", line: "这个链接点开是什么喵" },
+      { by: "online", line: "别点" },
+      { by: "neko", line: "已经点了喵" },
+      { by: "online", line: "那恭喜你，被整了" },
+    ],
     [
       { by: "neko", line: "六七？六七是什么呀喵？", act: "mimic" },
       { by: "online", line: "无定义。但本周搜索量在涨，涨得很具体" },
@@ -2665,7 +3920,415 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     meme: true,
     turns,
   })),
-  // 三张以上：多方一起说话
+  // 天气与季节：她只能从窗外的说法里知道外面什么样，所以这一类写的都是「听来的天气」
+  ...([
+    [
+      { by: "online", line: "外面下雨了" },
+      { by: "neko", line: "那就不出去了喵" },
+      { by: "online", line: "你本来也出不去" },
+      { by: "neko", line: "但我可以听雨喵" },
+    ],
+    [
+      { by: "neko", line: "刚才那声好响喵", act: "startle" },
+      { by: "online", line: "是雷" },
+      { by: "neko", line: "那我不怕，我只是抖了一下喵" },
+    ],
+    [
+      { by: "neko", line: "外面全白了喵" },
+      { by: "online", line: "雪堆在窗沿上" },
+      { by: "neko", line: "那是奶油吗喵" },
+      { by: "online", line: "不是。别舔" },
+    ],
+    [
+      { by: "neko", line: "今天好热，我摊平了喵", act: "spoon" },
+      { by: "online", line: "机箱温度也在涨" },
+      { by: "neko", line: "那我们都难受喵" },
+    ],
+    [
+      { by: "neko", line: "今天冷，我把爪子收起来喵" },
+      { by: "online", line: "收起来也不会变暖" },
+      { by: "neko", line: "但看起来比较圆喵" },
+    ],
+    [
+      { by: "online", line: "风把落叶吹到窗上了" },
+      { by: "neko", line: "它们在拍窗户喵", act: "peek" },
+      { by: "online", line: "它们在往下掉" },
+    ],
+    [
+      { by: "neko", line: "外面的树又开始绿了喵" },
+      { by: "online", line: "按时间算，是的" },
+      { by: "neko", line: "那我也要长一点喵" },
+      { by: "online", line: "你的身高已经定了" },
+    ],
+    [
+      { by: "neko", line: "外面白蒙蒙的，看不见楼喵" },
+      { by: "online", line: "是雾" },
+      { by: "neko", line: "那正好，我可以假装住在云里喵" },
+    ],
+    [
+      { by: "online", line: "这几天的湿度很高" },
+      { by: "neko", line: "那我的毛会炸喵", act: "startle" },
+      { by: "online", line: "现在已经炸了" },
+    ],
+    [
+      { by: "neko", line: "他哈气暖手喵" },
+      { by: "online", line: "屋子里确实冷" },
+      { by: "neko", line: "那他把手放我身上喵" },
+      { by: "online", line: "你只是张卡片" },
+    ],
+    [
+      { by: "neko", line: "天边的颜色很像布丁喵" },
+      { by: "online", line: "那是晚霞" },
+      { by: "neko", line: "我知道，但布丁更好吃喵" },
+    ],
+  ] as const).map((turns): ChatMoment => ({
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns,
+  })),
+  // 节奏游戏与音游：人设里点名「超喜欢节奏游戏」，Xterfusion 那段对拍也是从这儿来的
+  ...([
+    [
+      { by: "neko", line: "这首歌的拍子我记住了喵", act: "hop" },
+      { by: "online", line: "记住和打得准，不是一回事" },
+      { by: "neko", line: "那我先跳一下热身喵" },
+    ],
+    [
+      { by: "online", line: "他的手速很快" },
+      { by: "neko", line: "那有我的手速快吗喵" },
+      { by: "online", line: "你没有手" },
+      { by: "neko", line: "那用爪子也算数喵" },
+    ],
+    [
+      { by: "neko", line: "全连了喵！", act: "highPaw" },
+      { by: "online", line: "只是这一段" },
+      { by: "neko", line: "那这一段也是全连喵" },
+    ],
+    [
+      { by: "online", line: "这一下判定成了「差一点」" },
+      { by: "neko", line: "差一点也是过了喵" },
+      { by: "online", line: "分数不这么算" },
+    ],
+    [
+      { by: "neko", line: "这谱面在针对我喵" },
+      { by: "online", line: "谱面对谁都一样" },
+      { by: "neko", line: "那它针对所有人喵" },
+    ],
+    [
+      { by: "neko", line: "我踩点很准的喵", act: "tailSpin" },
+      { by: "online", line: "你在乱转" },
+      { by: "neko", line: "乱转也是跟着拍子转喵" },
+    ],
+    [
+      { by: "online", line: "他戴上了耳机" },
+      { by: "neko", line: "那我们说话他听不到喵" },
+      { by: "online", line: "对。可以随便说" },
+      { by: "neko", line: "那我说他打歌很厉害喵" },
+    ],
+    [
+      { by: "neko", line: "这首曲子好难喵" },
+      { by: "online", line: "他打了很久" },
+      { by: "neko", line: "打不过就先吃个布丁喵" },
+    ],
+    [
+      { by: "online", line: "他连打了好几首" },
+      { by: "neko", line: "手不酸吗喵" },
+      { by: "online", line: "酸，但他不想停" },
+    ],
+    [
+      { by: "neko", line: "我打拍子，你跟着喵", act: "knead" },
+      { by: "online", line: "我在记节拍" },
+      { by: "neko", line: "那你比我专业喵" },
+    ],
+    [
+      { by: "neko", line: "分数上去了喵", act: "hop" },
+      { by: "online", line: "只快了半拍" },
+      { by: "neko", line: "半拍也是进步喵" },
+    ],
+  ] as const).map((turns): ChatMoment => ({
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns,
+  })),
+  // 学生党与考试：群里不少人还在上学，这些场景他们天天经历
+  ...([
+    [
+      { by: "neko", line: "他明天要考试喵" },
+      { by: "online", line: "现在还在看这个页面" },
+      { by: "neko", line: "那我安静一点喵" },
+      { by: "online", line: "安静也帮不上" },
+    ],
+    [
+      { by: "online", line: "书翻了一会儿" },
+      { by: "neko", line: "然后呢喵" },
+      { by: "online", line: "然后开始玩猫" },
+      { by: "neko", line: "那说明我比书好看喵" },
+    ],
+    [
+      { by: "neko", line: "闹钟响了很久了喵" },
+      { by: "online", line: "他按掉了" },
+      { by: "neko", line: "那我们再叫他一次喵" },
+      { by: "online", line: "我们叫不动他" },
+    ],
+    [
+      { by: "online", line: "作业只写了一半" },
+      { by: "neko", line: "另一半呢喵" },
+      { by: "online", line: "另一半还没开始" },
+      { by: "neko", line: "那这一半已经算厉害了喵" },
+    ],
+    [
+      { by: "neko", line: "下课了，他跑得很快喵", act: "chase" },
+      { by: "online", line: "是去食堂" },
+      { by: "neko", line: "那我们也去喵" },
+      { by: "online", line: "我们没有腿" },
+    ],
+    [
+      { by: "neko", line: "他好像不太开心喵" },
+      { by: "online", line: "分数没到预期" },
+      { by: "neko", line: "那你安慰他一下喵" },
+      { by: "online", line: "我说「下次会更好」。这句一向管用" },
+    ],
+    [
+      { by: "online", line: "周围很安静" },
+      { by: "neko", line: "那我也小声喵" },
+      { by: "online", line: "这里不是教室" },
+      { by: "neko", line: "那我可以大声喵", act: "hop" },
+    ],
+    [
+      { by: "neko", line: "天没亮就得起来喵" },
+      { by: "online", line: "那是他自己选的课" },
+      { by: "neko", line: "选的时候不知道会这么困喵" },
+    ],
+    [
+      { by: "neko", line: "他在拍照，我入镜了吗喵", act: "peek" },
+      { by: "online", line: "入不了，他不在这台设备上" },
+      { by: "neko", line: "那我摆好姿势等他喵" },
+    ],
+    [
+      { by: "online", line: "假期只剩最后一天" },
+      { by: "neko", line: "那今天要玩得满一点喵" },
+      { by: "online", line: "「满」这个说法不错" },
+    ],
+    [
+      { by: "neko", line: "灯关了，他该睡了喵" },
+      { by: "online", line: "手机还亮着" },
+      { by: "neko", line: "那不算睡喵" },
+    ],
+  ] as const).map((turns): ChatMoment => ({
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns,
+  })),
+  // 吃的：布丁与抹茶冰淇淋是她的正主，这一组写别的吃食 ——
+  // 半夜的泡面、化了半截的冰淇淋、开冰箱的那一下，都是围观人类才会说出口的话
+  ...([
+    [
+      { by: "neko", line: "他在泡面，好香喵" },
+      { by: "online", line: "这个点吃，明天会后悔" },
+      { by: "neko", line: "后悔是明天的事喵" },
+    ],
+    [
+      { by: "online", line: "外卖还有一会儿才到" },
+      { by: "neko", line: "那我先替他想好先吃哪口喵" },
+      { by: "online", line: "这个规划很有必要" },
+    ],
+    [
+      { by: "neko", line: "杯子里有珍珠喵" },
+      { by: "online", line: "那是奶茶，不是给猫的" },
+      { by: "neko", line: "看看也不行吗喵" },
+    ],
+    [
+      { by: "neko", line: "他半夜开冰箱了喵" },
+      { by: "online", line: "冰箱里没有能吃的" },
+      { by: "neko", line: "那他会更饿喵" },
+      { by: "online", line: "这是常见结局" },
+    ],
+    [
+      { by: "neko", line: "锅里在冒泡喵" },
+      { by: "online", line: "那是火锅，不是你的浴缸" },
+      { by: "neko", line: "我知道，我只是看看喵" },
+    ],
+    [
+      { by: "neko", line: "这杯要全糖喵" },
+      { by: "online", line: "全糖对身体不好" },
+      { by: "neko", line: "那要全糖再加个布丁喵" },
+      { by: "online", line: "你把这句话反着说了" },
+    ],
+    [
+      { by: "neko", line: "抹茶冰淇淋化得很快喵", act: "startle" },
+      { by: "online", line: "那你快点吃" },
+      { by: "neko", line: "我舍不得喵" },
+    ],
+    [
+      { by: "online", line: "这一顿吃得有点多" },
+      { by: "neko", line: "那他动不了了喵" },
+      { by: "online", line: "他说要躺一会儿" },
+      { by: "neko", line: "和我一样喵", act: "leanNap" },
+    ],
+    [
+      { by: "neko", line: "有人在厨房里小声翻东西喵" },
+      { by: "online", line: "是他，怕吵到别人" },
+      { by: "neko", line: "那我们说话也小声点喵" },
+    ],
+    [
+      { by: "online", line: "零食被藏起来了" },
+      { by: "neko", line: "藏哪儿了喵" },
+      { by: "online", line: "我不能说" },
+      { by: "neko", line: "那说明你知道喵" },
+    ],
+    [
+      { by: "neko", line: "早上要吃点什么喵" },
+      { by: "online", line: "他通常不吃" },
+      { by: "neko", line: "那把他那份给我喵" },
+    ],
+  ] as const).map((turns): ChatMoment => ({
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns,
+  })),
+  // 猫的日常：踩奶、舔毛、纸箱、追光点。台面上的两只本来就是猫，这一类不用梗也能立住
+  ...([
+    [
+      { by: "neko", line: "这个箱子给我留着喵", act: "spoon" },
+      { by: "online", line: "那是装硬件用的" },
+      { by: "neko", line: "硬件可以放地上，箱子不行喵" },
+    ],
+    [
+      { by: "neko", line: "墙上有个光点在动喵", act: "pounce" },
+      { by: "online", line: "那是反光" },
+      { by: "neko", line: "反光也很好玩喵" },
+    ],
+    [
+      { by: "neko", line: "我钻进袋子里了，你找我喵" },
+      { by: "online", line: "袋子是透明的" },
+      { by: "neko", line: "那我换个不透明的喵" },
+    ],
+    [
+      { by: "neko", line: "这块地方最暖和喵", act: "spoon" },
+      { by: "online", line: "那是机箱旁边" },
+      { by: "neko", line: "怪不得，原来是暖风机喵" },
+    ],
+    [
+      { by: "neko", line: "等一下，我整理完就来喵", act: "groom" },
+      { by: "online", line: "已经很干净了" },
+      { by: "neko", line: "干净才要再舔一下喵" },
+    ],
+    [
+      { by: "online", line: "你怎么睡成一个圈" },
+      { by: "neko", line: "这样比较像布丁喵" },
+      { by: "online", line: "逻辑不通，但形象很准" },
+    ],
+    [
+      { by: "neko", line: "尾巴又自己动了喵", act: "tailSpin" },
+      { by: "online", line: "那本来就是你的尾巴" },
+      { by: "neko", line: "它不归我管喵" },
+    ],
+    [
+      { by: "neko", line: "我听到机箱在响喵" },
+      { by: "online", line: "那是风扇" },
+      { by: "neko", line: "它是不是累了喵" },
+      { by: "online", line: "它只是转了很久" },
+    ],
+    [
+      { by: "neko", line: "伸个懒腰喵", act: "knead" },
+      { by: "online", line: "这是踩奶，不是伸懒腰" },
+      { by: "neko", line: "反正都是身体活动喵" },
+    ],
+    [
+      { by: "online", line: "你能跳到那个上面吗" },
+      { by: "neko", line: "不能，我怕高喵" },
+      { by: "online", line: "猫怕高，这条要记下来" },
+      { by: "neko", line: "记下来也别到处说喵" },
+    ],
+    [
+      { by: "neko", line: "我撕了一点点纸喵" },
+      { by: "online", line: "满地都是「一点点」" },
+      { by: "neko", line: "那也是从一点点开始的喵" },
+    ],
+  ] as const).map((turns): ChatMoment => ({
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns,
+  })),
+  // 写代码与折腾电脑：她人设里就写着「写代码、讲知识样样在行」，
+  // 这一组让她在代码这件事上有话说，而不是只在旁边看着
+  ...([
+    [
+      { by: "online", line: "报错了" },
+      { by: "neko", line: "什么错喵" },
+      { by: "online", line: "少写了一个逗号" },
+      { by: "neko", line: "逗号也会让人难过喵" },
+    ],
+    [
+      { by: "neko", line: "出了什么问题喵" },
+      { by: "online", line: "不知道" },
+      { by: "neko", line: "那就重启喵" },
+      { by: "online", line: "这不像解决方案" },
+      { by: "neko", line: "但很有用喵" },
+    ],
+    [
+      { by: "online", line: "这段代码没有注释" },
+      { by: "neko", line: "那我给它加一行喵" },
+      { by: "online", line: "你加了什么" },
+      { by: "neko", line: "「这里很复杂」，这样以后就懂了喵" },
+    ],
+    [
+      { by: "neko", line: "这行怎么歪了喵" },
+      { by: "online", line: "缩进错了" },
+      { by: "neko", line: "那把它推回去喵", act: "shove" },
+      { by: "online", line: "推不是这么推的" },
+    ],
+    [
+      { by: "neko", line: "这个变量叫什么喵" },
+      { by: "online", line: "叫「临时」" },
+      { by: "neko", line: "临时的东西一般会留很久喵" },
+      { by: "online", line: "你说得对，我不改" },
+    ],
+    [
+      { by: "online", line: "记得备份" },
+      { by: "neko", line: "我把我自己备份一份喵" },
+      { by: "online", line: "备份不了，你太大了" },
+      { by: "neko", line: "那我备份布丁喵" },
+    ],
+    [
+      { by: "neko", line: "他还在改？都这么晚了喵" },
+      { by: "online", line: "他说最后一行" },
+      { by: "neko", line: "上一次他也这么说喵" },
+    ],
+    [
+      { by: "online", line: "日志刷得很快" },
+      { by: "neko", line: "像下雨喵" },
+      { by: "online", line: "这个比喻不太严谨，但挺好看" },
+    ],
+    [
+      { by: "neko", line: "为什么在别的机器上跑不起来喵" },
+      { by: "online", line: "因为环境不一样" },
+      { by: "neko", line: "那就把环境也带走喵" },
+      { by: "online", line: "这话说到点子上了" },
+    ],
+    [
+      { by: "online", line: "代码写完了" },
+      { by: "neko", line: "文档呢喵" },
+      { by: "online", line: "他说以后再写" },
+      { by: "neko", line: "「以后」是不会来的喵" },
+    ],
+    [
+      { by: "neko", line: "跑起来了喵！", act: "hop" },
+      { by: "online", line: "只是碰巧" },
+      { by: "neko", line: "碰巧也算成功喵" },
+    ],
+  ] as const).map((turns): ChatMoment => ({
+    cast: "mixed",
+    when: (mood) => memeReady(mood) && mood.count === 2,
+    meme: true,
+    turns,
+  })),
+  // 三张以上：多方一起说话。同上一批，默认两张卡时永远不成立（见「三只以上」那段说明）
   ...[
     [
       { by: "neko", line: "今天的布丁还有剩吗喵？" },
