@@ -2769,6 +2769,16 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   },
 ];
 
+/** 几点算什么时候：深夜 / 清晨 / 白天 / 傍晚以后。
+    在线猫卡片（OnlineCounter）与挑对话那套（live-chat）共用这一份 ——
+    两处各留一份拷贝的话，改了一处忘了另一处，卡片与小卡片就会一个说「深夜」一个说「傍晚」 */
+export function periodOfHour(hour: number): "night" | "morning" | "day" | "evening" {
+  if (hour < 5) return "night";
+  if (hour < 8) return "morning";
+  if (hour < 18) return "day";
+  return "evening";
+}
+
 /** 人数读成中文数字：小卡片上写「3 只猫」不如「三只猫」顺口，两个是「两只」不是「二只」。
     在线卡与即兴档共用它，两处才算一套写法 */
 export function chineseNumber(value: number): string {

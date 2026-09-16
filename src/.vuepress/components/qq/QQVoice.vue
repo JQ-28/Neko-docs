@@ -128,29 +128,10 @@ onUnmounted(() => {
   opacity: 0.5;
 }
 
-/* 播放时的动画 */
+/* 播放时的动画。每个点的起播延迟由模板上的行内 style 给（`i * 0.1s`）——
+   行内样式优先级高于样式表，原先那套 nth-child 的 animation-delay 永远轮不到生效，已删 */
 .qq-voice-bubble.playing .voice-dot {
   animation: dot-pulse 1s ease-in-out infinite;
-}
-
-.qq-voice-bubble.playing .voice-dot:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.qq-voice-bubble.playing .voice-dot:nth-child(2) {
-  animation-delay: 0.1s;
-}
-
-.qq-voice-bubble.playing .voice-dot:nth-child(3) {
-  animation-delay: 0.2s;
-}
-
-.qq-voice-bubble.playing .voice-dot:nth-child(4) {
-  animation-delay: 0.3s;
-}
-
-.qq-voice-bubble.playing .voice-dot:nth-child(5) {
-  animation-delay: 0.4s;
 }
 
 @keyframes dot-pulse {

@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dir = path.join(root, "src", ".vuepress", "components");
+const liveDir = path.join(dir, "live");
 
 /** 单句超过这个字数就偏长，气泡会挤；超过上限直接算错 */
 const LINE_WARN_CHARS = 26;
@@ -128,10 +129,10 @@ const {
   humanSeconds,
   dropLineFor,
   recentLine,
-} = await import(pathToFileURL(path.join(dir, "live-lines.ts")).href);
-const { DROP_CATEGORIES } = await import(pathToFileURL(path.join(dir, "live-drop-targets.ts")).href);
+} = await import(pathToFileURL(path.join(liveDir, "live-lines.ts")).href);
+const { DROP_CATEGORIES } = await import(pathToFileURL(path.join(liveDir, "live-drop-targets.ts")).href);
 /** 台词文件的源码：有两项检查要在源码里数一数 */
-const linesSource = await readFile(path.join(dir, "live-lines.ts"), "utf8");
+const linesSource = await readFile(path.join(liveDir, "live-lines.ts"), "utf8");
 
 for (const [kind, pools] of Object.entries(SPEECH_LINES)) {
   for (const [type, lines] of Object.entries(pools)) collectPool(`SPEECH_LINES.${kind}.${type}`, lines);
@@ -180,7 +181,7 @@ for (const [line, places] of linePlaces) {
   if (where.length > 1) warnings.push(`同一句话出现在 ${where.length} 处：「${line}」 ← ${where.join("、")}`);
 }
 
-const showSource = await readFile(path.join(dir, "live-show.ts"), "utf8");
+const showSource = await readFile(path.join(liveDir, "live-show.ts"), "utf8");
 const actNames = new Set([...showSource.matchAll(/name: "([a-zA-Z]+)"/g)].map((match) => match[1]));
 const eggsSource = await readFile(path.join(dir, "neko-shared-eggs.ts"), "utf8");
 const sliceBlock = (start) => {
@@ -225,7 +226,14 @@ for (const id of eggNames) {
 }
 
 // 说话时的小动作：挂在不存在的话上会永远不触发，CSS 里没写的动作会静默失效
-const homeSource = await readFile(path.join(dir, "HomeLive.vue"), "utf8");
+// CSS 已拆到 home-live.css（HomeLive.vue 里那个 <style scoped src>），
+// data-gesture / data-play 两组规则都落在那边，两份源码合起来扫
+const homeSource = (
+  await Promise.all([
+    readFile(path.join(liveDir, "HomeLive.vue"), "utf8"),
+    readFile(path.join(liveDir, "home-live.css"), "utf8"),
+  ])
+).join("\n");
 const definedGestures = new Set(
   [...homeSource.matchAll(/\[data-gesture="(\w+)"\]/g)].map((match) => match[1])
 );
@@ -408,7 +416,7 @@ CHAT_IMPROV.forEach((improv, index) => {
 });
 
 // 心情池只在「单句场合」用（独处、搭话、被拎起来、落地），所以每个心情档都得真能被挑出来
-const chatSource = await readFile(path.join(dir, "live-chat.ts"), "utf8");
+const chatSource = await readFile(path.join(liveDir, "live-chat.ts"), "utf8");
 /** 可能出现的心情：事件带起来的（holdEmo），加上按卡片数和钟点算的（currentEmo 里那几处赋值） */
 const possibleEmos = new Set([
   ...[...chatSource.matchAll(/holdEmo\(\s*"(\w+)"/g)].map((match) => match[1]),

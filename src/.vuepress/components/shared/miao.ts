@@ -1,5 +1,5 @@
 import { nextTick, ref } from "vue";
-import { markEgg } from "./egg-utils";
+import { markEgg } from "../eggs/egg-utils";
 
 // 喵语模式：全站可见文字统一追加「喵」
 const STORAGE_KEY = "neko-miao";

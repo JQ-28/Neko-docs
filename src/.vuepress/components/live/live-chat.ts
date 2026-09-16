@@ -3,7 +3,7 @@
 // 说话期间会让开演戏的排期，中途有人拎卡、搬卡就整段作废。
 
 import { onBeforeUnmount, ref, type Ref } from "vue";
-import { markEgg } from "./egg-utils";
+import { markEgg } from "../eggs/egg-utils";
 import type { CardSpec, PeerSides } from "./live-peer";
 import {
   CHAT_IMPROV,
@@ -20,6 +20,7 @@ import {
   MOMENT_GATE_CHANCE,
   SPEECH_LINES,
   STARE_GAP_MS,
+  periodOfHour,
   type ChatAct,
   type ChatCast,
   type ChatMood,
@@ -198,14 +199,6 @@ interface PendingTurn {
 interface ReadyImprov {
   readonly key: string;
   readonly turns: readonly ChatTurn[];
-}
-
-/** 几点算什么时候：跟在线猫卡片的分法一致，傍晚以后单独算一档 */
-function periodOfHour(hour: number): ChatMood["period"] {
-  if (hour < 5) return "night";
-  if (hour < 8) return "morning";
-  if (hour < 18) return "day";
-  return "evening";
 }
 
 /** 手里这几张卡凑得成哪一套对话；一张都没有就是 null */

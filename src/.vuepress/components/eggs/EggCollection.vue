@@ -74,7 +74,7 @@ import {
   eggPanelOpen,
   showEggTip,
 } from "./egg-utils";
-import { EGG_POKE_1, EGG_POKE_2, EGG_REVEAL_TIP } from "./neko-shared-eggs";
+import { EGG_POKE_1, EGG_POKE_2, EGG_REVEAL_TIP } from "../neko-shared-eggs";
 
 interface EggItem {
   id: string;

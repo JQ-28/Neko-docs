@@ -1,6 +1,6 @@
 import ClipboardJS from "clipboard";
 
-import { countEggCopy } from "./egg-utils";
+import { countEggCopy } from "../eggs/egg-utils";
 import { scheduleToastDismiss } from "./toast-utils";
 
 const TIP_TITLE = "提示";

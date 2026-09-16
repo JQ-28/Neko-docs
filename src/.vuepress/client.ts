@@ -1,14 +1,14 @@
 import { defineClientConfig, usePageData } from "vuepress/client";
 import { createApp, nextTick, onBeforeUnmount, onMounted, watch } from "vue";
-import { copyText, showTip } from "./components/copy-utils";
+import { copyText, showTip } from "./components/shared/copy-utils";
 import NavbarToolsLink from "./components/NavbarToolsLink.vue";
 import CustomOutlook from "./components/CustomOutlook.vue";
 import MiaoToggle from "./components/MiaoToggle.vue";
 import HomeIntro from "./components/HomeIntro.vue";
-import QQChat from "./components/QQChat.vue";
-import QQMessage from "./components/QQMessage.vue";
-import QQVoice from "./components/QQVoice.vue";
-import QQImage from "./components/QQImage.vue";
+import QQChat from "./components/qq/QQChat.vue";
+import QQMessage from "./components/qq/QQMessage.vue";
+import QQVoice from "./components/qq/QQVoice.vue";
+import QQImage from "./components/qq/QQImage.vue";
 import TimelineGallery from "./components/TimelineGallery.vue";
 import ApplyForm from "./components/ApplyForm.vue";
 import CopyCommand from "./components/CopyCommand.vue";
@@ -16,8 +16,8 @@ import CommandCheatsheet from "./components/CommandCheatsheet.vue";
 import CommandRouter from "./components/CommandRouter.vue";
 import AnnouncementPopup from "./components/AnnouncementPopup.vue";
 import BotStatus from "./components/BotStatus.vue";
-import CardCourier from "./components/CardCourier.vue";
-import EggCollection from "./components/EggCollection.vue";
+import CardCourier from "./components/live/CardCourier.vue";
+import EggCollection from "./components/eggs/EggCollection.vue";
 import {
   EGGS,
   EGG_TOTAL,
@@ -27,18 +27,18 @@ import {
   onEggUnlocked,
   openEggPanel,
   showEggTip,
-} from "./components/egg-utils";
-import { initEggEvents, trackPageVisit } from "./components/egg-events";
+} from "./components/eggs/egg-utils";
+import { initEggEvents, trackPageVisit } from "./components/eggs/egg-events";
 import { EGG_THRESHOLDS } from "./components/neko-shared-eggs";
 import { SEARCH_MIRROR_EGGS, matchSearchEgg } from "./components/neko-shared-search-eggs";
-import { playSearchEggEffect } from "./components/search-egg-effects";
-import { setupPwaUpdate } from "./components/pwa-update";
-import { applyMiaoTextToPage } from "./components/miao";
-import { setupCardTilt } from "./components/motion-tilt";
-import { setupFirefly } from "./components/motion-firefly";
-import { setupCopyBurst } from "./components/motion-burst";
-import { setupPawTrail } from "./components/motion-cursor";
-import { setupTypingTagline } from "./components/motion-typing";
+import { playSearchEggEffect } from "./components/eggs/search-egg-effects";
+import { setupPwaUpdate } from "./components/shared/pwa-update";
+import { applyMiaoTextToPage } from "./components/shared/miao";
+import { setupCardTilt } from "./components/motion/motion-tilt";
+import { setupFirefly } from "./components/motion/motion-firefly";
+import { setupCopyBurst } from "./components/motion/motion-burst";
+import { setupPawTrail } from "./components/motion/motion-cursor";
+import { setupTypingTagline } from "./components/motion/motion-typing";
 
 const COPY_TEXT = "复制代码";
 const TIP_CONTENT = "复制成功";

@@ -2,8 +2,8 @@
 // 演的是此刻排在最前面那两张卡（左右分工由 playSide 定），卡片区滚进视野才开演。
 
 import { computed, nextTick, onBeforeUnmount, ref, type ComputedRef, type Ref } from "vue";
-import { markEgg } from "./egg-utils";
-import { EGG_THRESHOLDS } from "./neko-shared-eggs";
+import { markEgg } from "../eggs/egg-utils";
+import { EGG_THRESHOLDS } from "../neko-shared-eggs";
 import type { CardSpec } from "./live-peer";
 
 /** 互动脚本：两张卡片配合演一段，每次进站随机挑一段 */
@@ -393,7 +393,7 @@ export function useLiveShow(host: ShowHost): LiveShow {
       // 滚出视野、或者手里凑不齐两张卡，就先歇着；卡片回来后由组件重新排期
       if (!canPlay()) return;
       // 台上正演着别的一段（独处小动作、见面小戏）：过会儿再来问。
-      // 这条判据独处与大编舞那边都有，只有对手戏漏了 —— 它一开演就直接把台上那段掐掉
+      // 以前只有对手戏这条排期没写这条判据，于是它一开演就直接把台上那段掐掉
       if (isPlaying()) {
         schedule(DANCE_RETRY_MS);
         return;

@@ -111,8 +111,6 @@ export interface PeerLink {
   sendHandoff(target: string, payload: HandoffPayload): void;
   /** 收到别人递过来的卡片 */
   onHandoff(listener: (payload: HandoffPayload) => void): void;
-  /** 某个窗口关掉了 */
-  onPeerGone(listener: (id: string) => void): void;
   stop(): void;
 }
 
@@ -324,7 +322,6 @@ export function idlePeerLink(cards: readonly CardSpec[] = []): PeerLink {
     onCardLeave: () => undefined,
     sendHandoff: () => undefined,
     onHandoff: () => undefined,
-    onPeerGone: () => undefined,
     stop: () => undefined,
   };
 }
@@ -369,7 +366,6 @@ export function startPeerLink(): PeerLink {
    */
   const outbox = new Map<string, string>();
   const handoffListeners: Array<(payload: HandoffPayload) => void> = [];
-  const goneListeners: Array<(id: string) => void> = [];
   const incomingListeners: Array<(edge: LiveEdge) => void> = [];
   const roamListeners: Array<(point: RoamPoint) => void> = [];
   const arriveListeners: Array<(point: RoamPoint) => void> = [];
@@ -447,7 +443,6 @@ export function startPeerLink(): PeerLink {
     unconfirmed.forEach((cardId) => outbox.delete(cardId));
     // 它手里别人的卡失去了主人，各自的出生窗口负责收回去
     reclaim([...(cards && cards.length > 0 ? cards : record.cards), ...unconfirmed]);
-    goneListeners.forEach((listener) => listener(id));
   };
 
   /**
@@ -705,7 +700,6 @@ export function startPeerLink(): PeerLink {
       dropCard(payload.card.id);
     },
     onHandoff: (listener) => handoffListeners.push(listener),
-    onPeerGone: (listener) => goneListeners.push(listener),
     stop: () => {
       // 每一步各清各的：任何一步炸了都不能让后面的清理整段跳过，
       // 否则组件都卸载了通道还开着、心跳还在跑，下一个实例就把这个死掉的自己认成邻居，
@@ -719,9 +713,6 @@ export function startPeerLink(): PeerLink {
       safely(() => activeWire.close());
       safely(() => {
         handoffListeners.length = 0;
-      });
-      safely(() => {
-        goneListeners.length = 0;
       });
       safely(() => {
         incomingListeners.length = 0;

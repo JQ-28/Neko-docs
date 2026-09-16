@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { copyText, showTip } from "./copy-utils";
+import { copyText, showTip } from "./shared/copy-utils";
 
 const props = defineProps<{ command: string }>();
 

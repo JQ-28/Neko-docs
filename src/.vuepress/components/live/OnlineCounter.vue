@@ -32,8 +32,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-import { markEgg } from "./egg-utils";
-import { chineseNumber } from "./live-lines";
+import { markEgg } from "../eggs/egg-utils";
+import { chineseNumber, periodOfHour } from "./live-lines";
 
 /** 省电模式（地址带 ?static）：不发心跳、也不跑常驻动画，只安静地摆在那儿 */
 const props = withDefaults(defineProps<{ static?: boolean }>(), { static: false });
@@ -105,13 +105,6 @@ function watchReducedMotion(): void {
   reduceMotionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
   reduceMotion = reduceMotionQuery.matches;
   reduceMotionQuery.addEventListener("change", onReduceMotionChange);
-}
-
-function periodOfHour(hour: number): "night" | "morning" | "day" | "evening" {
-  if (hour < 5) return "night";
-  if (hour < 8) return "morning";
-  if (hour < 18) return "day";
-  return "evening";
 }
 
 // 换个时段就换个说法，同一个小网站早中晚读起来不一样
@@ -392,19 +385,6 @@ html.dark .home-online-meta:not(.is-hint) {
 .home-online-meta.is-hint {
   color: var(--vp-c-accent, #096dd9);
   font-weight: 600;
-}
-
-/* 右端补一句刷新说明，通栏右侧才不会空落落 */
-.home-online-note {
-  flex: none;
-  font-size: 11px;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
-  color: #b6adc4;
-}
-
-html.dark .home-online-note {
-  color: #7d7689;
 }
 
 .home-online-light {

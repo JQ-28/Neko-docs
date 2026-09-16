@@ -1,6 +1,6 @@
-import { showTip } from "./copy-utils";
+import { showTip } from "../shared/copy-utils";
 import { markEgg } from "./egg-utils";
-import { EGG_THRESHOLDS, matchFestival } from "./neko-shared-eggs";
+import { EGG_THRESHOLDS, matchFestival } from "../neko-shared-eggs";
 
 const LOGO_SELECTOR = ".vp-nav-logo";
 const SLEEP_LOGO_SRC = "/assets/image/nekosleep.webp";

@@ -1,4 +1,4 @@
-import { scheduleToastDismiss } from "./toast-utils";
+import { scheduleToastDismiss } from "../shared/toast-utils";
 
 const EGG_TIP_ROOT_ID = "neko-egg-tips";
 const EGG_TIP_DURATION = 3400;

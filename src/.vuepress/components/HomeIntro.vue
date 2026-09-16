@@ -91,8 +91,8 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import { copyText, showTip } from "./copy-utils";
-import HomeLive from "./HomeLive.vue";
+import { copyText, showTip } from "./shared/copy-utils";
+import HomeLive from "./live/HomeLive.vue";
 
 interface HomeFeat {
   name: string;

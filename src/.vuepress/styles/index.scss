@@ -221,13 +221,6 @@ html.dark .qq-header {
   position: relative;
 }
 
-.qq-image {
-  height: auto;
-  max-height: 300px;
-  max-width: 300px;
-  width: auto;
-}
-
 .qq-message {
   display: flex;
   margin-bottom: 10px;
@@ -415,38 +408,7 @@ html.dark .qq-footer {
   border-top-color: rgba(249, 189, 235, 0.3);
 }
 
-.qq-reply-message {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  margin-bottom: 8px;
-  max-width: 100%;
-  padding: 6px;
-  transition: background-color 0.2s;
-  
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.08);
-  }
-}
-
-.qq-reply-bar {
-  background-color: #3abff8;
-  border-radius: 2px;
-  margin-right: 8px;
-  width: 3px;
-}
-
-.qq-reply-content {
-  color: #666;
-  flex: 1 1 0%;
-  font-size: 0.8em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.qq-text > div:not(.qq-reply-message) {
+.qq-text > div {
   margin-top: 4px;
 }
 
@@ -759,7 +721,9 @@ html.dark .sw-update-popup:hover {
 }
 
 // 主题色选择器：hope 会把 $theme-colors 按明度归一化后再应用，浅色样本需展示真实生效色
-// nth-child(2)/(3) 对应 $theme-colors 的第 1/2 项：#fcdfff、#e6f8ff
+// nth-child(2) 对应 $theme-colors 的第 1 项（#fcdfff）；
+// nth-child(3) 对应第 2 项，但下面写死的 #e6f8ff 是旧调色板里的第二项，
+// config.scss 里现在的第 2 项已经是 #ffb7c5（#e6f8ff 已不在调色板内）—— 要不要跟着改需确认，改了会换外观
 .vp-theme-color-picker li:nth-child(2) span {
   background: color.change(#fcdfff, $lightness: 45%) !important;
 }

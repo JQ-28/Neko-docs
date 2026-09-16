@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { isMiao, toggleMiao } from "./miao";
+import { isMiao, toggleMiao } from "./shared/miao";
 
 const switchLabel = computed(() =>
   isMiao.value ? "喵语模式已开启，点击切回正常" : "开启喵语模式"

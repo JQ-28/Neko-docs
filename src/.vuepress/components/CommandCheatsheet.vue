@@ -92,7 +92,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { commandCategories, hintFor } from "../../../functions/_shared/command-catalog";
-import { copyText, showTip } from "./copy-utils";
+import { copyText, showTip } from "./shared/copy-utils";
 
 interface HighlightSegment {
   text: string;

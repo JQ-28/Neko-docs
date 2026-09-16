@@ -1,6 +1,6 @@
-import { EGG_HINTS, EGG_TIP } from "./neko-shared-eggs";
+import { EGG_HINTS, EGG_TIP } from "../neko-shared-eggs";
 
-export { EGGS } from "./neko-shared-eggs";
+export { EGGS } from "../neko-shared-eggs";
 
 export {
   EGG_TOTAL,
@@ -12,7 +12,6 @@ export {
   markEgg,
   onEggUnlocked,
   openEggPanel,
-  syncEggs,
 } from "./egg-state";
 
 export { showEggTip } from "./egg-toast";

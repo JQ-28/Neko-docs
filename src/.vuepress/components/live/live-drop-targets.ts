@@ -56,9 +56,10 @@ const BLOCK_FALLBACK = "section, article, aside, nav, main, form, table, ul, ol,
     再往上就是整段首页 —— 拖到空白处会给整屏描蓝框，只认不超过这个比例的 */
 const MAX_FALLBACK_AREA_RATIO = 0.6;
 
-/** 最近的 HTML 祖先：命中的是内联 SVG（图标、插图）时，反馈不能打在 svg / path 上 ——
-    outline 与那几条动画都是给 HTML 元素写的 */
-function nearestHtml(el: Element): HTMLElement | null {
+/** 最近的 HTML 祖先：命中的是内联 SVG（导航栏的画笔图标、公告的关闭叉、CTA 胶囊里的小图标）
+    时，反馈不能打在 `<svg>` / `<path>` 上 —— outline 与那几条动画都是给 HTML 元素写的。
+    少了这一步，压在这些图标上一点反应都没有，而旁边挪 20 像素又有 */
+export function nearestHtml(el: Element): HTMLElement | null {
   for (let node: Element | null = el; node; node = node.parentElement) {
     if (node instanceof HTMLElement) return node;
   }

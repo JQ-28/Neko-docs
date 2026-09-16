@@ -171,7 +171,7 @@ export default sidebar({
                 "english",
               ]
             },
-            // Bot 管理
+            // 其他工具
             {
               text: "其他工具",
               icon: "/assets/icon/robot.svg",
@@ -191,7 +191,7 @@ export default sidebar({
           link: "yule/",
           collapsible: true,
           children: [
-            // 图片相关
+            // 图片功能
             {
               text: "图片功能",
               icon: "/assets/icon/image.svg",

@@ -258,8 +258,8 @@
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { commandCategories, hintFor } from "../../../functions/_shared/command-catalog";
-import { copyText, showTip } from "./copy-utils";
-import { markEgg } from "./egg-utils";
+import { copyText, showTip } from "./shared/copy-utils";
+import { markEgg } from "./eggs/egg-utils";
 import {
   BABABOI_LINES,
   BABABOI_TEST,

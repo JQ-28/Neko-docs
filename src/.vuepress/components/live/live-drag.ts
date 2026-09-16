@@ -2,7 +2,7 @@
 // 以及顺手统计的两个彩蛋动作。指针事件本身留在组件里，这里只放算式与状态。
 
 import type { LiveEdge, RoamPoint } from "./live-peer";
-import { EGG_THRESHOLDS } from "./neko-shared-eggs";
+import { EGG_THRESHOLDS } from "../neko-shared-eggs";
 
 /** 拎到屏幕边上就停下，别把页面顶出横向滚动条。卡片拖起来会带上倾斜和放大，
     包围盒比原尺寸宽一圈，所以留的余量要够 */

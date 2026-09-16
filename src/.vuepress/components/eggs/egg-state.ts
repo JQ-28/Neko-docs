@@ -1,7 +1,7 @@
 import { ref } from "vue";
 
-import { isKnownEgg, readEggIdUnion, writeEggIds } from "./neko-shared-egg-sync";
-import { EGG_THRESHOLDS, EGGS } from "./neko-shared-eggs";
+import { isKnownEgg, readEggIdUnion, writeEggIds } from "../neko-shared-egg-sync";
+import { EGG_THRESHOLDS, EGGS } from "../neko-shared-eggs";
 
 export const EGG_TOTAL = Object.keys(EGGS).length;
 
