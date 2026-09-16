@@ -530,6 +530,8 @@ function compensateScroll(): void {
   const rect = drag.slot.getBoundingClientRect();
   drag.baseLeft = rect.left + (rect.width - drag.width) / 2 - drag.shiftX;
   drag.baseTop = rect.top + (rect.height - drag.height) / 2 - (drag.shiftY - lift);
+  // 滚动之后卡片相对屏幕的位置也变了，气泡朝哪边要跟着重判
+  syncBubbleSide(drag.slot, rect.top);
 }
 
 /** 一口气从顶滚到底：从顶部算起一秒半之内见底才算「嗖一下」 */
@@ -1201,6 +1203,9 @@ function releaseDrag(keepSpeech = false): void {
   if (!drag) return;
   drag.slot.style.translate = "";
   drag.slot.style.rotate = "";
+  // 气泡朝哪边是跟着「卡片这会儿在屏幕哪儿」临时定的（见 syncBubbleSide）。上面这一清，
+  // 卡就回原位了，不再是贴顶那张 —— 属性要一起摘掉，不然它回原位后气泡还挂在下面
+  delete drag.slot.dataset.bubbleBelow;
   dropRelease(keepSpeech);
 }
 
@@ -1218,6 +1223,8 @@ function abortDrag(): void {
     // 位移与角度一并清掉：过渡会把卡片送回原位，不留下一帧甩出来的歪角
     drag.slot.style.translate = "";
     drag.slot.style.rotate = "";
+    // 气泡朝哪边也跟着回到默认（同上：卡不贴顶了，气泡就该挂回上面）
+    delete drag.slot.dataset.bubbleBelow;
   }
   // 释放指针捕获、清掉手上这张卡
   dropRelease();
@@ -1389,6 +1396,8 @@ function restoreCard(cardId: string): void {
   slot.style.rotate = "";
   // 停在落点上时临时抬过层级（见 lingerAfterDrop），回位要一并还原
   slot.style.zIndex = "";
+  // 贴着屏幕顶时气泡临时翻到了下面（见 syncBubbleSide），回位也还原成默认朝上
+  delete slot.dataset.bubbleBelow;
 }
 
 /** 上一张还在被收走的路上的卡先复原（同一张卡重来时除外）：
@@ -1407,6 +1416,19 @@ const DROP_LINGER_EXTRA_MS = 600;
 /** 停在落点上的这一格要抬到多高：页面里那些浮层（公告、最近更新……）都在这之下，
     不抬起来的话卡片和气泡会被它们压在下面，用户看不到猫说了什么 */
 const DROP_LINGER_Z = "6";
+/** 卡片离视口顶这么近，气泡就得翻到下面去：往上那点地方已经被屏幕边和导航栏占掉了 */
+const BUBBLE_FLIP_TOP = 104;
+
+/** 卡片贴着视口最上面时（拖到导航栏那一带、或者把导航栏当落点停下来），
+    气泡挂在卡片上方会被裁掉 —— 掉个头挂到下面来。判定看卡片自己的位置，不看手在哪 */
+function syncBubbleSide(slot: HTMLElement, cardTop: number): void {
+  const below = cardTop < BUBBLE_FLIP_TOP;
+  // 拖拽时每帧都会走到这儿，只在真变了才动 DOM
+  if (below === (slot.dataset.bubbleBelow === "true")) return;
+  if (below) slot.dataset.bubbleBelow = "true";
+  else delete slot.dataset.bubbleBelow;
+}
+
 /** 眼下正停在落点上「把话说完」的那张卡、那笔收尾，以及它家在哪一行（文档坐标） */
 let dropLingerCardId = "";
 let dropLingerTimer = 0;
@@ -1435,9 +1457,12 @@ function lingerAfterDrop(cardId: string, line: string): void {
   slot.style.rotate = "";
   slot.style.zIndex = DROP_LINGER_Z;
   // 顺手把「家在哪一行」记下来（文档坐标）：说完话要把页面一块儿滚回去，
-  // 不然卡片是滑到屏幕外面去了 —— 用户眼里它就是凭空消失
+  // 不然卡片是滑到屏幕外面去了 —— 用户眼里它就是凭空消失。
+  // 顺带看一眼它是不是贴着屏幕顶（把导航栏当落点就是这样），是就把气泡翻到下面
+  const box = slot.getBoundingClientRect();
   const lift = drag?.touch ? DRAG_LIFT_PX : 0;
-  dropLingerHomeTop = slot.getBoundingClientRect().top + window.scrollY - (drag?.shiftY ?? 0) + lift;
+  dropLingerHomeTop = box.top + window.scrollY - (drag?.shiftY ?? 0) + lift;
+  syncBubbleSide(slot, box.top);
   dropLingerTimer = window.setTimeout(() => {
     const lingering = dropLingerCardId;
     dropLingerTimer = 0;
@@ -1715,6 +1740,8 @@ function onPointerMove(event: PointerEvent): void {
 
   // 位置直接给到手上，拖尾和回弹交给样式里的过渡，掉帧也不会变形
   drag.slot.style.translate = `${dx}px ${dy - lift}px`;
+  // 拎到导航栏那一带时气泡要翻到卡片下面，不然它挂在上面正好被屏幕边切掉
+  syncBubbleSide(drag.slot, drag.baseTop + dy - lift);
 
   // 顺手数一数彩蛋：摇猫猫、遛猫
   if (dragTrack.shake(event.clientX, Date.now())) markEgg("cardShake");
@@ -2242,6 +2269,21 @@ html.dark .home-live-slot.is-dragging :deep(.home-online) {
   rotate: 45deg;
   border-radius: 1px;
   background: inherit;
+}
+
+/* 卡片贴到视口最上面那一带时（拎到导航栏上、或者把导航栏当落点停下来），
+   气泡挂在上面正好被屏幕边和导航栏一起切掉 —— 掉个头挂到卡片下面，尖角也跟着掉头。
+   影子方向一并翻过来，不然光是从上方来的，跟位置对不上 */
+.home-live-slot[data-bubble-below] .home-live-bubble {
+  bottom: auto;
+  top: calc(100% + 9px);
+  box-shadow: 0 -8px 20px color-mix(in srgb, var(--vp-c-accent, #096dd9) 16%, transparent);
+}
+
+.home-live-slot[data-bubble-below] .home-live-bubble::after {
+  top: auto;
+  bottom: 100%;
+  translate: -50% 4px;
 }
 
 html.dark .home-live-bubble {
