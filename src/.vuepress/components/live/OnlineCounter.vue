@@ -280,9 +280,11 @@ onBeforeUnmount(() => {
   transition: rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     scale 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     box-shadow 0.45s ease, border-color 0.3s ease;
-  /* 入场用 transform、常驻浮动用 translate 属性，两者互不覆盖 */
+  /* 入场用 transform、常驻浮动用 translate 属性，两者互不覆盖。
+     浮动那段的关键帧得写在这个文件里 —— scoped 的关键帧名会带上本组件的哈希，
+     引别处（home-live.css）的定义是对不上的，名字一样也不动 */
   animation: home-online-in 0.44s cubic-bezier(0.22, 1, 0.36, 1),
-    neko-card-float 10s cubic-bezier(0.455, 0.03, 0.515, 0.955) 0.7s infinite;
+    home-online-float 10s cubic-bezier(0.455, 0.03, 0.515, 0.955) 0.7s infinite;
 }
 
 /* 渐变描边：用 mask 把渐变裁成只有边框那一圈 */
@@ -456,6 +458,28 @@ html.dark .home-online-avatar {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 安静时的浮动：十秒一圈的小椭圆（上下两个多像素、左右一个像素出头），
+   与首页那张猫卡同一套数值、相位错开，并排看着才是一上一下在互相招呼。
+   只走 translate —— 卡片上的 transform 留给「跟着指针扭头」，rotate 留给固定倾角 */
+@keyframes home-online-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  25% {
+    translate: 1.1px -1.7px;
+  }
+
+  50% {
+    translate: 0 -2.5px;
+  }
+
+  75% {
+    translate: -1.1px -1.7px;
   }
 }
 

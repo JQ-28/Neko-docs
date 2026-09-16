@@ -46,6 +46,8 @@
         :data-play="playingIds.has(card.id) ? playingName : undefined"
         :data-gesture="speakingId === card.id && speakingGesture ? speakingGesture : undefined"
         :data-mood="mood"
+        :data-say="speakingId === card.id ? sayParity : undefined"
+        :data-scene="liveScene"
         @pointerdown="onPointerDown($event, card)"
         @pointermove="onPointerMove($event, card)"
         @pointerup="onPointerUp"
@@ -67,7 +69,11 @@
           />
           <span class="home-live-text">
             <span class="home-live-name">Neko 本猫</span>
-            <span class="home-live-meta">{{ nekoMeta }}</span>
+            <!-- 小字换句时淡出旧的、淡入新的：用 out-in，两句不重叠，
+                 卡片不会被顶得一跳一跳 -->
+            <Transition name="home-live-meta" mode="out-in">
+              <span :key="nekoMeta" class="home-live-meta">{{ nekoMeta }}</span>
+            </Transition>
           </span>
           <span class="home-live-light" aria-hidden="true">
             <span class="home-live-light-ring"></span>
@@ -123,13 +129,15 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "../eggs/egg-utils";
-import { CROWD_ONLINE, GREETING_REPLY_MS, speechLingerMs, useLiveTalk } from "./live-chat";
+import { GREETING_REPLY_MS, speechLingerMs, useLiveTalk } from "./live-chat";
 import {
   anyDropLines,
   dropLineFor,
   nekoMetaLine,
   recentLine,
   todayDoing,
+  type EmoState,
+  type NekoMetaScene,
   type SpecialDay,
 } from "./live-lines";
 import {
@@ -358,10 +366,22 @@ const CURSOR_IDLE_MS = 30_000;
 /** 手刚动过就算「还新鲜」：好奇那一档靠它。给得比「手放下」短得多 ——
     人在页面上动来动去的时候，猫该是探头看着的，而不是发呆 */
 const CURSOR_FRESH_MS = 2500;
+
+/** 手刚动过吗：卡片的心情（好奇）与名字下那行小字都要看它 */
+function cursorFresh(): boolean {
+  return cursorMovedAt > 0 && Date.now() - cursorMovedAt < CURSOR_FRESH_MS;
+}
+
+/** 手放下好一会儿了吗：闲得发慌那一档与那行小字都要看它 */
+function cursorIdle(): boolean {
+  return cursorMovedAt > 0 && Date.now() - cursorMovedAt >= CURSOR_IDLE_MS;
+}
+
 const TAP_BURST_COUNT = 6;
 const TAP_WINDOW_MS = 5_000;
-/** 「嗖一下」的宽容度：从顶到底两秒半之内都算，程序化平滑滚动那点时间也算进来 */
-const SCROLL_DASH_MS = 2_500;
+/** 「嗖一下」的宽容度：从顶到底这几秒之内都算，程序化平滑滚动那点时间也算进来。
+    原来卡在两秒半，滑得稍慢一点就够不着「被滚晕」那一档，等于白写 */
+const SCROLL_DASH_MS = 4_000;
 /** 这些「时刻」说出去多久之内还算新鲜，过了就等下一回 */
 const MOMENT_FRESH_MS = 30_000;
 /** 上次来的时间戳记在这儿，隔几天再来才有「好久不见」 */
@@ -405,14 +425,18 @@ let specialDay: SpecialDay = "none";
 let doingToday = "";
 /** 在线卡报上来的真实人数：卡片说话时要拿它当梗 */
 let onlineCount = 0;
+/** 又来了几只猫之后的这一阵子算「热闹」（毫秒）：小站常年一两只在逛，
+    只按绝对人数判的话，「热闹」那一档基本出不来 */
+const CROWD_HOLD_MS = 90_000;
+let crowdUntil = 0;
 
 /** 在线卡报到的人数 */
 function onOnlineCount(value: number): void {
-  const wasCrowd = onlineCount >= CROWD_ONLINE;
+  if (value > onlineCount) crowdUntil = Date.now() + CROWD_HOLD_MS;
   onlineCount = value;
-  // 人数跨过「热闹」那道线时当场重算心情：等那半分钟一次的兜底时钟，
-  // 人到齐了灯还是原来那盏，等它转过神来人可能已经走了
-  if (wasCrowd !== (value >= CROWD_ONLINE)) talk.refreshMood();
+  // 人数一动就当场重算心情：等那半分钟一次的兜底时钟，
+  // 人来齐了灯还是原来那盏，等它转过神来可能人已经走了
+  talk.refreshMood();
 }
 
 /** 手一动（划、点、敲键盘）就重新计时：静下来三十秒才轮到那句「手放下了」 */
@@ -875,7 +899,7 @@ const talk = useLiveTalk({
   lastPlayedAt: show.lastPlayedAt,
   linger: lingerSeconds,
   justReturned: () => Date.now() - returnedAt < RETURNED_MS,
-  cursorIdle: () => cursorMovedAt > 0 && Date.now() - cursorMovedAt >= CURSOR_IDLE_MS,
+  cursorIdle,
   // 手到底停了多久：分档用 —— 停半分钟、两分钟、五分钟，她想说的话不一样
   cursorIdleMs: () => (cursorMovedAt > 0 ? Date.now() - cursorMovedAt : 0),
   // 这台设备主要用手指操作吗（台词分桌面版与触摸版）
@@ -885,8 +909,10 @@ const talk = useLiveTalk({
   selectionMade: () => selectionAt > 0 && Date.now() - selectionAt < MOMENT_FRESH_MS,
   flipped: () => flippedAt > 0 && Date.now() - flippedAt < MOMENT_FRESH_MS,
   // 好奇与黏人这两档：手刚动过 / 手一直搁在卡片上（对应 live-chat 里的 curious 与 clingy）
-  cursorFresh: () => cursorMovedAt > 0 && Date.now() - cursorMovedAt < CURSOR_FRESH_MS,
+  cursorFresh,
   hoverHoldMs: () => (hoverInsideAt > 0 ? Date.now() - hoverInsideAt : 0),
+  // 刚又来了一只猫：小站常年一两只在逛，这一下比「在线数够多」更容易撞上（见 live-chat 的 excited）
+  crowd: () => Date.now() < crowdUntil,
   tapBurst: () => tapBurstAt > 0 && Date.now() - tapBurstAt < MOMENT_FRESH_MS,
   scrollDash: () => scrollDashAt > 0 && Date.now() - scrollDashAt < MOMENT_FRESH_MS,
   awayDays: () => awayDays,
@@ -904,12 +930,60 @@ const talk = useLiveTalk({
 });
 
 const { playingName, playSide, playingIds } = show;
-const { speakingId, speech, speechShown, speakingGesture, mood } = talk;
+const { speakingId, speech, speechShown, speakingGesture, mood, sayParity } = talk;
 
-/** 猫卡名字下面那行小字：跟着心情、卡片数和时段换，不再永远同一句 */
-const nekoMeta = computed(() =>
-  nekoMetaLine(mood.value, liveCards.value.length, new Date().getHours())
-);
+/** 小字与灯那半分钟一次的心跳：computed 只在依赖变了才重算，
+    而「该换句了」「该换挡了」这两件事本身不会发出通知，得靠它推一把 */
+const metaTick = ref(0);
+/** 常态那行小字挂多久才换下一句：换得太勤看着焦躁，一天不换又死板 */
+const META_MIN_HOLD_MS = 120_000;
+/** 手在半分钟内动过，就算「手还在」：小字里那句招呼看的是它（比「手刚动过」宽得多，
+    不然换句那一刻正好撞上的概率几乎为零） */
+const META_HAND_WINDOW_MS = 30_000;
+/** 在卡片区待够这么久算「坐了很久」：灯收一档（再往后是「闲得发慌」那一档接管） */
+const LONG_LINGER_S = 180;
+let calmMetaLine = "";
+let calmMetaAt = 0;
+
+/** 小字要看的那几件事，从各处现攒一份 */
+function readMetaScene(emo: EmoState): NekoMetaScene {
+  const now = new Date();
+  return {
+    emo,
+    count: liveCards.value.length,
+    hour: now.getHours(),
+    weekend: now.getDay() === 0 || now.getDay() === 6,
+    visitTimes,
+    streak,
+    online: onlineCount,
+    recentHand: cursorMovedAt > 0 && Date.now() - cursorMovedAt < META_HAND_WINDOW_MS,
+    handRest: cursorIdle(),
+  };
+}
+
+/** 猫卡名字下面那行小字：心情一上来就换成那句说明；
+    常态则由光景池里挑，每两分钟才换一次，换的时候避开正挂着的那句 */
+const nekoMeta = computed(() => {
+  void metaTick.value;
+  const emo = mood.value;
+  if (emo !== "normal") return nekoMetaLine(readMetaScene(emo));
+  if (calmMetaLine && Date.now() - calmMetaAt < META_MIN_HOLD_MS) return calmMetaLine;
+  calmMetaLine = nekoMetaLine(readMetaScene(emo), calmMetaLine);
+  calmMetaAt = Date.now();
+  return calmMetaLine;
+});
+
+/** 常态是哪一种光景：今天头一回打开 / 还有别的猫 / 坐了很久 / 平常。
+    灯在没有心情的时候按它换挡（见样式里的 data-scene）。
+    在线人数与停留时长都不是响应式的东西，所以这里挂在 metaTick 上跟一遍 ——
+    灯本来就是慢变量，差半分钟不要紧 */
+const liveScene = computed(() => {
+  void metaTick.value;
+  if (visitTimes === 1) return "first";
+  if (onlineCount >= 2) return "company";
+  if (lingerSeconds() >= LONG_LINGER_S) return "long";
+  return "plain";
+});
 
 /** 说的话另送一份给读屏：气泡那层是 aria-hidden 的（只给眼睛看），
     这里带上「是哪张卡在说」，不然只听到一句话，不知道谁开的腔 */
@@ -2366,7 +2440,10 @@ onMounted(() => {
   // 必须排在上面那道早退之后 —— 静态模式根本不说话，每半分钟重算一次纯属白烧电
   window.clearInterval(moodTimer);
   moodTimer = window.setInterval(() => {
-    if (!document.hidden) talk.refreshMood();
+    if (document.hidden) return;
+    // 先推一下那个心跳：名字下的小字与灯的常态档都等它（见 metaTick）
+    metaTick.value += 1;
+    talk.refreshMood();
   }, MOOD_TICK_MS);
 
   scheduleNudge();

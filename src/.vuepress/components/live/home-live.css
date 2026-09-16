@@ -498,7 +498,7 @@ html.dark .home-live-roamer {
     scale 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     translate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     box-shadow 0.45s ease, border-color 0.3s ease;
-  /* 浮动相位与在线卡错开，一上一下才像在互相招呼 */
+  /* 浮动相位与在线卡错开，一上一下才像在互相招呼（那条是十秒一圈的小椭圆） */
   animation: home-live-in 0.44s cubic-bezier(0.22, 1, 0.36, 1),
     neko-card-float 10s cubic-bezier(0.455, 0.03, 0.515, 0.955) -4.3s infinite;
 }
@@ -618,17 +618,28 @@ html.dark .home-live-roamer {
   --g-op: 0.68;
 }
 
-/* 安静时的浮动：十秒一个来回，两个多像素，看得出在轻轻呼吸就够了。
-   两张卡挂的入场延迟一正一负（那张 -4.3 秒、这张 0.7 秒），正好差半个周期，
-   一上一下，像在互相招呼。轮到自己说话时这条会被整条盖掉，所以只在安静时露脸 */
+/* 安静时的浮动：走一个极小的椭圆 —— 上下两个多像素、左右一个像素出头，十秒一圈。
+   两张卡挂的相位一正一负（-4.3 秒 / 0.7 秒），正好差半个周期，一上一下像在互相招呼。
+   ★ 只走 translate：卡片上的 transform 留给「跟着指针扭头」，rotate 留给固定倾角与摸头歪头，
+   说话点头也在 translate 上 —— 几本账各记各的，谁也盖不掉谁。
+   原先想在浮动之外再叠一层极慢的轻摇，那会占掉 transform 或 translate，只能作罢：
+   椭圆轨迹比两层叠加更省，看着也更像浮着。轮到自己说话时整条被盖掉，只在安静时露脸 */
 @keyframes neko-card-float {
   0%,
   100% {
     translate: 0 0;
   }
 
+  25% {
+    translate: 1.1px -1.7px;
+  }
+
   50% {
     translate: 0 -2.5px;
+  }
+
+  75% {
+    translate: -1.1px -1.7px;
   }
 }
 
@@ -747,6 +758,45 @@ html.dark .home-live-roamer {
   animation: home-live-peek 0.86s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* 挂机时的「活着感」：一分钟里九成多的时间完全不动，末尾才动那么一下 ——
+   偶尔抬头看一眼、抖一下、或是打个盹点了个头。常驻动画的成本几乎为零
+   （关键帧大半是静止的），但页面挂久了就不像两张贴纸。
+   :not(.is-moving) 是跟上面那条让开：探头是演出叫的动作，不该跟这儿叠在一起 */
+.home-live-avatar:not(.is-moving),
+.home-live-slot :deep(.home-online-avatar:not(.is-moving)) {
+  animation: neko-avatar-idle 53s ease-in-out -6s infinite;
+}
+
+/* 第二张卡错开半个周期：不然两张会同时抬头，像被同一根线牵着。
+   这里按位置取，不用 --left / --right —— 那两个类只在演对手戏时才挂上，平时是空的 */
+.home-live-cards > .home-live-slot:nth-child(2) .home-live-avatar:not(.is-moving),
+.home-live-cards > .home-live-slot:nth-child(2) :deep(.home-online-avatar:not(.is-moving)) {
+  animation-delay: -32s;
+}
+
+/* 心情不同，那一动也不同：高兴抖两下、犯困沉下去再惊醒、闲着或独个儿左右晃。
+   只换名字，周期与相位照旧，免得这两样也跟着重来 */
+.home-live-slot[data-mood="happy"] .home-live-avatar:not(.is-moving),
+.home-live-slot[data-mood="happy"] :deep(.home-online-avatar:not(.is-moving)),
+.home-live-slot[data-mood="excited"] .home-live-avatar:not(.is-moving),
+.home-live-slot[data-mood="excited"] :deep(.home-online-avatar:not(.is-moving)) {
+  animation-name: neko-avatar-perk;
+}
+
+.home-live-slot[data-mood="sleepy"] .home-live-avatar:not(.is-moving),
+.home-live-slot[data-mood="sleepy"] :deep(.home-online-avatar:not(.is-moving)) {
+  animation-name: neko-avatar-doze;
+}
+
+.home-live-slot[data-mood="bored"] .home-live-avatar:not(.is-moving),
+.home-live-slot[data-mood="bored"] :deep(.home-online-avatar:not(.is-moving)),
+.home-live-slot[data-mood="lost"] .home-live-avatar:not(.is-moving),
+.home-live-slot[data-mood="lost"] :deep(.home-online-avatar:not(.is-moving)),
+.home-live-slot[data-mood="miss"] .home-live-avatar:not(.is-moving),
+.home-live-slot[data-mood="miss"] :deep(.home-online-avatar:not(.is-moving)) {
+  animation-name: neko-avatar-sway;
+}
+
 /* 「她看得见你」：指针或手指走到哪，两张卡就朝那边轻轻转一点，像扭头看过去。
    方向写在 --look-x / --look-y 上（-1..1，相对卡片区正中间），HomeLive 每帧更新一次。
    角度刻意小 —— 是瞟一眼，不是整个转过来（指令速查那张卡的最大值是 5 度，这里 3.5）。
@@ -812,6 +862,25 @@ html.dark .home-live-meta {
   color: #a9a2b8;
 }
 
+/* 小字换句：淡出旧的、淡入新的（模板那边用了 mode="out-in"，两句不重叠，
+   所以卡片高度不会同时被两句占着顶一下）。
+   只动 opacity 与 translate，慢一点会显得拖，快一点像闪一下 */
+.home-live-meta-enter-active,
+.home-live-meta-leave-active {
+  transition: opacity 0.18s ease,
+    translate 0.18s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+.home-live-meta-enter-from {
+  opacity: 0;
+  translate: 0 2px;
+}
+
+.home-live-meta-leave-to {
+  opacity: 0;
+  translate: 0 -2px;
+}
+
 .home-live-light {
   flex: none;
   display: grid;
@@ -848,6 +917,55 @@ html.dark .home-live-meta {
   opacity: 0;
   animation: home-live-ripple var(--live-beat, 2.4s) ease-out infinite;
   transition: border-color 0.45s ease;
+}
+
+/* 每说出一句，灯圈往外推一波 —— 声音看不见，就用灯应答一下。
+   用伪元素叠在灯上：跟灯芯、灯圈同一个格子，不占布局，也不打扰那两位的呼吸。
+   颜色取的是槽位上的 --live-hue，两张卡都继承得到（灯芯那个 --live-state 各在自己卡里）
+   只挂在正说话的那张卡上：被拎着、演对手戏时让开 */
+.home-live-slot.is-talking:not(.is-dragging):not(.is-playing) .home-live-light::after,
+.home-live-slot.is-talking:not(.is-dragging):not(.is-playing) :deep(.home-online-light)::after {
+  content: "";
+  grid-area: 1 / 1;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--live-hue, #22c55e);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+/* 这里两个内容一模一样、只有名字不同的动画，是刻意留的：
+   同一个元素上同名的动画不会自己重播，而「说出一句」是一遍就完的一次性动画 ——
+   live-chat 每说一句把 data-say 在 a / b 之间翻一次，名字一换浏览器才肯再来一遍 */
+.home-live-slot.is-talking[data-say="a"]:not(.is-dragging):not(.is-playing) .home-live-light::after,
+.home-live-slot.is-talking[data-say="a"]:not(.is-dragging):not(.is-playing) :deep(.home-online-light)::after {
+  animation: neko-light-blip-a 0.5s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+.home-live-slot.is-talking[data-say="b"]:not(.is-dragging):not(.is-playing) .home-live-light::after,
+.home-live-slot.is-talking[data-say="b"]:not(.is-dragging):not(.is-playing) :deep(.home-online-light)::after {
+  animation: neko-light-blip-b 0.5s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+/* 常态也叫「什么都没发生」，一天里占的时间最长 —— 也给它几个光景档，
+   别从早到晚挂着同一盏一模一样的绿。选择器带上 data-mood="normal"，
+   跟心情档天然分开：有名字的那几档心情一上来就归心情管，两边不会抢 */
+.home-live-slot[data-mood="normal"][data-scene="first"] {
+  --live-dim: 0.78;
+  --live-glow: 4px;
+  --live-ring-alpha: 0.8;
+}
+
+.home-live-slot[data-mood="normal"][data-scene="company"] {
+  --live-beat: 2s;
+  --live-ring-scale: 2.4;
+  --live-ring-alpha: 0.76;
+}
+
+.home-live-slot[data-mood="normal"][data-scene="long"] {
+  --live-dim: 0.66;
+  --live-ring-scale: 1.8;
+  --live-ring-alpha: 0.5;
 }
 
 /* 心情档：灯跟着心情走，但只改几个数。正常心情就用兜底那盏绿，不单写一条。
@@ -1177,6 +1295,81 @@ html.dark .home-live-avatar {
   }
 }
 
+/* 挂机时的四个偶发小动作：一整轮里只有末尾那百分之几在动。
+   幅度都压在 3px 以内 —— 要的是「她还活着」，不是「这张卡在抖」 */
+@keyframes neko-avatar-idle {
+  0%,
+  94% {
+    transform: none;
+  }
+
+  97% {
+    transform: translateY(-2px);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes neko-avatar-perk {
+  0%,
+  92% {
+    transform: none;
+  }
+
+  94% {
+    transform: translateY(-2.5px);
+  }
+
+  96% {
+    transform: translateY(0);
+  }
+
+  98% {
+    transform: translateY(-1.5px);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes neko-avatar-doze {
+  0%,
+  86% {
+    transform: none;
+  }
+
+  90%,
+  95% {
+    transform: translateY(3px);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes neko-avatar-sway {
+  0%,
+  92% {
+    transform: none;
+  }
+
+  95% {
+    transform: translateX(1.5px);
+  }
+
+  98% {
+    transform: translateX(-1.5px);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
 @keyframes home-live-breathe {
   0%,
   100% {
@@ -1199,6 +1392,32 @@ html.dark .home-live-avatar {
   70%,
   100% {
     transform: scale(var(--live-ring-scale, 2.1));
+    opacity: 0;
+  }
+}
+
+/* 说出一句：灯圈从灯芯上冒出去一圈就散。两份内容相同、只有名字不同，
+   为的是让浏览器每句都肯重播（理由见上面挂 data-say 的那两条规则） */
+@keyframes neko-light-blip-a {
+  0% {
+    transform: scale(1);
+    opacity: 0.72;
+  }
+
+  100% {
+    transform: scale(2.9);
+    opacity: 0;
+  }
+}
+
+@keyframes neko-light-blip-b {
+  0% {
+    transform: scale(1);
+    opacity: 0.72;
+  }
+
+  100% {
+    transform: scale(2.9);
     opacity: 0;
   }
 }
@@ -5341,6 +5560,8 @@ html.dark .home-live-avatar {
   .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) .home-live-card,
   .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) :deep(.home-online),
   .home-live-card,
+  .home-live-avatar:not(.is-moving),
+  .home-live-slot :deep(.home-online-avatar:not(.is-moving)),
   .home-live-avatar.is-moving,
   .home-live-light-core,
   .home-live-light-ring,
@@ -5349,9 +5570,21 @@ html.dark .home-live-avatar {
     animation: none;
   }
 
+  /* 「说出一句就冒一圈」那个灯：干脆不生成它。
+     它的触发选择器带 data-say 加两个 :not，特异性高得多，靠 animation: none 压不住 */
+  .home-live-slot .home-live-light::after,
+  .home-live-slot :deep(.home-online-light)::after {
+    display: none;
+  }
+
   /* 气泡的两端走的是 transition（见 .home-live-bubble-enter-active），
      这里得单独禁：动效减弱时气泡直接出现、直接消失，不做缩放 */
   .home-live-bubble {
+    transition: none;
+  }
+
+  /* 小字换句那下也一样：怕动的人这边直接换字，不做位移与淡入 */
+  .home-live-meta {
     transition: none;
   }
 

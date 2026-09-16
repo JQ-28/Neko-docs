@@ -1241,8 +1241,11 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
 export const JUST_DRAGGED_MS = 30_000;
 /** 演完一段多久之内算「刚演过」 */
 export const JUST_PLAYED_MS = 25_000;
-/** 正赶上某个光景时，这一档的对话占多大比例；余下的说常备那几套，免得翻来覆去就那几句 */
-export const MOMENT_CHANCE = 0.7;
+/** 正赶上某个光景时，这一档的对话占多大比例；余下的说常备那几套，免得翻来覆去就那几句。
+    定 0.85 是算过账的：四百多段光景挤在同一个池子里，单段多久轮到一回就是
+    「段间隔 × 轮次 ÷ 段数」—— 段数是内容，不能动，只能把这道比例抬上来。
+    曾经想按题材分池，那没有用：出口固定时，分组抽签只是把分母等比切小，单段概率不变 */
+export const MOMENT_CHANCE = 0.85;
 
 /**
  * Xterfusion（Arcaea 同名曲）那段「你拍一我拍一」的记谱：
@@ -5025,8 +5028,52 @@ export function humanSeconds(seconds: number): string {
   return days < 7 ? `${chineseNumber(days)}天多` : "好些天了";
 }
 
-/** 猫卡名字下面那行小字：照着眼下的状态挑一句，别永远挂着同一句 */
-export function nekoMetaLine(emo: EmoState, count: number, hour: number): string {
+/** 猫卡名字下面那行小字要看的几件事：心情、手里几张卡、钟点与周末，
+    加上今天来几趟了、连着来几天、在线几只、手是不是刚动过 / 停了很久。
+    都是她真看得见的东西 —— 这行字要挂很久，不能编 */
+export interface NekoMetaScene {
+  readonly emo: EmoState;
+  readonly count: number;
+  readonly hour: number;
+  readonly weekend: boolean;
+  readonly visitTimes: number;
+  readonly streak: number;
+  readonly online: number;
+  /** 手最近动过（半分钟内） */
+  readonly recentHand: boolean;
+  /** 手停了好一会儿（半分钟以上） */
+  readonly handRest: boolean;
+}
+
+/** 常态下那行小字：一天里大多数时候「什么都没发生」，
+    所以这一档最该有话说。每条自带「什么时候说得成」的判断，
+    说的时候在说得成的几条里随机挑一条、避开正挂着的 —— 同一个光景下也不是一句话看一天。
+    句子都压在十个字以内、不带数字：它要挂很久，得经得起反复看 */
+const CALM_META_LINES: readonly {
+  readonly when: (scene: NekoMetaScene) => boolean;
+  readonly line: string;
+}[] = [
+  { when: (scene) => scene.online >= 4, line: "今天不止我一个" },
+  { when: (scene) => scene.online >= 2, line: "隔壁还有一只在逛" },
+  { when: (scene) => scene.streak >= 7, line: "这些天你都在" },
+  { when: (scene) => scene.streak >= 3, line: "又见面了" },
+  // 手里只剩一张时轮不到这一档：那时是「只剩自己」的心情在管小字
+  { when: (scene) => scene.count >= 3, line: "挤一挤也坐得下" },
+  { when: (scene) => scene.weekend, line: "周末照常营业" },
+  { when: (scene) => scene.hour >= 9 && scene.hour < 18, line: "这个点，大家都该在忙" },
+  { when: (scene) => scene.recentHand, line: "在看你点哪" },
+  { when: (scene) => scene.handRest, line: "你不说话，我就自己待着" },
+];
+
+/** 上面那些一条都说不成时，就挂这句万能的 */
+const CALM_META_FALLBACK = "群里随叫随到";
+
+/** 猫卡名字下面那行小字：照着眼下的光景挑一句，别永远挂着同一句。
+    心情那几档是一对一的说明，跟着心情走；「什么都没发生」这一档才是常态，
+    一天里占的时间最长，所以给它一个池子轮着说。
+    avoid 是正挂着的那句：换句时避开它，看着才像真换了（只剩它一条时还是它） */
+export function nekoMetaLine(scene: NekoMetaScene, avoid = ""): string {
+  const { emo } = scene;
   if (emo === "shy") return "有点不好意思";
   if (emo === "hungry") return "在等布丁";
   if (emo === "happy") return "今天心情不错";
@@ -5041,10 +5088,16 @@ export function nekoMetaLine(emo: EmoState, count: number, hour: number): string
   if (emo === "purr") return "被摸得服服帖帖";
   if (emo === "miss") return "有日子没见你了";
   if (emo === "excited") return "今天这儿有点热闹";
-  if (hour >= 23 || hour < 5) return "这个点还醒着的不多";
-  if (hour >= 17 && hour < 19) return "傍晚有点饿";
-  if (count >= 3) return "挤一挤也坐得下";
-  return "群里随叫随到";
+  // 今天头一回打开：先亮个相，这句不参与随机，轮到就它
+  if (scene.visitTimes === 1) {
+    const hello = scene.hour >= 5 && scene.hour < 11 ? "早，我先醒的" : "刚开张，先伸个懒腰";
+    if (hello !== avoid) return hello;
+  }
+  const fits = CALM_META_LINES.filter((item) => item.when(scene));
+  const fresh = fits.filter((item) => item.line !== avoid);
+  const pool = fresh.length > 0 ? fresh : fits;
+  if (pool.length === 0) return CALM_META_FALLBACK;
+  return pool[Math.floor(Math.random() * pool.length)].line;
 }
 
 /** 即兴档：台词要现读真实数字（在线几只、你盯了多久），数还没到就整档跳过 */

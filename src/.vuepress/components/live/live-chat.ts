@@ -35,10 +35,12 @@ import {
 
 /** 有猫落地先聊两句，第二句隔这么久接上 */
 export const GREETING_REPLY_MS = 1800;
-/** 一段说完隔多久再来一段（20–45 秒之间随便挑，不固定才不像机器） */
-const CHAT_MIN_MS = 20_000; const CHAT_MAX_MS = 45_000;
+/** 一段说完隔多久再来一段（在这个区间里随便挑，不固定才不像机器）。
+    往前提了一点：轮次多一成，四百多段光景每段摊到的天数就少一成，
+    而 17 秒的静场还不至于显得聒噪 */
+const CHAT_MIN_MS = 17_000; const CHAT_MAX_MS = 38_000;
 /** 今天头一回打开这一页时，第一轮提前到入场动画落定之后 ——
-    好让「第 N 天见啦」这类进站话早点说出口。不提前的话第一句要等 20–45 秒，新访客多半等不到 */
+    好让「第 N 天见啦」这类进站话早点说出口。不提前的话第一句要等 17–38 秒，新访客多半等不到 */
 const ARRIVE_CHAT_MIN_MS = 1_600;
 const ARRIVE_CHAT_MAX_MS = 2_400;
 /** 进站那一轮被台面占着（正演着入场那段对手戏）就先让开，过这么一会儿再问一次 */
@@ -95,8 +97,10 @@ const MOOD_SPEECH_TYPES: readonly (keyof SpeechLines)[] = ["solo", "idle", "drag
 /** 有即兴档可说的话时先说它的概率，以及两回之间至少隔多久（不然会揪着同一个数字反复报） */
 const IMPROV_CHANCE = 0.6;
 const IMPROV_GAP_MS = 6 * 60_000;
-/** 手里不止一张卡时，也留一点机会让它自己嘀咕一句——心情就是从这儿露出来的 */
-const MUTTER_CHANCE = 0.3;
+/** 手里不止一张卡时，也留一点机会让它自己嘀咕一句——心情就是从这儿露出来的。
+    嘀咕走的是单句那一路，跟光景档此消彼长：留四分之一，
+    既让心情常有机会出声，也不至于把四百多段光景挤没了 */
+const MUTTER_CHANCE = 0.25;
 /** 事件带起来的心情各挂多久 */
 const HAPPY_HOLD_MS = 90_000;
 const SHY_HOLD_MS = 120_000;
@@ -104,16 +108,18 @@ const SHY_HOLD_MS = 120_000;
 const CLINGY_HOVER_MS = 6_000;
 /** 在卡片区待够这么久、这期间又没被戳过也没被拖过，算「无聊」（秒，停留时长由 HomeLive 喂进来） */
 const BORED_LINGER_S = 300;
-/** 今天被碰够这么多次之后、又被摸一下：从「好舒服」升成「摸服了」，挂着表不放 */
-const PURR_PAT_COUNT = 6;
+/** 今天被碰够这么多次之后、又被摸一下：从「好舒服」升成「摸服了」，挂着表不放。
+    摸头得在卡面上拖着走够一段才算一次，门槛定高了等于这档永远见不着 */
+const PURR_PAT_COUNT = 4;
 const PURR_HOLD_MS = 100_000;
 /** 隔这么多天没来又回来，刚进门那阵子算「久别重逢」（天） */
 const MISS_AWAY_DAYS = 7;
 /** 重逢只在进门头这几分钟里成立（秒）：坐久了就该回到当下的光景 */
 const MISS_WINDOW_S = 180;
 /** 页面上真有这么多只猫时才算「热闹」（只，读的是在线卡报上来的真数）。
-    导出是给 HomeLive 用的：人数跨过这道线时它得当场把心情重算一遍 */
-export const CROWD_ONLINE = 3;
+    另有一条更容易撞上的路：人数刚涨上来（见上面的 crowd 信号）—— 小站常年一两只，
+    按绝对值判的话这一档基本没机会 */
+const CROWD_ONLINE = 3;
 /** 被戳之后隔这么久才回一句：连着戳不该一句接一句地刷屏 */
 const POKE_GAP_MS = 2_200;
 /** 摸头同理：手一直在卡面上摸来摸去，不该一路念下去 */
@@ -169,6 +175,9 @@ export interface TalkHost {
   cursorFresh?: () => boolean;
   /** 观众的箭头在卡片区里停了多久（毫秒）。同样由 HomeLive 喂进来，没喂就当 0 */
   hoverHoldMs?: () => number;
+  /** 人数刚涨上来吗（小站常年一两只猫，只按绝对人数判「热闹」那档基本出不来）。
+      由 HomeLive 喂进来，没喂就只看在线人数的绝对值 */
+  crowd?: () => boolean;
   /** 刚刚在同一个地方连戳了好几下吗 */
   tapBurst: () => boolean;
   /** 刚刚一口气把整页滚到了底吗 */
@@ -198,6 +207,8 @@ export interface LiveTalk {
   readonly speech: Ref<string>;
   /** 已经冒出来的那部分：气泡上显示的是它 —— 长句一个字一个字往外冒，短句整句直给 */
   readonly speechShown: Ref<string>;
+  /** 每说出一句就翻一次（"a" / "b"）：样式那边靠它重播「刚说出一句」的小动效 */
+  readonly sayParity: Ref<"a" | "b">;
   /** 这句配的小动作（没标就是空，老老实实点头） */
   readonly speakingGesture: Ref<GestureName | "">;
   /** 眼下的心情：卡片上的状态灯照着它变色 */
@@ -286,6 +297,10 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   const speech = ref("");
   /** 已经冒出来的那部分：气泡上显示的是它，不是整句 */
   const speechShown = ref("");
+  /** 每说出一句就翻一次，值就是 "a" / "b" 两个来回。
+      样式那边靠它触发「刚说出一句」的小动效：同名动画在同一个元素上不会自己重播，
+      换成另一个内容一模一样、只是名字不同的动画，浏览器才肯再来一遍 */
+  const sayParity = ref<"a" | "b">("a");
   let speechTimer = 0;
   let typeTimer = 0;
   let chatTimer = 0;
@@ -441,8 +456,9 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       mood.value = "miss";
     else if (hour < 5 || hour >= 23) mood.value = "sleepy";
     else if (hour >= 17 && hour < 19) mood.value = "hungry";
-    // 页面上真是好几只猫在逛：人多她就精神，压过无聊
-    else if (host.online() >= CROWD_ONLINE) mood.value = "excited";
+    // 人多她就精神：要么这会儿真有好几只猫，要么刚刚又来了一只 —— 后者更要紧，
+    // 小站常年一两只在逛，只按绝对人数判的话，「热闹」这一档基本见不着
+    else if ((host.crowd?.() ?? false) || host.online() >= CROWD_ONLINE) mood.value = "excited";
     else if (host.linger() >= BORED_LINGER_S && quietFor(BORED_LINGER_S * 1000)) mood.value = "bored";
     else mood.value = "normal";
     return mood.value;
@@ -514,6 +530,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     if (!line) return;
     speakingId.value = cardId;
     speech.value = line;
+    sayParity.value = sayParity.value === "a" ? "b" : "a";
     // 摆到气泡上：长句一个字一个字冒，短句整句直给
     startTyping(line);
     // 说这句时配什么小动作：台词上标了就用标的，没标就照眼下的心情来
@@ -872,6 +889,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     mood,
     speech,
     speechShown,
+    sayParity,
     say: (card, type) => showSpeech(card.id, pickLine(card, type)),
     // 与 pickLine 一个口径：记下这张卡上一句说了什么、这句已经说过了 ——
     // 反复把同一张卡拎到同一个落点，才不会一字不差地复述同一句
