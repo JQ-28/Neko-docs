@@ -1653,7 +1653,7 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "现在是。要是挤不下就改成上下摞着" },
     ],
   },
-  // 半夜：这个时段她本来就困，卡片那边也会跟着暗一点
+  // 半夜：这个时段她本来就困，说出来的话也带着困意
   {
     cast: "mixed",
     when: (mood) => mood.sleepy,

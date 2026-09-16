@@ -71,8 +71,11 @@ export function speechLingerMs(line: string): number {
   return Math.max(SPEECH_LINGER_MS, line.length * SPEECH_CHAR_MS);
 }
 
-/** 说完带戏的那句、插戏还没落地时的兜底：演不出来也不能把后半截晾着 */
-const ACT_FALLBACK_MS = 6_000;
+/** 说完带戏的那句、插戏还没落地时的兜底：演不出来也不能把后半截晾着。
+    正常路径是演出演完自己回调 actDone，这条只在演出卡住时兜底 ——
+    所以它必须比「被台词点名的动作里最长的那一段」还长，否则动作还剩一截就被截断。
+    目前最长的是 leanNap（6.5 秒），改 live-show.ts 的时长时要一起看这里 */
+const ACT_FALLBACK_MS = 7_000;
 /** 带 once 的档（稀客才说的话）说过一次，歇这么久才允许再说 */
 const ONCE_GAP_MS = 10 * 60_000;
 /** 正赶上某种心情时，单句台词有多大概率从心情池里挑 */

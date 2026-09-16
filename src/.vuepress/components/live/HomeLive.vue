@@ -3,7 +3,6 @@
     ref="stage"
     class="home-live"
     :class="{ 'is-resting': resting, 'is-static': staticMode }"
-    :data-sleepy="sleepy ? 'true' : undefined"
   >
     <h2 class="home-intro-title">
       <span class="home-intro-bar" aria-hidden="true"></span>

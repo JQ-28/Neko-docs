@@ -659,18 +659,10 @@ html.dark .home-live-roamer {
 .home-live-slot :deep(.home-online) {
   transform: perspective(720px) rotateX(calc(var(--look-y, 0) * -3.5deg))
     rotateY(calc(var(--look-x, 0) * 3.5deg));
-  /* filter 也列入过渡：半夜那条规则只改 filter，过渡写在这儿才不会被它的 transition 顶掉 */
   transition: rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     scale 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     translate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
-    box-shadow 0.45s ease, border-color 0.3s ease, filter 1.4s ease;
-}
-
-/* 半夜（凌晨两点到六点）：这两只也困 —— 卡片压暗一点、颜色退一点，跟她这时候说的话对上。
-   不是把页面调黑，是「屋里灯关了」那种暗；切进切出都走上面那条 1.4 秒的过渡，慢慢暗下去 */
-.home-live[data-sleepy] .home-live-card,
-.home-live[data-sleepy] :deep(.home-online) {
-  filter: brightness(0.92) saturate(0.86);
+    box-shadow 0.45s ease, border-color 0.3s ease;
 }
 
 /* 正被拎着、正演着一段的时候别转：那会儿手和动作才是主角，转过去反而像在抢戏 */

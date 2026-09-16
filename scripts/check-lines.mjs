@@ -582,6 +582,24 @@ for (const match of showSource.matchAll(/name:\s*"([a-zA-Z]+)"[^}]*byLineOnly:\s
     errors.push(`演出 ${match[1]} 只在台词点名时演，但没有任何台词点它的名`);
   }
 }
+// 兜底计时器一到就接下一句，动作比它还长的话尾巴会被硬生生掐掉
+// （踩过：leanNap 演 6.5 秒，兜底只有 6 秒，动作还剩半拍就被打断）
+const liveChatSource = await readFile(path.join(liveDir, "live-chat.ts"), "utf8");
+const actFallbackMs = Number(
+  ((liveChatSource.match(/ACT_FALLBACK_MS\s*=\s*([\d_]+)/) ?? [, "0"])[1]).replace(/_/g, "")
+);
+const playDurations = new Map(
+  [...showSource.matchAll(/name:\s*"([a-zA-Z]+)",\s*durationMs:\s*(\d+)/g)].map((match) => [
+    match[1],
+    Number(match[2]),
+  ])
+);
+for (const name of actingPlays) {
+  const duration = playDurations.get(name);
+  if (duration && actFallbackMs > 0 && duration > actFallbackMs) {
+    errors.push(`动作 ${name} 演 ${duration}ms，比兜底 ${actFallbackMs}ms 还长，会被提前掐断`);
+  }
+}
 
 // 拎到首页别处松手：落点得认得出来，台词得挂在真有的落点上
 const introSource = await readFile(path.join(dir, "HomeIntro.vue"), "utf8");
