@@ -37,6 +37,20 @@ export type ChatAct =
   | "pass"
   | "mimic"
   | "lookOut"
+  // 安静向的那几段（对看 / 点头 / 静坐 / 一起呼吸 / 尾巴搭过去 / 慢慢眨眼 /
+  // 侧身让位 / 一起等 / 抬头看 / 趴着探头 / 扭头走开）：跟上面那四个一样，
+  // 只在台词点名时才演，不进随机排期
+  | "glance"
+  | "nod"
+  | "quietSit"
+  | "breatheTogether"
+  | "tailRest"
+  | "slowBlink"
+  | "stepAside"
+  | "waitTogether"
+  | "lookUp"
+  | "leanOver"
+  | "turnAway"
   // 家常对手戏也开放给台词点名：说到「蹭蹭」「踩奶」「分你一口」这类话时，
   // 光靠随机排期很难正好撞上，得让台词自己叫一声。
   // 名字都在 live-show 的 PLAY_SCRIPTS 里，脚本与样式现成，这里只是允许点名
@@ -302,7 +316,7 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
       "就我一个也好数，数完就能睡",
     ],
     idle: [
-      "刚刚又溜进来一只猫",
+      "刚刚冒出来一个新数字",
       "数着呢，一只都没跑",
       "深夜档还有猫在逛",
       "这波人流挺稳的",
@@ -815,7 +829,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "online", line: "已经走了，停留短得没记上" },
     ],
     [
-      { by: "online", line: "这会儿人多起来了" },
+      { by: "online", line: "数字又开始跳了" },
       { by: "neko", line: "那我要表现得好一点喵～" },
     ],
     [
@@ -923,7 +937,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "online", line: "这是统计卡的本职工作" },
     ],
     [
-      { by: "online", line: "今日在线人数，看着还不错" },
+      { by: "online", line: "数字一直亮着，看着还不错" },
       { by: "neko", line: "说明大家都没走，泪目了喵" },
       { by: "online", line: "我不流泪。但数字确实很温柔" },
     ],
@@ -937,12 +951,6 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "neko", line: "我破防了，那个人一定很想你喵" },
       { by: "online", line: "也可能是在等你" },
       { by: "neko", line: "那我们都不许关掉页面喵" },
-    ],
-    [
-      { by: "neko", line: "现在算上班还是下班呀喵" },
-      { by: "online", line: "按在线人数算，现在是摸鱼时段" },
-      { by: "neko", line: "那我们一起摸一条小鱼喵" },
-      { by: "online", line: "摸鱼期间数据不计入考核" },
     ],
     [
       { by: "online", line: "本次对话建议写进日报" },
@@ -975,10 +983,10 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "neko", line: "小声一点，别让别人听见喵", act: "lean" },
     ],
     [
-      { by: "neko", line: "现在有几个人在线呀喵？" },
-      { by: "online", line: "数着呢。其中一个是刚来的" },
-      { by: "neko", line: "那我轻点说话，别吵到他喵" },
-      { by: "online", line: "他正在看你。音量保持即可" },
+      { by: "neko", line: "你那边数到哪儿了喵？" },
+      { by: "online", line: "数着呢。数字自己会动，我只要看着" },
+      { by: "neko", line: "那我轻点说话，别吵到人喵" },
+      { by: "online", line: "有人正在看你。音量保持即可" },
     ],
     [
       { by: "neko", line: "页面转圈好久了，是不是不来了喵" },
@@ -991,12 +999,6 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "online", line: "深色模式只是省电，不代表困" },
       { by: "neko", line: "可我眼睛已经在打架了喵" },
       { by: "online", line: "那你闭眼，我帮你守着人数" },
-    ],
-    [
-      { by: "neko", line: "周末了，今天可以慢一点点喵" },
-      { by: "online", line: "周末的访问量通常不太好看" },
-      { by: "neko", line: "人少了，但留下来的更可爱喵" },
-      { by: "online", line: "同意。这句话我不加引号" },
     ],
     [
       { by: "neko", line: "快递到了！是抹茶冰淇淋喵！", act: "hop" },
@@ -1050,7 +1052,7 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "online", line: "我没有可以笑的表情。你赢了" },
     ],
     [
-      { by: "online", line: "今天的在线数比昨天多" },
+      { by: "online", line: "我念一组今天的数字给你听" },
       { by: "neko", line: "嗯嗯喵", act: "nod" },
       { by: "online", line: "你在同意什么，我还没说结论" },
       { by: "neko", line: "你说什么我都点头，这样你会讲得开心点喵" },
@@ -3602,6 +3604,28 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "我不出声。我只记数" },
     ],
   },
+  // 这两段原先搁在成段对话那个「什么都不挑」的池子里：说周末与上班时段的词，
+  // 周三点开也会冒出来（她还说过「周末了」）。挪进这两档，跟上面那两条一起等对的日子
+  {
+    cast: "mixed",
+    when: (mood) => mood.workHours,
+    turns: [
+      { by: "neko", line: "现在算上班还是下班呀喵" },
+      { by: "online", line: "按在线人数算，现在是摸鱼时段" },
+      { by: "neko", line: "那我们一起摸一条小鱼喵" },
+      { by: "online", line: "摸鱼期间数据不计入考核" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => mood.weekend,
+    turns: [
+      { by: "neko", line: "周末了，今天可以慢一点点喵" },
+      { by: "online", line: "周末的访问量通常不太好看" },
+      { by: "neko", line: "人少了，但留下来的更可爱喵" },
+      { by: "online", line: "同意。这句话我不加引号" },
+    ],
+  },
   // 主播与抽象音效
   ...([
     [
@@ -4993,7 +5017,7 @@ export const CHAT_IMPROV: readonly ChatImprov[] = [
     when: (mood) => mood.patToday >= 20,
     lines: (mood) => [
       { by: "online", line: `今日触碰记录：${chineseNumber(mood.patToday)}次` },
-      { by: "neko", line: `${chineseNumber(mood.patToday)}次了喵！你是不是有点太闲了`, act: "guard" },
+      { by: "neko", line: `${chineseNumber(mood.patToday)}次了喵！你是不是有点太闲了`, act: "pawSwat" },
       { by: "online", line: "按今天的停留时长看，他确实闲" },
       { by: "neko", line: "闲也别一直摸，头会秃的喵" },
     ],

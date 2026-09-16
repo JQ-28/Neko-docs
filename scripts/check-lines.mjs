@@ -280,6 +280,14 @@ for (const name of actNames) {
 for (const name of definedPlays) {
   if (!actNames.has(name)) warnings.push(`样式里写了演出 ${name}，但脚本里没有这一段`);
 }
+// 台词里点名要演的，必须是真有的那一段：名字写错不会有任何报错，
+// live-chat 那边 host.act() 返回 false 就只是没演（踩过：把卡片手势 guard
+// 当成了演出名写进 act，那一段动作等于白写）。手势（data-gesture）与演出（data-play）是两套，别混
+for (const name of new Set([...linesSource.matchAll(/act:\s*"(\w+)"/g)].map((match) => match[1]))) {
+  if (!actNames.has(name)) {
+    errors.push(`台词里点名要演的「${name}」不在演出脚本里（写错名字就不会演，也不会报错）`);
+  }
+}
 
 // 每段话、每档即兴都得真有可能说出口：把各种光景均匀随机过一遍，
 // 一段都命中不到，就说明它的 when 写死了（比如要求两个不可能同时成立的条件，
