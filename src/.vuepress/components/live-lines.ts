@@ -13,6 +13,8 @@ export interface SpeechLines {
   readonly arrive: readonly string[];
   /** 被拎起来的时候随口抱怨的 */
   readonly drag: readonly string[];
+  /** 被戳一下时的回话（点一下就有反应，是这块卡片最容易摸到的互动） */
+  readonly poke: readonly string[];
 }
 
 /** 对话中间能插的那几下，名字跟 live-show 里的演出脚本一一对应 */
@@ -195,6 +197,16 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
       "我头好晕喵…",
       "轻拿轻放，我是有猫权喵",
     ],
+    poke: [
+      "别戳我呀喵",
+      "戳一下就够了喵",
+      "我身上可没有按钮喵",
+      "手指收回去喵",
+      "再戳我可要记仇喵",
+      "你怎么老戳我喵",
+      "戳我也变不出新猫喵",
+      "痒的喵…别戳那里",
+    ],
   },
   online: {
     solo: [
@@ -262,6 +274,14 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
       "我在记录你现在的位置",
       "被拎起来也要保持统计精度",
       "这不是我可控的范围",
+    ],
+    poke: [
+      "戳一下不会改变统计结果",
+      "这一下已经记下了",
+      "我这不是按钮",
+      "戳我不产生数据",
+      "统计口径里没有这一项",
+      "再戳也还是这个数",
     ],
   },
 };

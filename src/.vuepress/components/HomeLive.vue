@@ -352,6 +352,9 @@ function noteActivity(): void {
 const TAP_LIGHT_MS = 620;
 /** 手机上按住多久才算「拎」、以及这段时间里手指能动多少像素 */
 const TOUCH_HOLD_MS = 180;
+/** 按住之后过这么久才抬起来给人看：一压就抬的话，快速点一下也成了「抬起」，
+    那一下的「按下」反馈就整没了 —— 手机上点卡片会显得毫无反应 */
+const ARMING_DELAY_MS = 90;
 const TOUCH_SLOP_PX = 10;
 /** 页面刚滚过之后这么久内按住卡片不给拎 —— 那多半是想让页面停下来 */
 const SCROLL_SETTLE_MS = 180;
@@ -362,10 +365,12 @@ const HIT_MIN_MS = 50;
 
 let touchHoldAt: { x: number; y: number; pointerId: number; slot: HTMLElement } | null = null;
 let touchHoldTimer = 0;
+let armTimer = 0;
 
 /** 还没拎起来：手挪开了或者抬起来了，就当成想滚页面 / 想点一下 */
 function cancelHold(): void {
   window.clearTimeout(touchHoldTimer);
+  window.clearTimeout(armTimer);
   if (touchHoldAt) delete touchHoldAt.slot.dataset.arming;
   touchHoldAt = null;
 }
@@ -480,6 +485,8 @@ const talk = useLiveTalk({
   // 页面切到后台就别说话了：说了也没人听得见，白排一场
   ready: () =>
     !drag && !show.isPlaying() && roamingIds.value.length === 0 && !document.hidden,
+  // 被戳的回话比它宽松：正演着戏也回一句 —— 那是用户主动点的一下
+  canPoke: () => !drag && roamingIds.value.length === 0 && !document.hidden,
   peers: () => ({ count: peerLink.peerCount.value, sides: peerLink.peerSides.value }),
   lastPlayedAt: show.lastPlayedAt,
   linger: lingerSeconds,
@@ -869,15 +876,17 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   // 「手在动」跟戳不戳无关，先记上
   noteActivity();
 
+  // 手指碰到的回应先给足：灯闪一下、按下的手感、顺口回一句。
+  // 这三样都不该被下面「能不能拎」那几条守卫没收 —— 尤其手机上，
+  // 手里按着而屏幕毫无动静，看着就像这张卡坏了
+  countTap(card.id);
+  flashTap(slot);
+  talk.poke(card);
+
   // 正在演互动动画、已经有一张在手上、另一根手指还按着，都别再拎
   if (drag || touchHoldAt || show.isPlaying()) return;
   // 页面刚滚过：这一下多半是想让页面停下来，不是想拎猫
   if (Date.now() - lastScrollAt < SCROLL_SETTLE_MS) return;
-
-  // 戳猫猫的计数与闪灯排在守卫后面：二指乱按、演出期间的那些手不该算进来
-  countTap(card.id);
-  // 被戳一下灯就闪一下；后面给不给拎是另一回事
-  flashTap(slot);
 
   const handle = (event.target as HTMLElement | null)?.closest<HTMLElement>(
     ".home-live-card, .home-online"
@@ -903,9 +912,13 @@ function holdToDrag(
   handle: HTMLElement
 ): void {
   window.clearTimeout(touchHoldTimer);
+  window.clearTimeout(armTimer);
   touchHoldAt = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, slot };
-  // 按住的这几百毫秒里卡片先微微抬起来：「按住能拎」这件事得让人看得出来
-  slot.dataset.arming = "true";
+  // 按住的这几百毫秒里卡片先微微抬起来：「按住能拎」这件事得让人看得出来。
+  // 但要等一小会儿再抬 —— 立刻抬就把「点击」那一下的按下反馈盖掉了（见 ARMING_DELAY_MS）
+  armTimer = window.setTimeout(() => {
+    if (touchHoldAt?.slot === slot) slot.dataset.arming = "true";
+  }, ARMING_DELAY_MS);
   touchHoldTimer = window.setTimeout(() => {
     touchHoldAt = null;
     if (drag) return;

@@ -63,6 +63,8 @@ const MUTTER_CHANCE = 0.3;
 const SULKY_HOLD_MS = 90_000;
 const HAPPY_HOLD_MS = 90_000;
 const SHY_HOLD_MS = 120_000;
+/** 被戳之后隔这么久才回一句：连着戳不该一句接一句地刷屏 */
+const POKE_GAP_MS = 2_200;
 /** 上班时段：工作日九点到十八点 */
 const WORK_START_HOUR = 9;
 const WORK_END_HOUR = 18;
@@ -81,6 +83,9 @@ export interface TalkHost {
   visible: () => boolean;
   /** 眼下适不适合开口：没人拎着卡、没在演戏、卡片也没飘去隔壁 */
   ready: () => boolean;
+  /** 被戳时能不能回一句：卡片没在手上、没飘去隔壁、页面也露着。
+      比 ready() 宽松：正演着戏也可以回 —— 那是用户主动点的一下，不该被动画挡掉 */
+  canPoke: () => boolean;
   /** 隔壁还开着几扇 neko 页面，猫都在哪几边 */
   peers: () => { count: number; sides: PeerSides };
   /** 上一回开演是什么时候（时间戳，没演过就是 0） */
@@ -138,6 +143,8 @@ export interface LiveTalk {
   markDragged(): void;
   /** 刚演完一段：让它们说说刚才那一下 */
   markPlayed(): void;
+  /** 被戳了一下：不好意思一下（戳得勤就闹别扭），隔两秒才回一句 */
+  poke(card: CardSpec): void;
   /** 重整下一次说话的排期（挂载、卡片数变了时调） */
   scheduleNext(): void;
   /** 重算一次眼下的心情（时段跨档、卡片数变了时调）：名字下的小字与状态灯照它变 */
@@ -200,6 +207,8 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   let lastSpeaker = "";
   /** 上一回被人拎着玩是什么时候，卡片会拿它嘀咕两句 */
   let lastDragAt = 0;
+  /** 上一回被戳是什么时候：连着戳不该一句接一句地刷屏 */
+  let lastPokeAt = 0;
   /** 「屏幕外面那个人类」说到第几段了、上一段是什么时候说的 */
   let stareLevel = 0;
   let lastStareAt = 0;
@@ -654,6 +663,16 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       // 刚演完一段：有点小得意
       holdEmo("happy", HAPPY_HOLD_MS);
       schedule(SHOW_CHAT_MIN_MS + Math.random() * (SHOW_CHAT_MAX_MS - SHOW_CHAT_MIN_MS));
+    },
+    // 被戳：先羞一下（戳得勤就闹别扭），隔两秒才回一句 —— 连点不该刷屏；
+    // 卡片正拎在手上、飘去隔壁时自然不该开口（那会儿它正被搬着走）
+    poke: (card) => {
+      holdEmo(host.tapBurst() ? "sulky" : "shy", SHY_HOLD_MS);
+      const now = Date.now();
+      if (now - lastPokeAt < POKE_GAP_MS) return;
+      if (!host.visible() || !host.canPoke()) return;
+      lastPokeAt = now;
+      showSpeech(card.id, pickLine(card, "poke"));
     },
     scheduleNext: () => schedule(nextChatDelay()),
     refreshMood,
