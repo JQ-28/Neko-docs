@@ -26,6 +26,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { markEgg } from "./egg-utils";
+import { chineseNumber } from "./live-lines";
 
 const ENDPOINT = "/api/online";
 /** 心跳间隔，与后端判定「掉线」的窗口配套：后端容忍 3 次心跳的静默 */
@@ -34,6 +35,9 @@ const VISITOR_KEY = "neko-visitor-id";
 const REQUEST_TIMEOUT_MS = 5_000;
 
 const count = ref(0);
+/** 时间自己会走：人数没变时 computed 不会重算，跨过整点（例如 23:00 的深夜档）
+    就会一直停在白天那句，所以敲一个会变的数让时段相关的文案跟着刷新 */
+const clockTick = ref(0);
 
 /** 人数也往外抛一份：卡片说话时要拿真实的在线数当梗，不能自己编 */
 const emit = defineEmits<{ count: [value: number] }>();
@@ -75,45 +79,35 @@ function periodOfHour(hour: number): "night" | "morning" | "day" | "evening" {
   return "evening";
 }
 
-/** 小卡片上写「3 只猫」不如「三只猫」顺口 */
-function chineseNumber(value: number): string {
-  const digits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
-  if (value < 10) return digits[value];
-  if (value < 20) return value === 10 ? "十" : `十${digits[value % 10]}`;
-  if (value < 100) {
-    const tens = Math.floor(value / 10);
-    const rest = value % 10;
-    return `${digits[tens]}十${rest === 0 ? "" : digits[rest]}`;
-  }
-  return String(value);
-}
-
 // 换个时段就换个说法，同一个小网站早中晚读起来不一样
+const period = computed(() => {
+  // 读一下这个会变的数：人数一直不变时，跨过时段边界也要能重算
+  void clockTick.value;
+  return periodOfHour(new Date().getHours());
+});
+
 const baseHeadline = computed(() => {
   const total = count.value;
   if (total <= 0) return "";
 
-  const period = periodOfHour(new Date().getHours());
   const words = chineseNumber(total);
   if (total === 1) {
-    if (period === "night") return "就剩你一只猫还没睡";
-    if (period === "morning") return "你是今天头一只来的猫";
-    if (period === "evening") return "傍晚就你一只猫在看";
+    if (period.value === "night") return "就剩你一只猫还没睡";
+    if (period.value === "morning") return "这么早就你一只猫在逛";
+    if (period.value === "evening") return "傍晚就你一只猫在看";
     return "现在就你一只猫在逛这个小网站";
   }
 
-  if (period === "night") return `深夜还有${words}只猫没睡`;
-  if (period === "morning") return `早起的${words}只猫已经在逛了`;
-  if (period === "evening") return `傍晚有${words}只猫在这儿`;
+  if (period.value === "night") return `深夜还有${words}只猫没睡`;
+  if (period.value === "morning") return `早起的${words}只猫已经在逛了`;
+  if (period.value === "evening") return `傍晚有${words}只猫在这儿`;
   return `现在有${words}只猫在逛这个小网站`;
 });
 
 const headline = computed(() => hint.value || baseHeadline.value);
 
 // 夜深了，整个站上只剩你一只猫在逛
-const aloneLateNight = computed(
-  () => count.value === 1 && periodOfHour(new Date().getHours()) === "night"
-);
+const aloneLateNight = computed(() => count.value === 1 && period.value === "night");
 
 watch(aloneLateNight, (alone) => {
   if (alone) markEgg("onlineAlone");
@@ -155,12 +149,15 @@ let timer: number | undefined;
 let arriveTimer = 0;
 let idleTimer = 0;
 let inFlight = false;
+/** 正在途中的那次心跳：卸载时得中断，不然 SPA 里来回切页会留下没人管的请求 */
+let beatController: AbortController | null = null;
 
 async function beat(): Promise<void> {
   if (inFlight) return;
   inFlight = true;
 
   const controller = new AbortController();
+  beatController = controller;
   const abortTimer = window.setTimeout(
     () => controller.abort(),
     REQUEST_TIMEOUT_MS
@@ -182,6 +179,8 @@ async function beat(): Promise<void> {
     // 统计坏掉不该影响页面，静默失败，等下一次心跳自愈
   } finally {
     window.clearTimeout(abortTimer);
+    // 卸载时已经把记号撤了，这里别把它写回一个已作废的 controller
+    if (beatController === controller) beatController = null;
     inFlight = false;
   }
 }
@@ -196,7 +195,10 @@ onMounted(() => {
   void beat();
   scheduleIdleMove();
   timer = window.setInterval(() => {
-    if (!document.hidden) void beat();
+    // 时段文案靠它跟着钟走；后台时不敲，反正也看不见
+    if (document.hidden) return;
+    clockTick.value = Date.now();
+    void beat();
   }, HEARTBEAT_MS);
   document.addEventListener("visibilitychange", handleVisibilityChange);
 });
@@ -207,6 +209,9 @@ onBeforeUnmount(() => {
   window.clearTimeout(arriveTimer);
   window.clearTimeout(idleTimer);
   document.removeEventListener("visibilitychange", handleVisibilityChange);
+  // 卸载时把在途的那次心跳掐掉：组件走了，回来的响应也没人要了
+  beatController?.abort();
+  beatController = null;
 });
 </script>
 

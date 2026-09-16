@@ -10,7 +10,8 @@ import type { CardSpec } from "./live-peer";
 export interface PlayScript {
   /** 与样式里 data-play 的取值对应 */
   name: string;
-  /** 播放时长，与 keyframes 对齐，到点收工 */
+  /** 播放时长 = 样式里那条动画的时长 + 它的延迟（右边那只常常慢半拍），到点收工。
+      对不齐就两种毛病：动作还没走完就被掐掉，或者演完了卡片还僵一会儿 */
   durationMs: number;
   /** 顺带让两只猫各歪一次头，像在互相打量 */
   withPeek: boolean;
@@ -23,18 +24,18 @@ export interface PlayScript {
 export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "meet", durationMs: 1500, withPeek: true },
   { name: "bump", durationMs: 1700, withPeek: true },
-  { name: "hop", durationMs: 1300, withPeek: false },
+  { name: "hop", durationMs: 1400, withPeek: false },
   { name: "chase", durationMs: 1800, withPeek: false },
   { name: "peek", durationMs: 1400, withPeek: true },
   { name: "pounce", durationMs: 2400, withPeek: false },
   { name: "knock", durationMs: 2600, withPeek: false },
   { name: "tag", durationMs: 3200, withPeek: false },
-  { name: "roll", durationMs: 2800, withPeek: true },
+  { name: "roll", durationMs: 2750, withPeek: true },
   { name: "swap", durationMs: 3200, withPeek: true },
   { name: "mirrorStep", durationMs: 3000, withPeek: false },
   // 多拍子的日常：不是「A 动一下、B 动一下」就完，而是来回好几个回合，久看不厌。
-  // 这几段的位移只按 --play-gap（两张卡的相对间距）算，不用 --play-span，
-  // 所以横排竖排都成立 —— 手机上无非幅度小一点
+  // 这几段的位移只按 --play-gap（两张卡的相对间距）算，不跨屏，所以窄屏也甩不出去；
+  // 但走的是横轴 —— 竖排（两张卡上下摞着）时「凑近」会变成横向错开，这一段待修（别照抄这几条）
   { name: "nuzzle", durationMs: 4200, withPeek: false },
   { name: "leanNap", durationMs: 6500, withPeek: false },
   { name: "shareBite", durationMs: 4800, withPeek: false },
@@ -45,7 +46,7 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "makeUp", durationMs: 4400, withPeek: false },
   { name: "lean", durationMs: 1800, withPeek: false, byLineOnly: true },
   { name: "pass", durationMs: 1600, withPeek: false, byLineOnly: true },
-  { name: "mimic", durationMs: 1800, withPeek: false, byLineOnly: true },
+  { name: "mimic", durationMs: 1950, withPeek: false, byLineOnly: true },
   { name: "lookOut", durationMs: 2000, withPeek: false, byLineOnly: true },
   { name: "circle", durationMs: 4500, withPeek: false, big: true },
   { name: "crossPlay", durationMs: 7000, withPeek: false, big: true },
@@ -82,9 +83,10 @@ const SOLO_RETRY_MS = 12_000;
 /** 特别节目之间至少隔这么久，不然就成蹦迪了 */
 const BIG_MIN_GAP_MS = 8 * 60_000;
 const BIG_MAX_GAP_MS = 12 * 60_000;
-/** 横排时大编舞要横着跨过对方，窗口太窄会撞到屏幕边被裁掉，所以要够宽。
-    手机上两张卡是上下摞着的，样式那边会换成上下走的版本，不受这条限制 */
-const BIG_MIN_VIEWPORT = 880;
+/** 特别节目要横跨对方：舞台两边至少得留出这么多余地，跨过去才看得出名堂。
+    余量由 HomeLive 现量（量的是屏幕边到卡片的实际距离），不够时不是一刀切不演，
+    而是把幅度按实测缩下来 —— 手机上那几段就是这么演上的；缩到这个份上就算了 */
+const BIG_MIN_SPAN = 120;
 /** 到点了但台面正被占着（多半是在说话）：过这么久再来看一眼，不让它一等又是一整轮 */
 const BIG_RETRY_MS = 90_000;
 
@@ -132,6 +134,10 @@ export interface ShowHost {
   onFinished?: () => void;
   /** 要演大编舞了，这会儿台面空着吗（正在说话就先别演） */
   bigReady?: () => boolean;
+  /** 现量一次「跨过对方」还剩多少余地（顺手把量到的值写到槽位给动画用）。
+      大编舞靠它判断能不能演：余量小不是不演，而是幅度跟着缩小。
+      没实现就当作任意宽，按老规矩演 */
+  measureSpan?: () => number;
 }
 
 export interface LiveShow {
@@ -325,17 +331,6 @@ export function useLiveShow(host: ShowHost): LiveShow {
     }, delayMs);
   }
 
-  /** 眼下两张卡是上下摞着的吗（手机上、窄窗口都是）：是的话大编舞走上下走的版本，
-      横向位移那一套在竖排布局里会把卡片直接推出屏幕 */
-  function isStackedLayout(): boolean {
-    const cards = host.cards();
-    if (cards.length !== PLAY_CARDS) return false;
-    const first = host.slotOf(cards[0].id);
-    const second = host.slotOf(cards[1].id);
-    if (!first || !second) return false;
-    return Math.abs(first.offsetTop - second.offsetTop) > first.offsetHeight / 2;
-  }
-
   /** 此时此刻凑得齐两张、也有人在看吗 */
   function canPlay(): boolean {
     // 页面切到后台就别演了：没人看的动画白烧电
@@ -372,14 +367,15 @@ export function useLiveShow(host: ShowHost): LiveShow {
     window.clearTimeout(bigTimer);
     bigTimer = window.setTimeout(() => {
       // 台面这会儿不空：正在说话、手拎着卡、页切后台、上一段还没演完，
-      // 或者横排着而窗口太窄（竖排时换成上下走的版本，多窄都能演）
+      // 或者舞台两边剩下的地方不够跨过去（不是按窗口宽度一刀切：幅度会按实测缩）。
+      // 量余地被排到最后：它要写槽位上的实测值，得挑台面干净的时候量
       const busy =
         holding ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-        (!isStackedLayout() && window.innerWidth < BIG_MIN_VIEWPORT) ||
         !canPlay() ||
         isPlaying() ||
-        !(host.bigReady?.() ?? true);
+        !(host.bigReady?.() ?? true) ||
+        (host.measureSpan?.() ?? Number.POSITIVE_INFINITY) < BIG_MIN_SPAN;
       if (busy) {
         // 只是暂时让一让，过会儿再来问，别白等满一整轮 8–12 分钟
         scheduleBig(BIG_RETRY_MS);

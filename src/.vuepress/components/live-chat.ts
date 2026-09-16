@@ -33,8 +33,10 @@ export const GREETING_REPLY_MS = 1800;
 const CHAT_MIN_MS = 20_000; const CHAT_MAX_MS = 45_000;
 /** 对话里两句之间最少隔多久：上一句的气泡刚收，下一句就接上 */
 const CHAT_TURN_MS = 2400;
-/** 上一句太长时最多等这么久，别把整段对话拖成慢动作 */
-const CHAT_TURN_MAX_MS = 4600;
+/** 上一句太长时最多等这么久，别把整段对话拖成慢动作。
+    气泡只有一份，下一句一开口上一句就没了，所以这个间隔就是气泡的实际可见时长：
+    上限得让最长的那句话（40 字，6800ms）也读得完，否则它会被下一句提前掐掉 */
+const CHAT_TURN_MAX_MS = 7000;
 /** 刚被人拎着玩过，隔这么久就嘀咕两句，趁这事还新鲜 */
 const DRAG_CHAT_MIN_MS = 6_000;
 const DRAG_CHAT_MAX_MS = 13_000;
@@ -50,6 +52,8 @@ const ACT_FALLBACK_MS = 6_000;
 const ONCE_GAP_MS = 10 * 60_000;
 /** 正赶上某种心情时，单句台词有多大概率从心情池里挑 */
 const MOOD_CHANCE = 0.55;
+/** 哪些场合会拿心情池里的单句：独处、搭话、被拎起来、落地 —— 成段对话有自己的编排 */
+const MOOD_SPEECH_TYPES: readonly (keyof SpeechLines)[] = ["solo", "idle", "drag", "arrive"];
 /** 有即兴档可说的话时先说它的概率，以及两回之间至少隔多久（不然会揪着同一个数字反复报） */
 const IMPROV_CHANCE = 0.6;
 const IMPROV_GAP_MS = 6 * 60_000;
@@ -136,6 +140,8 @@ export interface LiveTalk {
   markPlayed(): void;
   /** 重整下一次说话的排期（挂载、卡片数变了时调） */
   scheduleNext(): void;
+  /** 重算一次眼下的心情（时段跨档、卡片数变了时调）：名字下的小字与状态灯照它变 */
+  refreshMood(): void;
   /** 中间插的那段戏演完了：接着往下说，返回是否真的接上了 */
   actDone(): boolean;
 }
@@ -155,6 +161,12 @@ interface PendingTurn {
   readonly index: number;
   readonly run: number;
   readonly previous: string;
+}
+
+/** 一档即兴：台词已经按此刻的数字拼好了，角色也在手上的卡里验过 */
+interface ReadyImprov {
+  readonly key: string;
+  readonly turns: readonly ChatTurn[];
 }
 
 /** 几点算什么时候：跟在线猫卡片的分法一致，傍晚以后单独算一档 */
@@ -292,14 +304,24 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     return mood.value;
   }
 
+  /** 重算一次眼下的心情并写回 mood（状态灯与名字下的小字都读它）。
+      时段跨档（跨过 23:00 / 17:00）、卡片只剩一张这些事不能等到下一轮说话才算；
+      同值不写：Vue 的 ref 收到同一个值不会触发更新，状态灯上的 --live-beat 也就不会被重启 */
+  function refreshMood(): void {
+    currentEmo(host.cards().length);
+  }
+
   /** 话长就多挂一会儿 */
   function speechLingerMs(line: string): number {
     return Math.max(SPEECH_LINGER_MS, line.length * SPEECH_CHAR_MS);
   }
 
-  /** 下一句等多久再说：上一句长就先让它读完，不然刚出口就被顶掉了 */
+  /** 下一句等多久再说：气泡只有一份，下一句一执行，上一句的气泡立刻就没，
+      所以这个间隔就是气泡的实际可见时长 —— 至少得等于这一句自己的停留时长，
+      长句才真能读完（原来的 0.75 倍等于把长句的气泡凭空掐掉两成多）。
+      短句仍由 CHAT_TURN_MS 兜底，整段对话的节奏不受影响 */
   function turnGapMs(line: string): number {
-    return Math.min(Math.max(speechLingerMs(line) * 0.75, CHAT_TURN_MS), CHAT_TURN_MAX_MS);
+    return Math.min(Math.max(speechLingerMs(line), CHAT_TURN_MS), CHAT_TURN_MAX_MS);
   }
 
   /** 让某张卡冒一句话，过一会儿自己收（同一时刻只有一张卡在说话） */
@@ -316,14 +338,21 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     }, speechLingerMs(line));
   }
 
-  /** 从这张卡的池子里挑一句；自己待着或顺口搭话时，先照着眼下的心情说 */
+  /** 跨窗口搬来的卡片带的是外来的种类：认不出就退回猫卡那套池子。
+      宁可说错一句，也不能在取池时抛异常 —— 异常落在定时器回调里，
+      说话这条排期链就再也接不上了（首页从此不再开口） */
+  function speechPool(kind: string, type: keyof SpeechLines): readonly string[] {
+    const pools = SPEECH_LINES[kind as CardSpec["kind"]] ?? SPEECH_LINES.neko;
+    return pools[type] ?? SPEECH_LINES.neko[type];
+  }
+
+  /** 从这张卡的池子里挑一句；自己待着、顺口搭话、被拎起来、落地时，先照着眼下的心情说 */
   function pickLine(card: CardSpec, type: keyof SpeechLines): string {
-    const moodPool =
-      type === "solo" || type === "idle"
-        ? MOOD_LINES[card.kind][currentEmo(host.cards().length)]
-        : undefined;
-    const pool =
-      moodPool && Math.random() < MOOD_CHANCE ? moodPool : SPEECH_LINES[card.kind][type];
+    const moods = MOOD_LINES[card.kind] ?? MOOD_LINES.neko;
+    const moodPool = MOOD_SPEECH_TYPES.includes(type)
+      ? moods[currentEmo(host.cards().length)]
+      : undefined;
+    const pool = moodPool && Math.random() < MOOD_CHANCE ? moodPool : speechPool(card.kind, type);
     const line = pickByFreshness(pool, (item) => item, lastLine.get(card.id) ?? "");
     lastLine.set(card.id, line);
     markSaid(line);
@@ -410,25 +439,34 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     return picked;
   }
 
+  /** 这一段里的角色，眼下这几张卡都有人能说吗：
+      纯猫卡的窗口摇中带在线猫台词的那一档，speakerFor 会返回 null，整段就白挑了 */
+  function castFits(turns: readonly ChatTurn[]): boolean {
+    const kinds = new Set(host.cards().map((card) => card.kind));
+    return turns.every((turn) => kinds.has(turn.by));
+  }
+
   /** 即兴档：台词里要现读真实数字（在线几只、你盯了多久、今天第几次来）。
       说过一次要歇一阵，否则会揪着同一个数字反复报 */
   function pickImprov(mood: ChatMood): PickedChat | null {
     const now = Date.now();
     if (now - lastImprovAt < IMPROV_GAP_MS) return null;
 
-    const ready = CHAT_IMPROV.map((improv, index) => ({ improv, key: `improv:${index}` })).filter(
-      (item) => item.improv.when(mood)
-    );
+    // 台词是拿此刻的数字现拼的，挑之前先拼一遍：数字不成立（返回 null）、
+    // 或者这一段里的角色在手头这几张卡里没人能说，都直接出局
+    const ready = CHAT_IMPROV.flatMap((improv, index): ReadyImprov[] => {
+      if (!improv.when(mood)) return [];
+      const turns = improv.lines(mood);
+      if (!turns || turns.length === 0 || !castFits(turns)) return [];
+      return [{ key: `improv:${index}`, turns }];
+    });
     if (ready.length === 0 || Math.random() >= IMPROV_CHANCE) return null;
 
     const picked = pickByFreshness(ready, (item) => item.key, lastChatKey);
-    const turns = picked.improv.lines(mood);
-    if (!turns || turns.length === 0) return null;
-
     lastImprovAt = now;
     lastChatKey = picked.key;
     markSaid(picked.key);
-    return { turns };
+    return { turns: picked.turns };
   }
 
   /** 这一句该谁张嘴：要那种卡，而且尽量别跟上一位是同一张 */
@@ -552,8 +590,12 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   function schedule(delayMs: number): void {
     window.clearTimeout(chatTimer);
     chatTimer = window.setTimeout(() => {
-      if (host.visible() && host.ready()) startChat();
-      schedule(nextChatDelay());
+      try {
+        if (host.visible() && host.ready()) startChat();
+      } finally {
+        // 不管这一轮出了什么事，排期链都得接上：这里断了，首页就再也不说话了
+        schedule(nextChatDelay());
+      }
     }, delayMs);
   }
 
@@ -596,6 +638,9 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       chatRun += 1;
       // 正在等戏的那半截也算废掉，别一会儿又冒出来
       abortTurn();
+      // 这段不说了，把台面还回去：不还的话 holding 会一直为真，
+      // 独处小动作（12 秒重试）与特别节目（90 秒重试）被永久压住，直到下一次拖拽才自愈
+      host.releaseShow();
     },
     scheduleAfterGreeting: () => schedule(GREETING_REPLY_MS + nextChatDelay()),
     isChatting: () => speakingId.value !== "" || turnPending || pending !== null,
@@ -611,6 +656,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       schedule(SHOW_CHAT_MIN_MS + Math.random() * (SHOW_CHAT_MAX_MS - SHOW_CHAT_MIN_MS));
     },
     scheduleNext: () => schedule(nextChatDelay()),
+    refreshMood,
     actDone: resumePending,
   };
 }

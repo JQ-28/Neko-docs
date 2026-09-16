@@ -7,6 +7,11 @@ import { EGG_THRESHOLDS } from "./neko-shared-eggs";
 /** 拎到屏幕边上就停下，别把页面顶出横向滚动条。卡片拖起来会带上倾斜和放大，
     包围盒比原尺寸宽一圈，所以留的余量要够 */
 export const DRAG_MARGIN = 16;
+/** 手指拎起来时卡片往上浮多少：手指肚正好会盖住要丢的地方 */
+export const DRAG_LIFT_PX = 30;
+/** 顶边的余量：拎起来的那张浮在手指上方，上沿得按浮起来的高度留，
+    否则一路往窗口顶部拖时卡片上沿会被裁掉一截（左右两侧不受影响） */
+export const DRAG_TOP_MARGIN = Math.max(DRAG_MARGIN, DRAG_LIFT_PX);
 /** 贴着边松手就当扔出去，但得先真的拖动过，轻轻一碰就贴边不算数 */
 export const PRESS_MIN_TRAVEL_PX = 56;
 /** 拎到窗口边上还能再往外推这么远，推过线就交给隔壁窗口 */
@@ -100,7 +105,9 @@ export function pressedEdge(state: DragState): LiveEdge | null {
     minX,
     window.innerWidth - DRAG_MARGIN - state.baseLeft - state.width
   );
-  const minY = DRAG_MARGIN - state.baseTop;
+  // 手指拎的这张浮在手指上方，顶边那条线得跟着浮上去，不然它永远够不到顶边
+  //（limitShift 那边留的余量与此处同一个数，两处必须一致）
+  const minY = (state.touch ? DRAG_TOP_MARGIN : DRAG_MARGIN) - state.baseTop;
   const maxY = Math.max(
     minY,
     window.innerHeight - DRAG_MARGIN - state.baseTop - state.height

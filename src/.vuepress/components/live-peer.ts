@@ -118,7 +118,15 @@ export interface PeerLink {
 const CHANNEL_NAME = "neko-live";
 /** 心跳间隔，以及多久没动静就当对面关了 */
 const BEAT_MS = 4000;
-const PEER_TIMEOUT_MS = 12_000;
+/**
+ * 切到后台的标签页会被浏览器节流，Chrome 的 intensive throttling 下定时器大约一分钟才跑一次，
+ * 所以超时只能按「最坏情况下多久还能听到一次」算，不能按丢了几次心跳算：
+ * 12 秒会把一个还活着的后台窗口判成关掉了，按该死窗口把它的卡收走，
+ * 而它手里那张借住的卡那边早就不认了，卡就永久消失，只能刷新页面。
+ * 90 秒盖得住节流下界还留了余量；故意不取 BEAT_MS 的整数倍 ——
+ * 取整会让所有前台窗口的心跳跟判死时刻对齐，一丢包就成片误判
+ */
+const PEER_TIMEOUT_MS = 90_000;
 /**
  * 窗口被搬动时浏览器不给任何事件，只能隔一阵看一眼坐标变没变。
  * 1 秒一次读两个属性，开销可以忽略，摆好窗口对面的排位就跟上了
@@ -149,7 +157,9 @@ interface PeerRecord {
 }
 
 function randomId(): string {
-  return Math.random().toString(36).slice(2, 10);
+  // Math.random() 恰好摇出 0 时会截出空串；窗口 id 空掉的话，卡片 id 认不出出生窗口，
+  // 窗口一关那些卡就没人回收了，所以兜一个短词
+  return Math.random().toString(36).slice(2, 10) || "peer";
 }
 
 /** 卡片是谁生的：id 形如 `<出生窗口id>-<种类>`,窗口 id 里不含短横线 */
@@ -166,6 +176,34 @@ function plainPoint(point: RoamPoint): RoamPoint {
   return { card: plainCard(point.card), x: point.x, y: point.y };
 }
 
+/**
+ * 卡片形状闸：消息是别的窗口发来的，字段对不对全看对面。
+ * 收下一张 kind 认不出的卡会被渲染出来，之后挑台词时按 kind 取台词池必抛，
+ * 而异常点在定时器回调里，排期那一步就到不了 —— 表现是首页再也不说话（只会偶尔恢复一次又抛）
+ */
+function isCardSpec(value: unknown): value is CardSpec {
+  if (!value || typeof value !== "object") return false;
+  const card = value as Partial<CardSpec>;
+  return (
+    typeof card.id === "string" &&
+    card.id.length > 0 &&
+    (card.kind === "neko" || card.kind === "online")
+  );
+}
+
+/** 落点闸：坐标不是有限数字就换算不到本窗口，落点算不出来画不出卡，也没必要往下传 */
+function isRoamPoint(value: unknown): value is RoamPoint {
+  if (!value || typeof value !== "object") return false;
+  const point = value as Partial<RoamPoint>;
+  return (
+    isCardSpec(point.card) &&
+    typeof point.x === "number" &&
+    Number.isFinite(point.x) &&
+    typeof point.y === "number" &&
+    Number.isFinite(point.y)
+  );
+}
+
 /** 消息通道：优先用原生 BroadcastChannel，不行就退回 localStorage + storage 事件 */
 interface Wire {
   /** 高频位置消息撑不撑得住：BroadcastChannel 撑得住，localStorage 每写一次都要落盘不行 */
@@ -177,7 +215,15 @@ interface Wire {
 function createWire(onMessage: (message: LiveMessage) => void): Wire | null {
   if (typeof BroadcastChannel !== "undefined") {
     const channel = new BroadcastChannel(CHANNEL_NAME);
-    channel.onmessage = (event: MessageEvent<LiveMessage>) => onMessage(event.data);
+    channel.onmessage = (event: MessageEvent<LiveMessage>) => {
+      // 跟 localStorage 那条路对齐：别人发的消息格式不对就当没收到，
+      // 异常冒到事件回调外面会顺着定时器一路带崩首页的排期
+      try {
+        onMessage(event.data);
+      } catch {
+        /* 脏消息直接丢 */
+      }
+    };
     return {
       live: true,
       post: (message) => {
@@ -285,6 +331,13 @@ export function startPeerLink(): PeerLink {
   let held: CardSpec[] = [...bornCards];
 
   const peers = new Map<string, PeerRecord>();
+  /**
+   * 扔出去还没等到回执的卡：卡 id → 目标窗口 id。
+   * 交接是「这边先摘卡 + 喊一声」，对面收没收到没法立刻知道，
+   * 目标窗口要是已经死了（还没到判死时刻），卡就谁都不要了；
+   * 靠这一笔在手，等它被判死时照出生窗口收回来
+   */
+  const outbox = new Map<string, string>();
   const handoffListeners: Array<(payload: HandoffPayload) => void> = [];
   const goneListeners: Array<(id: string) => void> = [];
   const incomingListeners: Array<(edge: LiveEdge) => void> = [];
@@ -308,6 +361,8 @@ export function startPeerLink(): PeerLink {
 
   /** 收下一张卡（搬家搬来的，或者主人没了被收回来的） */
   function holdCard(card: CardSpec, point?: { x: number; y: number }): void {
+    // 形状对不上的一律不收：收下来就会被渲染，之后按 kind 取台词池必抛，说话就永久停摆了
+    if (!isCardSpec(card)) return;
     if (held.some((item) => item.id === card.id)) return;
     held = [...held, plainCard(card)];
     syncCards();
@@ -343,8 +398,13 @@ export function startPeerLink(): PeerLink {
     syncSides();
     // 它生的卡随它一起消失，不管现在住在谁家
     held.filter((card) => bornOf(card.id) === id).forEach((card) => dropCard(card.id));
+    // 扔给它但还没等到回执的卡，对它来说也算家当：先销账，再跟它上报的家当并成一份回收清单
+    const unconfirmed = [...outbox]
+      .filter(([, target]) => target === id)
+      .map(([cardId]) => cardId);
+    unconfirmed.forEach((cardId) => outbox.delete(cardId));
     // 它手里别人的卡失去了主人，各自的出生窗口负责收回去
-    reclaim(cards && cards.length > 0 ? cards : record.cards);
+    reclaim([...(cards && cards.length > 0 ? cards : record.cards), ...unconfirmed]);
     goneListeners.forEach((listener) => listener(id));
   };
 
@@ -366,6 +426,18 @@ export function startPeerLink(): PeerLink {
       else if (y > self.y + self.h) sides.below += 1;
     }
 
+    // 四个数字跟上次一样就别换新对象：peerSides 是外面 computed 的依赖，
+    // 每 4 秒发一次心跳都换一个引用，对面那头的 computed 就跟着白算一遍
+    const current = peerSides.value;
+    if (
+      current.left === sides.left &&
+      current.right === sides.right &&
+      current.above === sides.above &&
+      current.below === sides.below
+    ) {
+      return;
+    }
+
     peerSides.value = sides;
   }
 
@@ -374,13 +446,20 @@ export function startPeerLink(): PeerLink {
 
     if (message.kind === "hello") {
       const peer = message.peer;
-      if (!peer || peer.id === selfId) return;
+      // 自我介绍缺 id 就当没这回事：后面数四周邻居、按 id 排接力顺序都要用字符串 id
+      if (!peer || typeof peer.id !== "string" || peer.id === selfId) return;
       const known = peers.has(peer.id);
       peers.set(peer.id, {
         info: peer,
         seen: Date.now(),
         cards: Array.isArray(message.cards) ? message.cards : [],
       });
+      // 它这条心跳报到了我扔过去的那张卡，说明交接成了，不用再惦记它
+      if (Array.isArray(message.cards)) {
+        message.cards.forEach((cardId) => {
+          if (outbox.get(cardId) === peer.id) outbox.delete(cardId);
+        });
+      }
       peerCount.value = peers.size;
       syncSides();
       // 万一两边都以为同一张卡在自己手上（消息丢了才会发生），按窗口 id 定：
@@ -416,12 +495,15 @@ export function startPeerLink(): PeerLink {
     // 隔壁的卡正飘着，谁的地盘谁把它画出来；发起方不用看自己那条
     if (message.kind === "roam") {
       if (message.from === selfId) return;
+      // 落点缺数字的话外面换算不出窗口坐标，画不出还会一路带着 NaN 走下去
+      if (!isRoamPoint(message.point)) return;
       roamListeners.forEach((listener) => listener(message.point));
       return;
     }
 
     // 松手了，这张卡搬到哪扇窗口就归哪扇窗口渲染
     if (message.kind === "move") {
+      if (!isRoamPoint(message.point)) return;
       if (message.to === selfId) holdCard(message.point.card, message.point);
       return;
     }
@@ -429,12 +511,17 @@ export function startPeerLink(): PeerLink {
     if (message.kind === "handoff") {
       // 递卡是点名给某个窗口的，别人收到只当没看见
       if (message.to !== selfId) return;
+      if (!isCardSpec(message.payload?.card)) return;
+      // 跟 move 一样得先把卡收进自己的家当：外面是照卡片列表找槽位再滑进来的，
+      // 列表里没有这张卡就查不到，整段动画直接 return —— 看着就像卡弹回了原位
+      holdCard(message.payload.card);
       handoffListeners.forEach((listener) => listener(message.payload));
     }
   }
 
   wire = createWire(handleMessage);
-  if (!wire) return createIdleLink();
+  // 通道两条路都走不通（隐私模式 / 禁存储的 iframe）：静默降级成单机卡片，别让首页整块挂掉
+  if (!wire) return idlePeerLink();
   const activeWire = wire;
   syncCards();
 
@@ -443,6 +530,10 @@ export function startPeerLink(): PeerLink {
     [...peers.entries()].forEach(([id, record]) => {
       if (now - record.seen > PEER_TIMEOUT_MS) dropPeer(id);
     });
+    // 一个邻居都没有时没人听我报家当，别再空转心跳（localStorage 那条路等于每 4 秒写一次盘）。
+    // 认邻居不靠这里：新窗口开窗时会自己喊一声，我按"头一次见"回它一嗓子；
+    // 后台被节流睡过去的窗口醒来时也会 refresh 一次
+    if (peers.size === 0) return;
     postHello();
   }, BEAT_MS);
 
@@ -545,18 +636,26 @@ export function startPeerLink(): PeerLink {
     sendRoam: (point) => post({ kind: "roam", from: selfId, point: plainPoint(point) }),
     onRoam: (listener) => roamListeners.push(listener),
     sendMove: (target, point) => {
+      // 先记一笔「这张卡扔给谁了」，对面收下之前它就一直挂在账上：
+      // 目标窗口要是已经死了还没被判死，等判死那一刻照这一笔把卡收回来，不然卡就永久消失
+      outbox.set(point.card.id, target);
       post({ kind: "move", from: selfId, to: target, point: plainPoint(point) });
       dropCard(point.card.id);
     },
     onCardArrive: (listener) => arriveListeners.push(listener),
     onCardLeave: (listener) => leaveListeners.push(listener),
-    sendHandoff: (target, payload) =>
+    sendHandoff: (target, payload) => {
+      // 跟 sendMove 对称：对面得先把卡收进家当，动画才找得到槽位；
+      // 这边也得真把卡摘掉，不然卡会同时挂在两边的列表里
+      outbox.set(payload.card.id, target);
       post({
         kind: "handoff",
         from: selfId,
         to: target,
         payload: { ...payload, card: plainCard(payload.card) },
-      }),
+      });
+      dropCard(payload.card.id);
+    },
     onHandoff: (listener) => handoffListeners.push(listener),
     onPeerGone: (listener) => goneListeners.push(listener),
     stop: () => {
@@ -574,6 +673,7 @@ export function startPeerLink(): PeerLink {
       arriveListeners.length = 0;
       leaveListeners.length = 0;
       peers.clear();
+      outbox.clear();
       peerCount.value = 0;
       peerSides.value = { ...NO_PEER_SIDES };
       cards.value = [];
