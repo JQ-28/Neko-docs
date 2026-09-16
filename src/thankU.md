@@ -186,6 +186,8 @@ html.dark .name-card { color: #e6e8ee; }
 # 感谢名单 <img class="title-ico" src="https://api.iconify.design/mdi:heart-multiple.svg?color=%23f9bdeb" alt="heart">
 
 :::info 致赞助者
+她 2022 年 2 月 22 日出生，到今天已经陪大家走过四年多。名单上的每一个昵称，都是这段路上真实出现过的人。
+
 谢谢你们。
 
 Neko 的电费、网费、话费一直是 JQ 自己扛着的，日复一日。你们帮的这一把，实实在在让她能接着跑下去 —— 具体够她跑多久，我没敢细算，怕算完又想去找份活干（笑）。
@@ -220,6 +222,8 @@ Neko 的电费、网费、话费一直是 JQ 自己扛着的，日复一日。�
 ***
 
 ## 赞助者名单
+
+排名不分先后 —— 这份名单只是按我手上记录的顺序排的 ww
 
 <div class="names-grid">
   <div class="name-card glass-card"><img src="https://api.iconify.design/mdi:heart-outline.svg?color=%23f9bdeb" alt="">心燃</div>
