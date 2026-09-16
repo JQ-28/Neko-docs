@@ -474,6 +474,25 @@ function stopGlide(): void {
   glideSpeed = 0;
 }
 
+/** 把页面平平稳稳送到某一行，时长自己说了算。
+    不用原生的 scrollTo({ behavior: "smooth" })：浏览器按距离自己定快慢（四百来像素
+    两三百毫秒就冲到了），而卡片归位那 0.55 秒还在半路 —— 看起来就是「页面一闪、猫不见了」。
+    这儿让它跟卡片一个节奏走完，才是「猫往回跑、镜头一路跟着」 */
+function glidePageTo(top: number, durationMs: number): void {
+  stopGlide();
+  const from = window.scrollY;
+  if (Math.abs(top - from) < 2) return;
+  const started = performance.now();
+  const step = (now: number): void => {
+    const t = Math.min(1, (now - started) / durationMs);
+    // 先快后慢、末尾轻轻靠住：与卡片归位那条缓动是同一个脾气
+    const eased = 1 - (1 - t) ** 3;
+    scrollWindowBy(from + (top - from) * eased - window.scrollY);
+    glideFrame = t < 1 ? window.requestAnimationFrame(step) : 0;
+  };
+  glideFrame = window.requestAnimationFrame(step);
+}
+
 /** 每张卡自己那个「灯还亮着」的计时器：连着戳时要把上一个撤掉，不然会一闪一闪 */
 const tapTimers = new WeakMap<HTMLElement, number>();
 
@@ -1201,11 +1220,9 @@ function dropRelease(keepSpeech = false): void {
 /** 收拾拖拽现场：卡片被搬到隔壁窗口、或者落在落点上时用，都不留回弹 */
 function releaseDrag(keepSpeech = false): void {
   if (!drag) return;
-  drag.slot.style.translate = "";
-  drag.slot.style.rotate = "";
-  // 气泡朝哪边是跟着「卡片这会儿在屏幕哪儿」临时定的（见 syncBubbleSide）。上面这一清，
-  // 卡就回原位了，不再是贴顶那张 —— 属性要一起摘掉，不然它回原位后气泡还挂在下面
-  delete drag.slot.dataset.bubbleBelow;
+  // 位移、角度、气泡朝向一起收（就是 restoreCard 那套），顺带把归位这一路的层级抬起来 ——
+  // 松手回的如果是页面下方的原位，途中一样会被浮层盖住
+  restoreCard(drag.cardId);
   dropRelease(keepSpeech);
 }
 
@@ -1221,10 +1238,7 @@ function abortDrag(): void {
     // 猫正飘在隔壁的屏幕上：这张卡得放回来，不然它就永远留在对面了
     setRoaming(false, drag.cardId);
     // 位移与角度一并清掉：过渡会把卡片送回原位，不留下一帧甩出来的歪角
-    drag.slot.style.translate = "";
-    drag.slot.style.rotate = "";
-    // 气泡朝哪边也跟着回到默认（同上：卡不贴顶了，气泡就该挂回上面）
-    delete drag.slot.dataset.bubbleBelow;
+    restoreCard(drag.cardId);
   }
   // 释放指针捕获、清掉手上这张卡
   dropRelease();
@@ -1385,6 +1399,29 @@ function dropLine(hit: DropHit, card: CardSpec): string {
   return dropLineFor(card.kind, kind);
 }
 
+/** 卡片归位那一下的时长（与 .home-live-slot 上 translate 的 0.55s 对齐）：
+    层级要等它走完才撤，页面也照着这个时长往回滚 */
+const RESTORE_TRANSITION_MS = 550;
+/** 每张卡「归位期间抬着层级」那笔收尾 */
+const zRestoreTimers = new Map<string, number>();
+
+/** 把这一格抬到页面浮层之上，等归位过渡走完再撤。
+    撤早了的话整段归位它都被页面里那些浮层盖着（贴着导航栏那一下尤其明显）——
+    用户看到的是「猫凭空不见了」，而不是「慢慢走回来」 */
+function keepSlotOnTop(slot: HTMLElement, cardId: string): void {
+  slot.style.zIndex = DROP_LINGER_Z;
+  window.clearTimeout(zRestoreTimers.get(cardId));
+  zRestoreTimers.set(
+    cardId,
+    window.setTimeout(() => {
+      zRestoreTimers.delete(cardId);
+      // 这中间它又停到别处、或者又被拎起来了：层级归那边管，这儿别乱撤
+      if (dropLingerCardId === cardId || drag?.cardId === cardId) return;
+      slot.style.zIndex = "";
+    }, RESTORE_TRANSITION_MS)
+  );
+}
+
 /** 把一张卡从「被收走」的动画里放出来：那两条动画都是 forwards 的，
     不主动把标记和行内位移清掉，这张卡就一直停在缩没的状态上 */
 function restoreCard(cardId: string): void {
@@ -1394,10 +1431,10 @@ function restoreCard(cardId: string): void {
   delete slot.dataset.retired;
   slot.style.translate = "";
   slot.style.rotate = "";
-  // 停在落点上时临时抬过层级（见 lingerAfterDrop），回位要一并还原
-  slot.style.zIndex = "";
   // 贴着屏幕顶时气泡临时翻到了下面（见 syncBubbleSide），回位也还原成默认朝上
   delete slot.dataset.bubbleBelow;
+  // 停在落点上时抬过层级（见 lingerAfterDrop），也要还原 —— 但得等它滑回原位再撤
+  keepSlotOnTop(slot, cardId);
 }
 
 /** 上一张还在被收走的路上的卡先复原（同一张卡重来时除外）：
@@ -1467,11 +1504,11 @@ function lingerAfterDrop(cardId: string, line: string): void {
     const lingering = dropLingerCardId;
     dropLingerTimer = 0;
     dropLingerCardId = "";
-    // 页面往回走（平滑滚动）与卡片归位（.home-live-slot 上那 0.55 秒过渡）同时开始：
+    // 页面往回走与卡片归位（.home-live-slot 上那 0.55 秒过渡）同时开始、同一个时长：
     // 看起来就是猫自己跑回家、镜头一路跟着它。落在视口上方三分之一处，
     // 卡片上面那句话气泡也一起进画面
     const home = Math.max(0, dropLingerHomeTop - window.innerHeight * 0.32);
-    if (Math.abs(window.scrollY - home) > 24) window.scrollTo({ top: home, behavior: "smooth" });
+    if (Math.abs(window.scrollY - home) > 24) glidePageTo(home, RESTORE_TRANSITION_MS);
     restoreCard(lingering);
   }, speechLingerMs(line) + DROP_LINGER_EXTRA_MS);
 }
@@ -1990,6 +2027,9 @@ onBeforeUnmount(() => {
   window.clearTimeout(topScrollTimer);
   // 停在落点上那笔「把话说完再回去」的收尾：组件都走了，别再回来动 DOM
   clearDropLinger();
+  // 归位期间抬着层级的那几笔收尾也一样
+  for (const timer of zRestoreTimers.values()) window.clearTimeout(timer);
+  zRestoreTimers.clear();
   // 组件走了就别再滚页面：拖拽中切页时循环可能正跑着
   stopEdgeScroll();
   stopGlide();
