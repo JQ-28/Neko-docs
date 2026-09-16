@@ -444,6 +444,7 @@ html.dark .home-live-roamer {
   scale: 1;
   transition: rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     scale 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    translate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     box-shadow 0.45s ease, border-color 0.3s ease;
   /* 浮动相位与在线卡错开，一上一下才像在互相招呼 */
   animation: home-live-in 0.44s cubic-bezier(0.22, 1, 0.36, 1),
@@ -598,11 +599,14 @@ html.dark .home-live-roamer {
   z-index: 1;
   padding: 2px;
   border-radius: inherit;
-  background: linear-gradient(120deg, #ffd6f5, #e2cdfb, #bfe4ff);
+  /* 首尾同色，好让这道边光能整圈循环流动（被摸头时见 neko-pat-shine） */
+  background: linear-gradient(120deg, #ffd6f5, #e2cdfb, #bfe4ff, #e2cdfb, #ffd6f5);
+  background-size: 200% 100%;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0.5;
+  transition: opacity 0.35s ease;
   pointer-events: none;
 }
 
@@ -621,6 +625,8 @@ html.dark .home-live-roamer {
   background: #f0e6f6;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transform-origin: 42% 82%;
+  /* 被摸头时往手那边歪一下（见下面的 [data-pat]） */
+  transition: rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   /* 头像不吃指针事件：手指按在头像上也算按着这张卡（否则安卓会把它当成「拖走这张图」，
      iOS 长按还会弹出「存储图像」那一套）。事件穿到卡片本体上，拖拽那几条判断才连得上 */
   pointer-events: none;
@@ -851,6 +857,42 @@ html.dark .home-live-avatar {
     border-color: rgba(255, 255, 255, 0.9);
     box-shadow: 0 15px 40px color-mix(in srgb, var(--vp-c-accent, #096dd9) 18%, transparent),
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+}
+
+/* 被摸头顶：鼠标不点不按、只是搁在卡面上摸来摸去（见 HomeLive 的 maybePat）。
+   卡片再抬起来一点、玻璃边亮起并慢慢流动、头像往手那边歪一下 ——
+   跟「指令速查」那些卡片被指到时的观感是一套，只是多一层「被摸到了」的意思 */
+.home-live-slot[data-pat] .home-live-card,
+.home-live-slot[data-pat] :deep(.home-online) {
+  translate: 0 -3px;
+}
+
+.home-live-slot[data-pat] .home-live-glass,
+.home-live-slot[data-pat] :deep(.home-online-glass) {
+  opacity: 1;
+  animation: neko-pat-shine 2.4s linear infinite;
+}
+
+.home-live-slot[data-pat] .home-live-avatar,
+.home-live-slot[data-pat] :deep(.home-online-avatar) {
+  rotate: -7deg;
+}
+
+@keyframes neko-pat-shine {
+  from {
+    background-position: 0% 50%;
+  }
+
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-live-slot[data-pat] .home-live-glass,
+  .home-live-slot[data-pat] :deep(.home-online-glass) {
+    animation: none;
   }
 }
 

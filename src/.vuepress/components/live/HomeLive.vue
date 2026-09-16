@@ -47,7 +47,7 @@
         :data-gesture="speakingId === card.id && speakingGesture ? speakingGesture : undefined"
         :data-mood="mood"
         @pointerdown="onPointerDown($event, card)"
-        @pointermove="onPointerMove"
+        @pointermove="onPointerMove($event, card)"
         @pointerup="onPointerUp"
         @pointercancel="onPointerCancel"
         @keydown="onSlotKeydown($event, card)"
@@ -1728,7 +1728,62 @@ function updateEdgeScroll(): void {
   edgeScrollFrame = requestAnimationFrame(edgeScrollStep);
 }
 
-function onPointerMove(event: PointerEvent): void {
+/** 在卡面上摸来摸去：指针累计挪过这么多像素才算「摸到头顶了」。
+    太小的话鼠标只是路过就被当成摸头，太大又得来回搓好几下才有反应 */
+const PAT_TRAVEL_PX = 80;
+/** 摸停手这么久就当人把手拿开了：卡片落回去，猫把头抬起来 */
+const PAT_IDLE_MS = 1_100;
+/** 两次采样隔过这么久就当中间手离开过（鼠标划出卡片再划回来，中间那段事件根本没派发到这儿）：
+    不这么判的话，出去一趟再回来，中间那一大截距离也会被算成「摸」 */
+const PAT_SAMPLE_GAP_MS = 200;
+
+/** 每张卡「还在被摸」的计时器：一直在摸就一直续着，停手到点才退回去 */
+const patTimers = new WeakMap<HTMLElement, number>();
+/** 这一轮攒了多少位移、上次采样落在哪一点与什么时候 */
+let patTravel = 0;
+let patFrom = { x: 0, y: 0 };
+let patAt = 0;
+
+/** 摸着的时候：卡片再抬起来一点、玻璃边亮起来慢慢流动、头像往手那边歪一下 ——
+    就是「指令速查」那些卡片被指到时的观感，只是多一层「被摸到了」的意思。
+    回话自己有间隔（见 live-chat 的 pat），手一直摸也不会一路念下去 */
+function startPat(slot: HTMLElement, card: CardSpec): void {
+  const began = slot.dataset.pat !== "true";
+  slot.dataset.pat = "true";
+  if (began) talk.pat(card);
+  window.clearTimeout(patTimers.get(slot));
+  patTimers.set(slot, window.setTimeout(() => delete slot.dataset.pat, PAT_IDLE_MS));
+}
+
+/** 鼠标悬在卡面上摸来摸去（不点不按）就当作在摸头。
+    只看真指针：触屏没有「悬停」这回事，手指按下去就已经是点或者拎了 */
+function maybePat(event: PointerEvent, card: CardSpec): void {
+  if (event.pointerType !== "mouse" || staticMode || show.isPlaying()) return;
+  const slot = event.currentTarget as HTMLElement | null;
+  const onCard = (event.target as HTMLElement | null)?.closest(".home-live-card, .home-online");
+  // 指针滑到槽位那一圈空隙上就不算摸着：那是两张卡之间的地板，
+  // 位移也一并清掉，免得「这里摸一点那里摸一点」凑出一次摸头
+  if (!slot || !onCard || !slot.contains(onCard)) {
+    patAt = 0;
+    patTravel = 0;
+    return;
+  }
+  const now = performance.now();
+  // 隔得太久说明中间手离开过：这一段不算「摸」，重新记起点
+  if (now - patAt > PAT_SAMPLE_GAP_MS) {
+    patFrom = { x: event.clientX, y: event.clientY };
+    patAt = now;
+    return;
+  }
+  patTravel += Math.hypot(event.clientX - patFrom.x, event.clientY - patFrom.y);
+  patFrom = { x: event.clientX, y: event.clientY };
+  patAt = now;
+  if (patTravel < PAT_TRAVEL_PX) return;
+  patTravel = 0;
+  startPat(slot, card);
+}
+
+function onPointerMove(event: PointerEvent, card: CardSpec): void {
   // 手指已经在卡片上滑起来了：这一下是滚页面，不拎猫
   if (pageScroll && event.pointerId === pageScroll.pointerId) {
     scrollPageWith(event);
@@ -1740,7 +1795,11 @@ function onPointerMove(event: PointerEvent): void {
     if (moved > TOUCH_SLOP_PX) beginPageScroll(event);
     return;
   }
-  if (!drag || event.pointerId !== drag.pointerId) return;
+  // 手上没拎着东西：这一下多半只是鼠标搁在卡面上摸来摸去（摸头）
+  if (!drag || event.pointerId !== drag.pointerId) {
+    maybePat(event, card);
+    return;
+  }
   dragPointer.x = event.clientX;
   dragPointer.y = event.clientY;
 

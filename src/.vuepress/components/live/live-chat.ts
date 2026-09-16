@@ -84,6 +84,8 @@ const CLINGY_HOVER_MS = 6_000;
 const BORED_LINGER_S = 300;
 /** 被戳之后隔这么久才回一句：连着戳不该一句接一句地刷屏 */
 const POKE_GAP_MS = 2_200;
+/** 摸头同理：手一直在卡面上摸来摸去，不该一路念下去 */
+const PAT_GAP_MS = 5_000;
 /** 上班时段：工作日九点到十八点 */
 const WORK_START_HOUR = 9;
 const WORK_END_HOUR = 18;
@@ -170,6 +172,8 @@ export interface LiveTalk {
   markPlayed(): void;
   /** 被戳了一下：不好意思一下（戳得勤就闹别扭），隔两秒才回一句 */
   poke(card: CardSpec): void;
+  /** 被摸头顶了：鼠标不点不按、只是搁在卡面上摸来摸去，隔几秒回一句 */
+  pat(card: CardSpec): void;
   /** 重整下一次说话的排期（挂载、卡片数变了时调） */
   scheduleNext(): void;
   /** 重算一次眼下的心情（时段跨档、卡片数变了时调）：名字下的小字与状态灯照它变 */
@@ -238,6 +242,8 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   let lastDragAt = 0;
   /** 上一回被戳是什么时候：连着戳不该一句接一句地刷屏 */
   let lastPokeAt = 0;
+  /** 上一回被摸头顶是什么时候（摸头有自己的间隔，比戳松一点） */
+  let lastPatAt = 0;
   /** 「屏幕外面那个人类」说到第几段了、上一段是什么时候说的 */
   let stareLevel = 0;
   let lastStareAt = 0;
@@ -764,6 +770,17 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       holdEmo(host.tapBurst() ? "sulky" : "shy", SHY_HOLD_MS);
       lastPokeAt = now;
       showSpeech(card.id, pickLine(card, "poke"));
+    },
+    // 被摸头顶：鼠标不点不按、只是搁在卡面上摸来摸去。跟戳不是一回事 ——
+    // 摸头是好事，不换心情（poke 那套害羞 / 闹别扭搁这儿会让人一头雾水），
+    // 但这一下算「互动过了」：手明明一直在动，不该这时候判它无聊
+    pat: (card) => {
+      const now = Date.now();
+      if (now - lastPatAt < PAT_GAP_MS) return;
+      if (!host.visible() || !host.canPoke()) return;
+      lastPatAt = now;
+      lastPokeAt = now;
+      showSpeech(card.id, pickLine(card, "pat"));
     },
     scheduleNext: () => schedule(nextChatDelay()),
     refreshMood,

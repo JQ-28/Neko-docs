@@ -16,6 +16,8 @@ export interface SpeechLines {
   readonly drag: readonly string[];
   /** 被戳一下时的回话（点一下就有反应，是这块卡片最容易摸到的互动） */
   readonly poke: readonly string[];
+  /** 被摸头顶时的回话：鼠标不点不按、只是搁在卡面上摸来摸去 */
+  readonly pat: readonly string[];
 }
 
 /** 对话中间能插的那几下，名字跟 live-show 里的演出脚本一一对应 */
@@ -220,6 +222,16 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
       "戳我也变不出新猫喵",
       "痒的喵…别戳那里",
     ],
+    pat: [
+      "唔…就是这儿喵",
+      "再往上一点点喵",
+      "呼噜呼噜…手别停喵",
+      "摸头可以，别揉乱我喵",
+      "耳朵都塌下去了喵",
+      "这样能睡到天黑喵",
+      "嗯…舒服得不想动喵",
+      "头顶是留给你的位置喵",
+    ],
   },
   online: {
     solo: [
@@ -295,6 +307,16 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
       "戳我不产生数据",
       "统计口径里没有这一项",
       "再戳也还是这个数",
+    ],
+    pat: [
+      "检测到头顶接触，接受中",
+      "摸头请求无需审批",
+      "此项交互计入好感度",
+      "呼噜声已记为正常输出",
+      "温度上升，属预期范围",
+      "请保持当前力度与频率",
+      "该操作不产生任何日志",
+      "好感度：持续上升中",
     ],
   },
 };
