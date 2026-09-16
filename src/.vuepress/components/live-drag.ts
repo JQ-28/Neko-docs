@@ -79,15 +79,17 @@ export const OPPOSITE_EDGE: Record<LiveEdge, LiveEdge> = {
 };
 
 /** 把位移限制在屏幕内，猫拎到边上就停，页面也不会被顶宽。
-    slack 是给跨窗口接力留的口子：边上还开着别的窗口时，允许再往外推一截 */
+    slack 是给跨窗口接力留的口子：边上还开着别的窗口时，允许再往外推一截；
+    startMargin 是起点那侧的余量（手机上卡片被抬高了一截，顶到默认余量时上沿会被裁） */
 export function limitShift(
   shift: number,
   base: number,
   size: number,
   viewport: number,
-  slack = 0
+  slack = 0,
+  startMargin = DRAG_MARGIN
 ): number {
-  const min = DRAG_MARGIN - base - slack;
+  const min = startMargin - base - slack;
   const max = Math.max(min, viewport - DRAG_MARGIN - base - size + slack);
   return Math.min(Math.max(shift, min), max);
 }

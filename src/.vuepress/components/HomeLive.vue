@@ -405,19 +405,38 @@ function countTap(cardId: string): void {
   }
 }
 
-/** 一口气从顶滚到底：从顶部起算一秒半之内见底才算「嗖一下」 */
+/** 页面滚了一次之后，手上的位移要跟着补回来 —— 见 compensateScroll */
+let lastScrollY = 0;
+
+/** 页面滚动后把手上的位移补回去：卡片得留在手底下。
+    卡片的位置是「槽位原点 + 手上的位移」算出来的，页面一滚槽位原点就往上走了，
+    不补的话它会**跟着内容一起跑** —— 自动滚页滚 300px，卡片就离鼠标 300px，
+    看着像松了手（滚轮、触控板惯性滚动也是同一个毛病）。
+    补偿完再量一次 rect 重算原点，量的是补偿之后的位置，贴边判定才不会错位 */
+function compensateScroll(): void {
+  const top = window.scrollY;
+  const delta = top - lastScrollY;
+  lastScrollY = top;
+  if (!drag || delta === 0) return;
+
+  drag.shiftY += delta;
+  // 抓手的基准也跟着一起挪：下一次 pointermove 是拿「指针 - 基准」算位移的，
+  // 基准不动的话算出来的位移跟已经补过的 shiftY 差了一个滚动量，会被贴边限位
+  // 一把夹到视口边上 —— 松手前手一动，卡片就跳到屏幕另一头
+  drag.startY -= delta;
+  const lift = drag.touch ? DRAG_LIFT_PX : 0;
+  drag.slot.style.translate = `${drag.shiftX}px ${drag.shiftY - lift}px`;
+
+  const rect = drag.slot.getBoundingClientRect();
+  drag.baseLeft = rect.left + (rect.width - drag.width) / 2 - drag.shiftX;
+  drag.baseTop = rect.top + (rect.height - drag.height) / 2 - drag.shiftY;
+}
+
+/** 一口气从顶滚到底：从顶部算起一秒半之内见底才算「嗖一下」 */
 function onScroll(): void {
   const now = Date.now();
   lastScrollAt = now;
-  // 拖动中页面滚动（滚轮、触控板惯性）：卡片的位置是「槽位原点 + 手上的位移」算出来的，
-  // 页面一滚槽位原点就作废了 —— 卡片会跟着内容整体位移、贴边判定跟着错位，
-  // 甚至被判成顶到窗口边而「扔出去」。所以这里量一次 rect 把原点重算回来。
-  // rect 量到的是带位移、缩放和角度的包围盒，中心点却不受缩放旋转影响，用它反推最稳
-  if (drag) {
-    const rect = drag.slot.getBoundingClientRect();
-    drag.baseLeft = rect.left + (rect.width - drag.width) / 2 - drag.shiftX;
-    drag.baseTop = rect.top + (rect.height - drag.height) / 2 - drag.shiftY;
-  }
+  compensateScroll();
   const doc = document.documentElement;
   const max = doc.scrollHeight - window.innerHeight;
   // 页面不够长就不凑热闹，免得随便一滑就中
@@ -975,6 +994,8 @@ function beginDrag(
     touch: event.pointerType !== "mouse",
   };
   dragPointerY = event.clientY;
+  // 滚动基准从这里起算：拖动中页面一滚就要把手上的位移补回来（见 compensateScroll）
+  lastScrollY = window.scrollY;
   // 手指点得太快时指针可能已经抬起了，抓不到就按没抓到继续走
   try {
     handle.setPointerCapture(event.pointerId);
@@ -1236,12 +1257,21 @@ function edgeScrollStep(): void {
   const elapsed = Math.min(now - edgeScrollAt, EDGE_SCROLL_FRAME_MS * 2);
   const slowdown = reduceMotionQuery?.matches ? 0.6 : 1;
   edgeScrollAt = now;
-  // 主题全局开着 scroll-behavior: smooth，不点明 instant 的话每一小步都会被抹成一段缓动
+  // 主题全局写着 scroll-behavior: smooth，光写 behavior: "instant" 压不住它 ——
+  // 压不住的话每一小步都会被抹成一段平滑滚动，页面在几帧里慢慢走，而卡片是照
+  // 「已经滚了多少」补的，于是看着一路跟它错开、发飘（实测抖 ±55px）。
+  // 所以临时把根元素的 scroll-behavior 按回 auto，滚完立刻还原
+  const root = document.documentElement;
+  const previousBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = "auto";
   window.scrollBy({
     top: (speed * elapsed * slowdown) / EDGE_SCROLL_FRAME_MS,
     behavior: "instant",
   });
-  // 页面滚了，卡片底下的东西就换了：高亮跟着重算，松手时的落点判定与它同一口径
+  root.style.scrollBehavior = previousBehavior;
+  // 立刻补位移，不等 scroll 事件（那个要慢一帧，卡片会跟手脱节一下）
+  compensateScroll();
+  // 页面滚了，卡片底下的东西就换了：高亮跟着重算
   refreshDropLight();
   edgeScrollFrame = requestAnimationFrame(edgeScrollStep);
 }
@@ -1642,8 +1672,11 @@ html.dark .home-intro-sub {
   z-index: 3;
   scale: 1.05;
   pointer-events: none;
-  transition: translate 0.14s ease-out,
-    rotate 0.22s cubic-bezier(0.34, 1.5, 0.64, 1), scale 0.2s ease-out;
+  /* 跟手要 1:1：这里**不能**给 translate 加过渡。
+     位置上加过渡，目标移动得越快就落后得越多（0.14s 的缓动，页面贴边自动滚页时
+     目标每秒走六百来像素，卡片就落后八十来像素）—— 看着就是「手还捏着，猫已经飘走了」。
+     角度与缩放留着缓动，抬起手的那一下才有弹的感觉 */
+  transition: rotate 0.22s cubic-bezier(0.34, 1.5, 0.64, 1), scale 0.2s ease-out, opacity 0.3s ease-out;
 }
 
 /* 被跳转位收进按钮里：缩没，紧接着页面就换过去了 */
