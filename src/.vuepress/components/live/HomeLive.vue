@@ -3,6 +3,7 @@
     ref="stage"
     class="home-live"
     :class="{ 'is-resting': resting, 'is-static': staticMode }"
+    :data-sleepy="sleepy ? 'true' : undefined"
   >
     <h2 class="home-intro-title">
       <span class="home-intro-bar" aria-hidden="true"></span>
@@ -118,7 +119,14 @@ import { useRouter } from "vue-router";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "../eggs/egg-utils";
 import { GREETING_REPLY_MS, speechLingerMs, useLiveTalk } from "./live-chat";
-import { anyDropLines, dropLineFor, nekoMetaLine, recentLine, todayDoing } from "./live-lines";
+import {
+  anyDropLines,
+  dropLineFor,
+  nekoMetaLine,
+  recentLine,
+  todayDoing,
+  type SpecialDay,
+} from "./live-lines";
 import {
   cardPointAbs,
   createDragTrack,
@@ -357,6 +365,11 @@ const LAST_SEEN_KEY = "neko-live-last-seen";
 const VISITS_KEY = "neko-live-visits";
 /** 连着第几天来记在这儿 */
 const STREAK_KEY = "neko-live-streak";
+/** 第一次踏进这一页是哪天（只写一次）：用来认「你来满一周了」这类纪念日。
+    不跟访问次数那几个键合并 —— 这是「认识多久了」，跟访问统计不是一回事 */
+const FIRST_SEEN_KEY = "neko-live-first-seen";
+/** 今天被摸了几次头、戳了几下：当天记账，跨天从头数 */
+const PAT_KEY = "neko-live-pat";
 const DAY_MS = 86_400_000;
 
 /** 小箭头最后动过是什么时候、同一张卡连着戳了几次、什么时候戳满的、什么时候一口气滚到底的 */
@@ -375,6 +388,14 @@ let awayDays = 0;
 let visitTimes = 1;
 /** 连着第几天来（断了两天以上从头数） */
 let streak = 1;
+/** 认识多久了（天）：头一回打开是 0 */
+let firstSeenDays = 0;
+/** 今天被摸了几次头、戳了几下 */
+let patToday = 0;
+/** 现在是半夜吗（凌晨两点到六点）：这两只也困，卡片会暗下来 */
+let sleepy = false;
+/** 今天是什么特别的日子：她的生日、跨年，别的日子没有 */
+let specialDay: SpecialDay = "none";
 /** 她今天在干什么：挂载时按日期算一回，同一天不变 */
 let doingToday = "";
 /** 在线卡报上来的真实人数：卡片说话时要拿它当梗 */
@@ -636,6 +657,8 @@ function countTap(cardId: string): void {
     tapCount = 0;
   }
   tapCount += 1;
+  // 戳也算「被碰了一下」：跟摸头共用一本账，她那边只认「今天被碰了几次」
+  patToday = countPat();
   if (tapCount >= TAP_BURST_COUNT) {
     tapBurstAt = now;
     tapCount = 0;
@@ -744,6 +767,65 @@ function readAwayDays(): number {
   }
 }
 
+/** 第一次踏进这一页是哪天（本地记，只写一次）：头一回返回 0，
+    往后返回「认识多少天了」—— 满一周、满一个月、满一年的时候她会想起来 */
+function readFirstSeenDays(): number {
+  try {
+    const today = localDayNumber(new Date());
+    const raw = window.localStorage.getItem(FIRST_SEEN_KEY);
+    if (!raw) {
+      window.localStorage.setItem(FIRST_SEEN_KEY, String(today));
+      return 0;
+    }
+    const days = today - Number(raw);
+    return Number.isFinite(days) && days > 0 ? days : 0;
+  } catch {
+    // 隐私模式等存储异常：当作今天才认识
+    return 0;
+  }
+}
+
+/** 今天被摸了几次头、戳了几下：只读，不推进 */
+function readPatToday(): number {
+  try {
+    const today = localDayNumber(new Date());
+    const raw = window.localStorage.getItem(PAT_KEY);
+    const saved = raw ? (JSON.parse(raw) as { day?: number; count?: number }) : null;
+    return saved?.day === today ? (saved.count ?? 0) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** 又被碰了一下：今天的账 +1，返回新的数。
+    摸头和戳共用一本账 —— 在她看来都是「被碰了一下」，分成两本没有意义 */
+function countPat(): number {
+  try {
+    const today = localDayNumber(new Date());
+    const count = readPatToday() + 1;
+    window.localStorage.setItem(PAT_KEY, JSON.stringify({ day: today, count }));
+    return count;
+  } catch {
+    return 1;
+  }
+}
+
+/** 半夜了吗（凌晨两点到六点）：这两只也困，卡片会跟着暗下来 */
+function readSleepy(): boolean {
+  const hour = new Date().getHours();
+  return hour >= 2 && hour < 6;
+}
+
+/** 今天是什么特别的日子。她的生日在介绍页写着 2022 年 2 月 22 日，这里比的就是这一天 */
+function readSpecialDay(): SpecialDay {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const date = now.getDate();
+  if (month === 2 && date === 22) return "birthday";
+  if (month === 1 && date === 1) return "newYear";
+  return "none";
+}
+
 /** 演出：演哪一段、什么时候演、两张卡谁左谁右 */
 const show = useLiveShow({
   cards: () => liveCards.value,
@@ -797,6 +879,10 @@ const talk = useLiveTalk({
   online: () => onlineCount,
   visitTimes: () => visitTimes,
   streak: () => streak,
+  firstSeenDays: () => firstSeenDays,
+  patToday: () => patToday,
+  sleepy: () => sleepy,
+  specialDay: () => specialDay,
   doing: () => doingToday,
   act: (name) => show.playByName(name),
   holdShow: show.hold,
@@ -1955,6 +2041,7 @@ function maybePat(event: PointerEvent, card: CardSpec): void {
   patAt = now;
   if (patTravel < PAT_TRAVEL_PX) return;
   patTravel = 0;
+  patToday = countPat();
   startPat(slot, card);
 }
 
@@ -2274,6 +2361,10 @@ onMounted(() => {
   awayDays = readAwayDays();
   visitTimes = readVisitTimes();
   streak = readStreak();
+  firstSeenDays = readFirstSeenDays();
+  patToday = readPatToday();
+  sleepy = readSleepy();
+  specialDay = readSpecialDay();
   doingToday = todayDoing(localDayNumber(new Date()));
   window.addEventListener("pointermove", noteActivity, { passive: true });
   window.addEventListener("keydown", noteActivity);

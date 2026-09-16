@@ -76,6 +76,9 @@ export type MomentGate = "meme" | "xterfusion" | "stare";
 /** 这一轮各道闸的结果 */
 export type MomentGates = Readonly<Record<MomentGate, boolean>>;
 
+/** 值得她单独说一句的日子：她自己的生日、跨年。一年就撞那么两天 */
+export type SpecialDay = "birthday" | "newYear" | "none";
+
 /** 眼下是什么光景：挑对话的时候看它 */
 export interface ChatMood {
   /** 深夜 / 清晨 / 白天 / 傍晚以后 */
@@ -117,6 +120,14 @@ export interface ChatMood {
   readonly selectionMade: boolean;
   /** 刚把手机转过去（宽高互换才算，桌面改窗口大小不算） */
   readonly flipped: boolean;
+  /** 认识多久了（天，从第一次打开这一页算起）：满一周、满月、满年时她会想起来 */
+  readonly firstSeenDays: number;
+  /** 今天被碰了几次（摸头和戳共用一本账） */
+  readonly patToday: number;
+  /** 现在是不是半夜（凌晨两点到六点）：她会困，卡片也会跟着暗下来 */
+  readonly sleepy: boolean;
+  /** 今天是什么特别的日子 */
+  readonly specialDay: SpecialDay;
   /** 刚刚在同一个地方连戳了好几下 */
   readonly tapBurst: boolean;
   /** 刚刚一口气把整页滚到了底 */
@@ -1627,6 +1638,17 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "屏幕方向变了。我在重新量间距" },
       { by: "neko", line: "那我们还是并排站着吗喵" },
       { by: "online", line: "现在是。要是挤不下就改成上下摞着" },
+    ],
+  },
+  // 半夜：这个时段她本来就困，卡片那边也会跟着暗一点
+  {
+    cast: "mixed",
+    when: (mood) => mood.sleepy,
+    once: "sleepyHour",
+    turns: [
+      { by: "neko", line: "呼…你这个点还没睡喵", act: "lean" },
+      { by: "online", line: "凌晨时段。这一页上还有人在看" },
+      { by: "neko", line: "那就一起安静待着吧，我不闹了喵" },
     ],
   },
   // 挂机：页面开着、人可能已经走了。按停留时长分两档（过了一刻钟 / 过了一个钟头）。
@@ -4690,8 +4712,26 @@ export const ARRIVE_BACK_TURNS: readonly ChatTurn[] = [
     「连着第几天」与「今天在干什么」；即兴档虽然能现拼，但它有 75 秒热身期挡着
     （见 IMPROV_WARMUP_S），进站这句必须一进来就说。
     靠 mood.arriveFresh 兜住「一天只说一次」—— 它由 live-chat 那边管，刷新页面对不上 */
+/** 她生日那天：介绍页写着 2022 年 2 月 22 日。一年只有一次，进门就说 */
+const BIRTHDAY_TURNS: readonly ChatTurn[] = [
+  { by: "neko", line: "今天是我生日喵！", act: "hop" },
+  { by: "online", line: "确认：今天是她生日。日期在介绍页里写着" },
+  { by: "neko", line: "那今天可以多要一个布丁吗喵" },
+  { by: "online", line: "可以。寿星说了算" },
+];
+
+/** 跨年那天：也是一年一次 */
+const NEW_YEAR_TURNS: readonly ChatTurn[] = [
+  { by: "neko", line: "新年快乐喵！" },
+  { by: "online", line: "年份已更新。新的一年，希望他少加几天班" },
+  { by: "neko", line: "少加班，多来陪我们喵" },
+];
+
 export function arriveGreeting(mood: ChatMood): ArriveGreeting | null {
   if (!mood.arriveFresh) return null;
+  // 生日和跨年排在所有问候前面：别的日子天天有，这两天一年才一次，撞上就得先说
+  if (mood.specialDay === "birthday") return { turns: BIRTHDAY_TURNS };
+  if (mood.specialDay === "newYear") return { turns: NEW_YEAR_TURNS };
   // 隔了这么久才回来，先说的是这句，别急着报今天在干什么
   if (mood.awayDays >= 7) return { egg: "backAfterWeek", turns: ARRIVE_BACK_TURNS };
   if (mood.streak >= 7) {
@@ -4743,7 +4783,32 @@ export function chineseNumber(value: number): string {
     const rest = value % 10;
     return `${digits[tens]}十${rest === 0 ? "" : digits[rest]}`;
   }
-  return String(value);
+  if (value < 1000) {
+    const hundreds = Math.floor(value / 100);
+    const rest = value % 100;
+    if (rest === 0) return `${digits[hundreds]}百`;
+    // 「一百零五」要补零、「一百二十」不补：只有个位数在场时才需要那个零
+    return rest < 10
+      ? `${digits[hundreds]}百零${digits[rest]}`
+      : `${digits[hundreds]}百${chineseNumber(rest)}`;
+  }
+  if (value < 10_000) {
+    const thousands = Math.floor(value / 1000);
+    const rest = value % 1000;
+    if (rest === 0) return `${digits[thousands]}千`;
+    // 「一千零五」补零、「一千二百」不补：只有百位以下不足三位时才需要那个零
+    return rest < 100
+      ? `${digits[thousands]}千零${chineseNumber(rest)}`
+      : `${digits[thousands]}千${chineseNumber(rest)}`;
+  }
+  // 万位顺手兜住：她报的是「认识多少天」，真到了五位数也得念得出来，
+  // 不然 digits[20] 会拼出「undefined千」这种句子
+  const tenThousands = Math.floor(value / 10_000);
+  const rest = value % 10_000;
+  if (rest === 0) return `${chineseNumber(tenThousands)}万`;
+  return rest < 1000
+    ? `${chineseNumber(tenThousands)}万零${chineseNumber(rest)}`
+    : `${chineseNumber(tenThousands)}万${chineseNumber(rest)}`;
 }
 
 /** 秒数说成人话：一分钟内报秒，五分钟内报分秒，一小时内取整成「几分多钟」，
@@ -4791,6 +4856,63 @@ export interface ChatImprov {
 /** 只有卡片自己知道的真话：在线几只、观众盯了多久、今天第几次来。
     这些数字是真读出来的，所以不会出现「明明只有你一个却说在线三人」 */
 export const CHAT_IMPROV: readonly ChatImprov[] = [
+  // 认识多久了：满一周、满月、满年各一档，中间那些天不重复说。
+  // 门槛写成「达到没到下一档」是为了三档互斥 —— 满一年的人不该把三句全说一遍。
+  // 另外每档都要求「今天头一回打开」：once 管的是「隔十分钟内别重复」，
+  // 不管这个的话纪念日会每隔十分钟重播一遍
+  {
+    when: (mood) => mood.firstSeenDays >= 365 && mood.visitTimes === 1,
+    lines: (mood) => [
+      { by: "online", line: `首次到访：${chineseNumber(mood.firstSeenDays)}天前` },
+      { by: "neko", line: "算起来，你来我们这儿满一年了喵" },
+      { by: "online", line: "这一年里有断过几天。加起来还是满的" },
+      { by: "neko", line: "断了也没事，回来看我就行喵" },
+    ],
+  },
+  {
+    when: (mood) => mood.firstSeenDays >= 30 && mood.firstSeenDays < 365 && mood.visitTimes === 1,
+    lines: (mood) => [
+      { by: "online", line: `首次到访：${chineseNumber(mood.firstSeenDays)}天前` },
+      { by: "neko", line: "你来我们这儿满一个月了喵" },
+      { by: "neko", line: "那就是熟客了，布丁分你一口喵" },
+    ],
+  },
+  {
+    when: (mood) => mood.firstSeenDays >= 7 && mood.firstSeenDays < 30 && mood.visitTimes === 1,
+    lines: (mood) => [
+      { by: "online", line: `首次到访：${chineseNumber(mood.firstSeenDays)}天前` },
+      { by: "neko", line: "算起来，你看我们满一周了喵" },
+      { by: "online", line: "这期间来过几次我没数。只知道今天又来了" },
+      { by: "neko", line: "不用数，人来了就行喵" },
+    ],
+  },
+  // 今天被碰了几次：摸头和戳共用一本账。这三档也是递进互斥的，
+  // 摸到第二十次不该把前两档再说一遍
+  {
+    when: (mood) => mood.patToday >= 20,
+    lines: (mood) => [
+      { by: "online", line: `今日触碰记录：${chineseNumber(mood.patToday)}次` },
+      { by: "neko", line: `${chineseNumber(mood.patToday)}次了喵！你是不是有点太闲了`, act: "guard" },
+      { by: "online", line: "按今天的停留时长看，他确实闲" },
+      { by: "neko", line: "闲也别一直摸，头会秃的喵" },
+    ],
+  },
+  {
+    when: (mood) => mood.patToday >= 8 && mood.patToday < 20,
+    lines: (mood) => [
+      { by: "neko", line: `你今天已经碰了我${chineseNumber(mood.patToday)}次了喵` },
+      { by: "online", line: "我这边记的是同一本账" },
+      { by: "neko", line: "你们两个都在数是吧喵" },
+    ],
+  },
+  {
+    when: (mood) => mood.patToday >= 3 && mood.patToday < 8,
+    lines: (mood) => [
+      { by: "neko", line: `第${chineseNumber(mood.patToday)}次了喵。手挺闲嘛` },
+      { by: "online", line: "记录已更新" },
+      { by: "neko", line: "别更新了，我又不是打卡机喵" },
+    ],
+  },
   // 盯得越久说得越离谱：一分钟、五分钟、一刻钟各一档
   {
     when: (mood) => mood.linger >= 60 && mood.linger < 300,

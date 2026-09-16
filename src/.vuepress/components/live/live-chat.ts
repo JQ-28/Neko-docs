@@ -29,6 +29,7 @@ import {
   type EmoState,
   type GestureName,
   type MomentGates,
+  type SpecialDay,
   type SpeechLines,
 } from "./live-lines";
 
@@ -138,6 +139,12 @@ export interface TalkHost {
   scrolled?: () => boolean;
   selectionMade?: () => boolean;
   flipped?: () => boolean;
+  /** 认识多久了（天）/ 今天被碰了几次 / 是不是半夜 / 今天什么日子。
+      四个都影响「她记不记得你」那条线，可选：没喂就按「刚认识、没碰过、白天、平常日子」算 */
+  firstSeenDays?: () => number;
+  patToday?: () => number;
+  sleepy?: () => boolean;
+  specialDay?: () => SpecialDay;
   /** 观众的手刚动过吗（为真就不是「手闲着」的状态）。这个信号由 HomeLive 喂进来，没喂就当没有 */
   cursorFresh?: () => boolean;
   /** 观众的箭头在卡片区里停了多久（毫秒）。同样由 HomeLive 喂进来，没喂就当 0 */
@@ -516,6 +523,10 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       scrolled: host.scrolled?.() ?? false,
       selectionMade: host.selectionMade?.() ?? false,
       flipped: host.flipped?.() ?? false,
+      firstSeenDays: host.firstSeenDays?.() ?? 0,
+      patToday: host.patToday?.() ?? 0,
+      sleepy: host.sleepy?.() ?? false,
+      specialDay: host.specialDay?.() ?? "none",
       tapBurst: host.tapBurst(),
       scrollDash: host.scrollDash(),
       awayDays: host.awayDays(),

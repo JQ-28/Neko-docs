@@ -346,6 +346,13 @@ function makeMood() {
     scrolled: auditRandom() < 0.15,
     selectionMade: auditRandom() < 0.15,
     flipped: auditRandom() < 0.15,
+    // 「认识多久了 / 今天被碰了几次 / 是不是半夜 / 今天什么日子」这四件。
+    // 前两个得把每一档的值都采到，不然那六段现拼台词会被判成「数字条件凑不到」；
+    // 特殊日子给两成概率，让生日与跨年那两句也走一遍
+    firstSeenDays: pickOne([0, 3, 10, 45, 400, 800]),
+    patToday: pickOne([0, 1, 5, 12, 30, 60]),
+    sleepy: auditRandom() < 0.3,
+    specialDay: pickOne(["none", "none", "none", "birthday", "newYear"]),
     tapBurst: auditRandom() < 0.15,
     scrollDash: auditRandom() < 0.15,
     awayDays: pickOne([0, 1, 3, 7, 30, 365]),
@@ -419,8 +426,16 @@ function checkImprovNumber(line, where, mood) {
     humanSeconds(mood.linger),
     chineseNumber(mood.online),
     chineseNumber(mood.visitTimes),
+    // 「认识多久了」与「今天被碰了几次」也是现读的真数，跟上面那三个一样得先抹掉
+    chineseNumber(mood.firstSeenDays),
+    chineseNumber(mood.patToday),
   ];
-  const residue = dynamic.reduce((rest, token) => (token ? rest.split(token).join(" ") : rest), line);
+  // 长的先抹：「六十」必须在「十」之前处理 —— 反过来的话「十」先把「六十」拆成「六 次」，
+  // 长 token 就再也对不上，反而会报出一句根本不存在的「写死数字」
+  const residue = dynamic
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length)
+    .reduce((rest, token) => rest.split(token).join(" "), line);
   checkNumber(residue, `${where}（模板原句：${line}）`, "即兴档的模板里写死了数字（要报数就用现读的真数拼）");
 }
 
