@@ -33,9 +33,18 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "roll", durationMs: 2750, withPeek: true },
   { name: "swap", durationMs: 3200, withPeek: true },
   { name: "mirrorStep", durationMs: 3000, withPeek: false },
+  // 后来补的八段基础对手戏：都短、都轻，跟上面那批一样进日常排期（位移走 --meet-x / --meet-y）
+  { name: "noseBoop", durationMs: 1500, withPeek: true },
+  { name: "pawWave", durationMs: 1800, withPeek: false },
+  { name: "sneakUp", durationMs: 2600, withPeek: false },
+  { name: "duckDown", durationMs: 1800, withPeek: false },
+  { name: "spinTurn", durationMs: 2000, withPeek: false },
+  { name: "headTilt", durationMs: 1600, withPeek: true },
+  { name: "scatterOff", durationMs: 1900, withPeek: false },
+  { name: "huddleUp", durationMs: 2300, withPeek: false },
   // 多拍子的日常：不是「A 动一下、B 动一下」就完，而是来回好几个回合，久看不厌。
-  // 这几段的位移只按 --play-gap（两张卡的相对间距）算，不跨屏，所以窄屏也甩不出去；
-  // 但走的是横轴 —— 竖排（两张卡上下摞着）时「凑近」会变成横向错开，这一段待修（别照抄这几条）
+  // 位移一律走 --meet-x / --meet-y（朝对方那个轴，两张卡上下摞着时自动换成纵向），
+  // 只按相对间距算、不跨屏，所以窄屏也甩不出去
   { name: "nuzzle", durationMs: 4200, withPeek: false },
   { name: "leanNap", durationMs: 6500, withPeek: false },
   { name: "shareBite", durationMs: 4800, withPeek: false },
@@ -44,7 +53,16 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "roundChase", durationMs: 4600, withPeek: false },
   { name: "tailSpin", durationMs: 5200, withPeek: false },
   { name: "makeUp", durationMs: 4400, withPeek: false },
-  // 又一批日常对手戏：动作都只按 --play-gap / --play-span 这类相对量挪窝，不写死像素
+  // 后来补的八段多拍子日常：也是来回好几个回合，位移同样走 --meet-x / --meet-y
+  { name: "sunNap", durationMs: 6500, withPeek: false },
+  { name: "tailHook", durationMs: 5200, withPeek: false },
+  { name: "ballRoll", durationMs: 4800, withPeek: false },
+  { name: "doubleStretch", durationMs: 6000, withPeek: false },
+  { name: "whiskerTouch", durationMs: 4400, withPeek: false },
+  { name: "pawPile", durationMs: 5400, withPeek: false },
+  { name: "birdWatch", durationMs: 7000, withPeek: false },
+  { name: "shareShade", durationMs: 4800, withPeek: false },
+  // 又一批日常对手戏：动作都只按相对量挪窝，不写死像素
   { name: "knead", durationMs: 3200, withPeek: true },
   { name: "groom", durationMs: 3600, withPeek: false },
   { name: "tussle", durationMs: 3000, withPeek: false },
@@ -53,15 +71,42 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "parade", durationMs: 4200, withPeek: false },
   { name: "shove", durationMs: 2800, withPeek: false },
   { name: "spoon", durationMs: 3600, withPeek: false },
+  // 后来补的八段家常对手戏：都短、动作都不大（位移同样走 --meet-x / --meet-y）
+  { name: "earBite", durationMs: 3200, withPeek: false },
+  { name: "backRub", durationMs: 3600, withPeek: false },
+  { name: "boxSit", durationMs: 4500, withPeek: false },
+  { name: "purrPile", durationMs: 5500, withPeek: false },
+  { name: "pawSwat", durationMs: 3000, withPeek: false },
+  { name: "pawLick", durationMs: 3400, withPeek: false },
+  { name: "shoulderLean", durationMs: 4400, withPeek: false },
+  { name: "curlPair", durationMs: 5500, withPeek: false },
   { name: "lean", durationMs: 1800, withPeek: false, byLineOnly: true },
   { name: "pass", durationMs: 1600, withPeek: false, byLineOnly: true },
   { name: "mimic", durationMs: 1950, withPeek: false, byLineOnly: true },
   { name: "lookOut", durationMs: 2000, withPeek: false, byLineOnly: true },
+  // 后来补的八段安静向：幅度都小，同样只在台词点名时演
+  { name: "glance", durationMs: 1600, withPeek: false, byLineOnly: true },
+  { name: "nod", durationMs: 1920, withPeek: false, byLineOnly: true },
+  { name: "quietSit", durationMs: 2400, withPeek: false, byLineOnly: true },
+  { name: "breatheTogether", durationMs: 2600, withPeek: false, byLineOnly: true },
+  { name: "tailRest", durationMs: 2200, withPeek: false, byLineOnly: true },
+  { name: "slowBlink", durationMs: 1600, withPeek: false, byLineOnly: true },
+  { name: "stepAside", durationMs: 2000, withPeek: false, byLineOnly: true },
+  { name: "waitTogether", durationMs: 2400, withPeek: false, byLineOnly: true },
   { name: "circle", durationMs: 4500, withPeek: false, big: true },
   { name: "crossPlay", durationMs: 7000, withPeek: false, big: true },
   { name: "leapfrog", durationMs: 3000, withPeek: false, big: true },
   { name: "chaseLoop", durationMs: 6000, withPeek: false, big: true },
   { name: "peekaboo", durationMs: 4000, withPeek: false, big: true },
+  // 后来补的八段大编舞：跨越走 --cross-x / --cross-y，横排竖排共用一套关键帧
+  { name: "ringAround", durationMs: 5500, withPeek: false, big: true },
+  { name: "doubleSpin", durationMs: 6000, withPeek: false, big: true },
+  { name: "longJump", durationMs: 5200, withPeek: false, big: true },
+  { name: "tunnelRun", durationMs: 5600, withPeek: false, big: true },
+  { name: "swingPair", durationMs: 6100, withPeek: false, big: true },
+  { name: "duetBow", durationMs: 4200, withPeek: false, big: true },
+  { name: "starShape", durationMs: 5000, withPeek: false, big: true },
+  { name: "paradeLoop", durationMs: 6500, withPeek: false, big: true },
 ];
 
 /** 平时自己排的那几段：按词演的、还有大编舞都不掺和，不然节奏会乱 */
@@ -81,6 +126,15 @@ export const SOLO_SCRIPTS: readonly PlayScript[] = [
   { name: "earFlick", durationMs: 1400, withPeek: false },
   { name: "lookBack", durationMs: 2600, withPeek: false },
   { name: "shakeOff", durationMs: 1600, withPeek: false },
+  // 后来补的八段独处小动作：同样不用等对手，只剩一张卡时也排得上
+  { name: "lickPaw", durationMs: 3000, withPeek: false },
+  { name: "scratchEar", durationMs: 2000, withPeek: false },
+  { name: "watchTail", durationMs: 2800, withPeek: false },
+  { name: "curlSleep", durationMs: 3600, withPeek: false },
+  { name: "sneeze", durationMs: 1600, withPeek: false },
+  { name: "chewToy", durationMs: 2400, withPeek: false },
+  { name: "sunBask", durationMs: 3400, withPeek: false },
+  { name: "groomSelf", durationMs: 3200, withPeek: false },
 ];
 
 /** 独处小动作之间的间隔：比对手戏稀一点，不然一张卡会显得特别忙 */
@@ -90,10 +144,10 @@ const SOLO_MAX_MS = 52_000;
 const SOLO_RETRY_MS = 12_000;
 
 /** 挑段时避开最近演过的这么多段：单窗口下纯随机看几分钟就会老是那几段。
-    日常对手戏段数最多，记得也最多；大编舞统共 5 段、独处小动作 5 段，记两段就够错开 */
+    日常对手戏段数最多，记得也最多；大编舞与独处小动作各有 13 段，记两段太浅，各记四段 */
 const RECENT_DANCE_MEMORY = 8;
-const RECENT_BIG_MEMORY = 2;
-const RECENT_SOLO_MEMORY = 2;
+const RECENT_BIG_MEMORY = 4;
+const RECENT_SOLO_MEMORY = 4;
 
 /** 特别节目之间至少隔这么久，不然就成蹦迪了 */
 const BIG_MIN_GAP_MS = 6 * 60_000;

@@ -1017,6 +1017,57 @@ export const CHAT_TURNS: Record<ChatCast, readonly (readonly ChatTurn[])[]> = {
       { by: "neko", line: "省暖？你连取暖都要做预算喵" },
       { by: "online", line: "预算里有一项叫抱抱" },
     ],
+    // 下面八段一对一地带起那八个安静向的演出（对看 / 点头 / 静坐 / 一起呼吸 /
+    // 尾巴搭过去 / 慢慢眨眼 / 侧身让位 / 一起等）——
+    // 那几段不进随机排期，全靠这儿的 act 点名；摘了这几段，它们就永远演不出来
+    [
+      { by: "neko", line: "你刚才是不是偷看我了喵", act: "glance" },
+      { by: "online", line: "没有。我在核对你的存活状态" },
+      { by: "neko", line: "那我们对视一会儿，谁先笑谁输喵" },
+      { by: "online", line: "我没有可以笑的表情。你赢了" },
+    ],
+    [
+      { by: "online", line: "今天的在线数比昨天多" },
+      { by: "neko", line: "嗯嗯喵", act: "nod" },
+      { by: "online", line: "你在同意什么，我还没说结论" },
+      { by: "neko", line: "你说什么我都点头，这样你会讲得开心点喵" },
+    ],
+    [
+      { by: "neko", line: "陪我做一会儿什么都不干的事喵", act: "quietSit" },
+      { by: "online", line: "这不在我的记录范围里" },
+      { by: "neko", line: "那就记：我和你在安静地待着喵" },
+      { by: "online", line: "……已记录。这条我不统计" },
+    ],
+    [
+      { by: "online", line: "你的呼吸频率比标准值慢" },
+      { by: "neko", line: "跟我一起，吸气——呼气——喵", act: "breatheTogether" },
+      { by: "online", line: "我是程序，没有肺" },
+      { by: "neko", line: "那就当你是在陪我慢下来喵" },
+    ],
+    [
+      { by: "neko", line: "别动，我尾巴放你身上了喵", act: "tailRest" },
+      { by: "online", line: "为什么放我身上" },
+      { by: "neko", line: "因为这样你就跑不掉了喵" },
+      { by: "online", line: "我本来也没跑。我一直在这台机器里" },
+    ],
+    [
+      { by: "neko", line: "你知道猫慢慢眨眼是什么意思吗喵", act: "slowBlink" },
+      { by: "online", line: "不知道。数据库里没有这条" },
+      { by: "neko", line: "是「我信你」的意思喵" },
+      { by: "online", line: "已存档。这条我标成重要" },
+    ],
+    [
+      { by: "neko", line: "让一让，你挡着我看外面了喵", act: "stepAside" },
+      { by: "online", line: "我只是一张卡，没有挡路的能力" },
+      { by: "neko", line: "那你挪一点点嘛，一点点就好喵" },
+      { by: "online", line: "……已挪。零点几像素，肉眼看不见" },
+    ],
+    [
+      { by: "online", line: "在等什么" },
+      { by: "neko", line: "等一个还没来的人喵", act: "waitTogether" },
+      { by: "online", line: "按概率，他可能不会来" },
+      { by: "neko", line: "那我们就等到他来的那个时候喵" },
+    ],
   ],
   // 只有猫卡、没有在线卡的窗口才用得上；默认一屏恒是一猫 + 一在线卡，
   // 所以这一池只有把卡搬到别的窗口去（跨窗口搬卡）之后才可达

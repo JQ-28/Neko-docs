@@ -58,6 +58,11 @@ html.dark .home-intro-sub {
      新增的对手戏一律用它算位移，这样两张卡上下摞着时（窄窗口那条带）不至于变成「左右错开」 */
   --meet-x: calc(var(--play-gap) * var(--play-dir));
   --meet-y: 0px;
+  /* 「跨到对方另一侧」要走的距离：横排是左右、竖排是上下，跟 --meet 同理会自动翻轴。
+     大编舞一律用它算跨越的位移 —— 同一段横排竖排通用，
+     不必再像早先那五段那样横竖各写一份关键帧 */
+  --cross-x: calc(var(--play-span) * var(--play-dir));
+  --cross-y: 0px;
   position: relative;
   display: flex;
   /* 基准取 236px：flex 换行按「假想主轴尺寸」判定，写 264 时要容器 550px 才排得下，
@@ -1021,6 +1026,57 @@ html.dark .home-live-avatar {
   animation: neko-play-swap-left 3.2s var(--play-ease);
 }
 
+/* —— 后来的八段基础对手戏：都短、都轻，跟上面那批一样进日常排期。
+      位移走 --meet-x / --meet-y，横排竖排都对轴 —— */
+
+/* 碰鼻尖：两只一起凑过去、鼻尖贴一下，各自缩回半步 */
+.home-live-slot.is-playing[data-play="noseBoop"] {
+  animation: neko-play-nose-boop 1.5s var(--ease-play);
+}
+
+/* 挥爪：一只抬爪挥两下，另一只跟着挥回来 */
+.home-live-slot.is-playing[data-play="pawWave"] {
+  animation: neko-play-paw-wave 1.6s var(--ease-play);
+}
+
+.home-live-slot--right.is-playing[data-play="pawWave"] {
+  animation-delay: 0.2s;
+}
+
+/* 悄悄摸过去：一只分三小步挪近，另一只到最后才发觉、回头一惊 */
+.home-live-slot--left.is-playing[data-play="sneakUp"] {
+  animation: neko-play-sneak 2.6s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="sneakUp"] {
+  animation: neko-play-sneak-notice 2.6s var(--play-ease);
+}
+
+/* 一起低头：像有个东西打头顶飞过去，两只同时矮下去、等它走远再起来 */
+.home-live-slot.is-playing[data-play="duckDown"] {
+  animation: neko-play-duck 1.8s var(--ease-play);
+}
+
+/* 原地转一圈：两只朝相反方向各转一圈，像跳圆舞 */
+.home-live-slot.is-playing[data-play="spinTurn"] {
+  animation: neko-play-spin-turn 2s var(--play-ease);
+}
+
+/* 一起歪头：一只歪左、一只歪右，歪着对看半拍 */
+.home-live-slot.is-playing[data-play="headTilt"] {
+  animation: neko-play-head-tilt 1.6s var(--play-ease);
+}
+
+/* 猛地散开：像被什么惊到，各自往两边弹开、站定一会儿再慢慢挪回来 */
+.home-live-slot.is-playing[data-play="scatterOff"] {
+  animation: neko-play-scatter 1.9s var(--ease-play);
+}
+
+/* 又挤回来：两只贴到一块儿挤一挤，谁也没让位，最后各退半步 */
+.home-live-slot.is-playing[data-play="huddleUp"] {
+  animation: neko-play-huddle 2.3s var(--play-ease);
+}
+
 /* 下面四段是安静向的，只在台词点名时演（不进平时的随机排期） */
 
 /* 靠一下：两张卡各自向对方挪一点、靠住停半拍，再分开 */
@@ -1051,6 +1107,52 @@ html.dark .home-live-avatar {
   animation: neko-play-lookOut 2s var(--play-ease);
 }
 
+/* —— 后来补的八段安静向：幅度都小、都不抢戏，只在台词点名时演 —— */
+
+/* 对看一眼：转过来碰上视线，停半拍，再各自转回去 */
+.home-live-slot.is-playing[data-play="glance"] {
+  animation: neko-play-glance 1.6s var(--play-ease);
+}
+
+/* 一起点头：一只先点，另一只跟一下（慢 0.12 秒，像应和） */
+.home-live-slot.is-playing[data-play="nod"] {
+  animation: neko-play-nod 1.8s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="nod"] {
+  animation-delay: 0.12s;
+}
+
+/* 静静坐着：靠到一块儿，中间一长段完全不动 —— 这段的留白就是它的意思 */
+.home-live-slot.is-playing[data-play="quietSit"] {
+  animation: neko-play-quiet-sit 2.4s var(--play-ease);
+}
+
+/* 一起呼吸：两只的起伏同一个节奏，一轮一轮很浅 */
+.home-live-slot.is-playing[data-play="breatheTogether"] {
+  animation: neko-play-breathe-together 2.6s var(--play-ease);
+}
+
+/* 尾巴搭过去：侧身靠住，尾巴那头正好搭在对方身上 */
+.home-live-slot.is-playing[data-play="tailRest"] {
+  animation: neko-play-tail-rest 2.2s var(--play-ease);
+}
+
+/* 慢慢眨眼：整体很轻地压一下再松开，就当是眯了眯眼 */
+.home-live-slot.is-playing[data-play="slowBlink"] {
+  animation: neko-play-slow-blink 1.6s var(--play-ease);
+}
+
+/* 侧身让一下：往旁边挪开，让出路，过一会儿再挪回来 */
+.home-live-slot.is-playing[data-play="stepAside"] {
+  animation: neko-play-step-aside 2s var(--play-ease);
+}
+
+/* 一起等：两只都朝同一个方向偏着，等着，中途只轻轻挪一下重心 */
+.home-live-slot.is-playing[data-play="waitTogether"] {
+  animation: neko-play-wait-together 2.4s var(--play-ease);
+}
+
 /* ===== 大编舞：动作大、时间长，隔一阵当一次特别节目，不掺进平时的打闹 ===== */
 
 /* 镜像舞步：两张卡照镜子做同一套动作（这段幅度小，在平时的排期里也会出现） */
@@ -1059,8 +1161,8 @@ html.dark .home-live-avatar {
 }
 
 /* —— 多拍子的日常：来回好几个回合，不是「A 动一下、B 动一下」就完。
-      位移只按 --play-gap（两张卡的相对间距）算，不跨屏所以窄屏也甩不出去；
-      但走的是横轴 —— 竖排（两张卡上下摞着）时「凑近」会变成横向错开，这一段待修 —— */
+      位移一律走 --meet-x / --meet-y（朝对方那个轴，两张卡上下摞着时自动换成纵向），
+      只按相对间距算、不跨屏所以窄屏也甩不出去 —— */
 .home-live-slot.is-playing[data-play="nuzzle"] {
   animation: neko-play-nuzzle 4.2s var(--play-ease);
 }
@@ -1115,6 +1217,56 @@ html.dark .home-live-avatar {
 
 .home-live-slot.is-playing[data-play="makeUp"] {
   animation: neko-play-make-up 4.4s var(--play-ease);
+}
+
+/* —— 后来补的八段多拍子日常：都在日常排期里，位移同样走 --meet-x / --meet-y —— */
+
+/* 一起晒太阳：两只都慢慢沉下去打盹，呼吸起伏两轮再醒 */
+.home-live-slot.is-playing[data-play="sunNap"] {
+  animation: neko-play-sun-nap 6.5s var(--play-ease);
+}
+
+/* 尾巴勾一起：各自侧身把尾巴伸过去勾住，勾着了晃两下 */
+.home-live-slot.is-playing[data-play="tailHook"] {
+  animation: neko-play-tail-hook 5.2s var(--play-ease);
+}
+
+/* 来回滚球：你推过来、我推回去，三个回合，球越滚越近 */
+.home-live-slot.is-playing[data-play="ballRoll"] {
+  animation: neko-play-ball-roll 4.8s var(--play-ease);
+}
+
+/* 一起伸懒腰：两只同时往上拉长，停住撑一会儿再松 */
+.home-live-slot.is-playing[data-play="doubleStretch"] {
+  animation: neko-play-double-stretch 6s var(--play-ease);
+}
+
+/* 蹭胡子：凑到脸贴脸，左右各蹭两下 */
+.home-live-slot.is-playing[data-play="whiskerTouch"] {
+  animation: neko-play-whisker 4.4s var(--play-ease);
+}
+
+/* 爪子叠一起：一只先伸爪，另一只盖上去，叠住了再一起抬一下 */
+.home-live-slot.is-playing[data-play="pawPile"] {
+  animation: neko-play-paw-pile 5s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="pawPile"] {
+  animation-delay: 0.4s;
+}
+
+/* 一起盯窗外：两只朝同一侧偏头，盯很久，一只先回头 */
+.home-live-slot--left.is-playing[data-play="birdWatch"] {
+  animation: neko-play-bird-watch 7s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="birdWatch"] {
+  animation: neko-play-bird-watch-late 7s var(--play-ease);
+}
+
+/* 挤同一块阴影：慢慢挪到一块儿挤住，谁也没多让 */
+.home-live-slot.is-playing[data-play="shareShade"] {
+  animation: neko-play-share-shade 4.8s var(--play-ease);
 }
 
 /* —— 后来补的八段：都在日常排期里，跟上面那批一样是「两张卡你来我往」。
@@ -1188,11 +1340,79 @@ html.dark .home-live-avatar {
   animation: neko-play-spoon 3.6s var(--play-ease);
 }
 
+/* —— 后来补的八段家常对手戏：都短，动作都不大，一律走 --meet-x / --meet-y —— */
+
+/* 咬耳朵：一只凑过去啃一下（就一口），被啃的那只耳朵连抖好几下 */
+.home-live-slot--left.is-playing[data-play="earBite"] {
+  animation: neko-play-ear-nibble 3.2s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="earBite"] {
+  animation: neko-play-ear-twitch 3.2s var(--play-ease);
+}
+
+/* 蹭背：一只贴着对方的背左右蹭两轮 */
+.home-live-slot--left.is-playing[data-play="backRub"] {
+  animation: neko-play-back-rub 3.6s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="backRub"] {
+  animation: neko-play-back-take 3.6s var(--play-ease);
+}
+
+/* 一起挤纸箱：两只轮流往里挤，谁都不肯先出去 */
+.home-live-slot.is-playing[data-play="boxSit"] {
+  animation: neko-play-box-squeeze 4.2s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="boxSit"] {
+  animation-delay: 0.3s;
+}
+
+/* 挨着打呼噜：两只靠在一起，呼噜声此起彼伏（右边慢半拍就是一个接一个） */
+.home-live-slot.is-playing[data-play="purrPile"] {
+  animation: neko-play-purr 5s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="purrPile"] {
+  animation-delay: 0.5s;
+}
+
+/* 互相拍爪：一只拍两下，另一只每次都往后退一点点 */
+.home-live-slot--left.is-playing[data-play="pawSwat"] {
+  animation: neko-play-swat-left 3s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="pawSwat"] {
+  animation: neko-play-swat-right 3s var(--play-ease);
+}
+
+/* 舔爪子：一只把自己爪子递过去，另一只低头舔 */
+.home-live-slot--left.is-playing[data-play="pawLick"] {
+  animation: neko-play-paw-groom 3.4s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="pawLick"] {
+  animation: neko-play-paw-offer 3.4s var(--play-ease);
+}
+
+/* 肩膀挨肩膀：靠上了就一直待着，中途只轻轻挪一下，像谁也不急着走 */
+.home-live-slot.is-playing[data-play="shoulderLean"] {
+  animation: neko-play-shoulder 4.4s var(--play-ease);
+}
+
+/* 头尾相接：两只凑成一个小圈躺下来，一只枕着另一只的尾巴 */
+.home-live-slot.is-playing[data-play="curlPair"] {
+  animation: neko-play-curl 5.5s var(--play-ease);
+}
+
 /* 两张卡上下摞着时（窄窗口那条带）：「朝对方」得换成纵轴，
    不然上面这些「凑近」的位移会变成左右错开 */
 .home-live-cards[data-layout="stacked"] .home-live-slot {
   --meet-x: 0px;
   --meet-y: calc(var(--play-gap) * var(--play-dir));
+  --cross-x: 0px;
+  --cross-y: calc(var(--play-span) * var(--play-dir));
 }
 
 /* —— 一个人也能演的小动作：不用等对手，手里只剩一张卡时它也闲不着 —— */
@@ -1214,6 +1434,48 @@ html.dark .home-live-avatar {
 
 .home-live-slot.is-playing[data-play="shakeOff"] {
   animation: neko-solo-shake 1.6s ease-in-out;
+}
+
+/* —— 后来补的八段独处小动作：一张卡也演得成，跟上面那批一样进独处的排期 —— */
+
+/* 舔爪子：低头舔两遍，每一遍都带一点前后的晃 */
+.home-live-slot.is-playing[data-play="lickPaw"] {
+  animation: neko-solo-lick-paw 3s var(--play-ease);
+}
+
+/* 挠耳朵：后爪够着挠几下，头跟着一颠一颠 */
+.home-live-slot.is-playing[data-play="scratchEar"] {
+  animation: neko-solo-scratch-ear 2s ease-in-out;
+}
+
+/* 盯自己尾巴：脑袋跟着尾巴转过去，盯住了不动，末了才回正 */
+.home-live-slot.is-playing[data-play="watchTail"] {
+  animation: neko-solo-watch-tail 2.8s var(--play-ease);
+}
+
+/* 蜷起来睡：整个缩下去，中间一大段就是睡着 */
+.home-live-slot.is-playing[data-play="curlSleep"] {
+  animation: neko-solo-curl-sleep 3.6s var(--play-ease);
+}
+
+/* 打喷嚏：仰头憋一下、猛地弹出去、再甩甩脑袋 */
+.home-live-slot.is-playing[data-play="sneeze"] {
+  animation: neko-solo-sneeze 1.6s var(--ease-play);
+}
+
+/* 咬玩具：左右来回甩，越甩越小 */
+.home-live-slot.is-playing[data-play="chewToy"] {
+  animation: neko-solo-chew-toy 2.4s ease-in-out;
+}
+
+/* 摊平晒太阳：整个人摊开、往下沉，晒足了才收起来 */
+.home-live-slot.is-playing[data-play="sunBask"] {
+  animation: neko-solo-sun-bask 3.4s var(--play-ease);
+}
+
+/* 自己理毛：低头舔胸口两遍，每遍先低头再抬起来顺一下 */
+.home-live-slot.is-playing[data-play="groomSelf"] {
+  animation: neko-solo-groom-self 3.2s var(--play-ease);
 }
 
 /* 太极转圈：各自往对方那侧绕半圈、交换位置，再绕回来；一个走上面一个走下面 */
@@ -1261,6 +1523,64 @@ html.dark .home-live-avatar {
 .home-live-slot--right.is-playing[data-play="peekaboo"] {
   animation: neko-play-seek 4s var(--play-ease);
   z-index: 2;
+}
+
+/* —— 后来补的八段大编舞：跨越一律走 --cross-x / --cross-y，
+      横排竖排通用，所以下面不需要再补一堆 [data-layout="stacked"] 的换名规则 —— */
+
+/* 绕场一圈：各自划一个大弧绕到对方那边再绕回来 */
+.home-live-slot.is-playing[data-play="ringAround"] {
+  animation: neko-play-ring-around 5.5s var(--play-ease);
+}
+
+/* 各转两圈：两只朝相反方向各转两整圈 */
+.home-live-slot.is-playing[data-play="doubleSpin"] {
+  animation: neko-play-double-spin 6s var(--play-ease);
+}
+
+/* 长跳：一只助跑、跳起来跨过对方落在那头，再慢慢走回来 */
+.home-live-slot--left.is-playing[data-play="longJump"] {
+  animation: neko-play-long-jump 5.2s var(--play-ease);
+  z-index: 2;
+}
+
+.home-live-slot--right.is-playing[data-play="longJump"] {
+  animation: neko-play-long-jump-yield 5.2s var(--play-ease);
+}
+
+/* 钻过去：一只压低身子从对方底下穿到另一边 */
+.home-live-slot.is-playing[data-play="tunnelRun"] {
+  animation: neko-play-tunnel-run 5.6s var(--play-ease);
+  z-index: 2;
+}
+
+/* 一起荡秋千：同一个节奏前后摆，右边慢半拍（像两个秋千） */
+.home-live-slot.is-playing[data-play="swingPair"] {
+  animation: neko-play-swing-pair 5.8s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="swingPair"] {
+  animation-delay: 0.3s;
+}
+
+/* 一起鞠躬：两只同时弯下去停住，再一起直起来 */
+.home-live-slot.is-playing[data-play="duetBow"] {
+  animation: neko-play-duet-bow 4.2s var(--play-ease);
+}
+
+/* 拉开又合拢：先贴到最近合成一团，停一下再慢慢散开 */
+.home-live-slot.is-playing[data-play="starShape"] {
+  animation: neko-play-star-shape 5s var(--play-ease);
+}
+
+/* 列队绕场：前面一只带队绕一圈，后面一只慢半拍跟着 */
+.home-live-slot--left.is-playing[data-play="paradeLoop"] {
+  animation: neko-play-parade-loop 6.5s var(--play-ease);
+  z-index: 2;
+}
+
+.home-live-slot--right.is-playing[data-play="paradeLoop"] {
+  animation: neko-play-parade-follow 6.5s var(--play-ease);
 }
 
 /* 两张卡上下摞着时（手机、窄窗口）：横向那套位移会把卡片直接推出屏幕，
@@ -1520,6 +1840,251 @@ html.dark .home-live-avatar {
 }
 
 /* 蹭蹭：凑近 → 头碰头蹭两下 → 慢慢分开。两只镜像做，所以共用一条 */
+/* 绕场一圈：走一个绕出去又绕回来的弧（跨越段一律 linear，中途不停顿） */
+@keyframes neko-play-ring-around {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  25% {
+    animation-timing-function: linear;
+    transform: translate(calc(var(--cross-x) * 0.42), calc(var(--cross-y) * 0.42 - 26px))
+      rotate(calc(14deg * var(--play-dir)));
+  }
+
+  50% {
+    animation-timing-function: linear;
+    transform: translate(var(--cross-x), var(--cross-y)) rotate(calc(26deg * var(--play-dir)));
+  }
+
+  75% {
+    animation-timing-function: linear;
+    transform: translate(calc(var(--cross-x) * 0.42), calc(var(--cross-y) * 0.42 - 26px))
+      rotate(calc(14deg * var(--play-dir)));
+  }
+}
+
+/* 各转两圈：转满 720 度后保持住，末帧才落回 0 —— 直接从 720 回 0 会被浏览器倒着转回去。
+   起转那下带一点压缩（scale 0.94），像真的蹬地发力 */
+@keyframes neko-play-double-spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  30% {
+    transform: rotate(calc(300deg * var(--play-dir))) scale(0.94);
+  }
+
+  55% {
+    transform: rotate(calc(560deg * var(--play-dir))) scale(0.96);
+  }
+
+  80%,
+  100% {
+    transform: rotate(calc(720deg * var(--play-dir))) scale(1);
+  }
+}
+
+/* 长跳 · 跳的那只：先往后坐一下蓄力，腾空时纵向拉长，落在那头压一下，最后走回来 */
+@keyframes neko-play-long-jump {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  14% {
+    transform: translate(calc(var(--cross-x) * -0.06), calc(var(--cross-y) * -0.06 + 4px))
+      scale(1.05, 0.93);
+  }
+
+  34% {
+    animation-timing-function: linear;
+    transform: translate(calc(var(--cross-x) * 0.48), calc(var(--cross-y) * 0.48 - 44px))
+      scale(0.98, 1.05);
+  }
+
+  54% {
+    transform: translate(var(--cross-x), var(--cross-y)) scale(1.04, 0.95);
+  }
+
+  64%,
+  76% {
+    transform: translate(var(--cross-x), var(--cross-y)) scale(1, 1);
+  }
+
+  90% {
+    transform: translate(calc(var(--cross-x) * 0.2), calc(var(--cross-y) * 0.2)) scale(1, 1);
+  }
+}
+
+/* 长跳 · 被跳过去的那只：往旁边让半步，仰着头看它从头顶过去，落地后才站回来 */
+@keyframes neko-play-long-jump-yield {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1, 1);
+  }
+
+  30% {
+    transform: translate(calc(var(--meet-x) * -0.08), calc(var(--meet-y) * -0.08))
+      rotate(calc(-2deg * var(--play-dir))) scale(1, 0.99);
+  }
+
+  44%,
+  62% {
+    transform: translate(calc(var(--meet-x) * -0.14), calc(var(--meet-y) * -0.14))
+      rotate(calc(-3deg * var(--play-dir))) scale(1.02, 0.97);
+  }
+
+  80% {
+    transform: translate(calc(var(--meet-x) * -0.04), calc(var(--meet-y) * -0.04)) rotate(0deg)
+      scale(1, 1);
+  }
+}
+
+/* 钻过去：先压扁（纵向缩、横向撑），一路从对方底下穿过去，到那头再站起来。
+   全程保持压扁 —— 中途弹起来就不像「钻」了 */
+@keyframes neko-play-tunnel-run {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  20% {
+    transform: translate(calc(var(--meet-x) * 0.2), calc(var(--meet-y) * 0.2)) scale(1.04, 0.9);
+  }
+
+  42%,
+  60% {
+    animation-timing-function: linear;
+    transform: translate(calc(var(--cross-x) * 0.55), calc(var(--cross-y) * 0.55)) scale(1.06, 0.84);
+  }
+
+  82% {
+    transform: translate(var(--cross-x), var(--cross-y)) scale(1, 1);
+  }
+}
+
+/* 一起荡秋千：往前摆到最高（有一下失重的上提），再摆回来；
+   幅度全靠转角和那 18px 的上提，位移几乎不动 */
+@keyframes neko-play-swing-pair {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  18% {
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1 - 18px))
+      rotate(calc(7deg * var(--play-dir)));
+  }
+
+  38% {
+    transform: translate(0, 0) rotate(calc(-6deg * var(--play-dir)));
+  }
+
+  56% {
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1 - 18px))
+      rotate(calc(7deg * var(--play-dir)));
+  }
+
+  74% {
+    transform: translate(0, 0) rotate(calc(-6deg * var(--play-dir)));
+  }
+}
+
+/* 一起鞠躬：同时弯下去停住（横着撑开一点，是弯腰的形状），再一起直起来 */
+@keyframes neko-play-duet-bow {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1, 1);
+  }
+
+  28%,
+  48% {
+    transform: translate(0, 9px) rotate(calc(2deg * var(--play-dir))) scale(1.05, 0.89);
+  }
+
+  68% {
+    transform: translate(0, -2px) rotate(0deg) scale(0.99, 1.02);
+  }
+}
+
+/* 合成一团：贴到最近、贴住不动，中间那一长段就是「挨着」
+   （没往反方向退：卡片外侧还剩多少地方脚本没量过，往外退有出屏风险） */
+@keyframes neko-play-star-shape {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  30% {
+    transform: translate(calc(var(--meet-x) * 0.44), calc(var(--meet-y) * 0.44))
+      rotate(calc(6deg * var(--play-dir)));
+  }
+
+  54% {
+    transform: translate(calc(var(--meet-x) * 0.42), calc(var(--meet-y) * 0.42))
+      rotate(calc(5deg * var(--play-dir)));
+  }
+
+  78% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12))
+      rotate(calc(1deg * var(--play-dir)));
+  }
+}
+
+/* 列队绕场 · 带队的那只：三段加速跑，每段自己起步自己刹车 */
+@keyframes neko-play-parade-loop {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  22%,
+  36% {
+    animation-timing-function: linear;
+    transform: translate(calc(var(--cross-x) * 0.34), calc(var(--cross-y) * 0.34 - 12px))
+      rotate(calc(5deg * var(--play-dir)));
+  }
+
+  58% {
+    animation-timing-function: linear;
+    transform: translate(var(--cross-x), calc(var(--cross-y) - 8px))
+      rotate(calc(7deg * var(--play-dir)));
+  }
+
+  82% {
+    transform: translate(calc(var(--cross-x) * 0.36), calc(var(--cross-y) * 0.36))
+      rotate(calc(2deg * var(--play-dir)));
+  }
+}
+
+/* 列队绕场 · 跟着的那只：整条时间线比带队那只晚一拍 */
+@keyframes neko-play-parade-follow {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  30%,
+  44% {
+    animation-timing-function: linear;
+    transform: translate(calc(var(--cross-x) * 0.3), calc(var(--cross-y) * 0.3 - 12px))
+      rotate(calc(4deg * var(--play-dir)));
+  }
+
+  66% {
+    animation-timing-function: linear;
+    transform: translate(var(--cross-x), calc(var(--cross-y) - 8px))
+      rotate(calc(6deg * var(--play-dir)));
+  }
+
+  88% {
+    transform: translate(calc(var(--cross-x) * 0.32), calc(var(--cross-y) * 0.32))
+      rotate(calc(1deg * var(--play-dir)));
+  }
+}
+
 @keyframes neko-play-nuzzle {
   0%,
   100% {
@@ -1527,31 +2092,31 @@ html.dark .home-live-avatar {
   }
 
   16% {
-    transform: translate(calc(var(--play-gap) * 0.4 * var(--play-dir)), -1px)
+    transform: translate(calc(var(--meet-x) * 0.4), calc(var(--meet-y) * 0.4 - 1px))
       rotate(calc(2deg * var(--play-dir)));
   }
 
   28% {
-    transform: translate(calc(var(--play-gap) * 0.44 * var(--play-dir)), 1px)
+    transform: translate(calc(var(--meet-x) * 0.44), calc(var(--meet-y) * 0.44 + 1px))
       rotate(calc(-2deg * var(--play-dir)));
   }
 
   40% {
-    transform: translate(calc(var(--play-gap) * 0.4 * var(--play-dir)), -1px)
+    transform: translate(calc(var(--meet-x) * 0.4), calc(var(--meet-y) * 0.4 - 1px))
       rotate(calc(2deg * var(--play-dir)));
   }
 
   54% {
-    transform: translate(calc(var(--play-gap) * 0.44 * var(--play-dir)), 1px)
+    transform: translate(calc(var(--meet-x) * 0.44), calc(var(--meet-y) * 0.44 + 1px))
       rotate(calc(-1.5deg * var(--play-dir)));
   }
 
   70% {
-    transform: translate(calc(var(--play-gap) * 0.46 * var(--play-dir)), 0) rotate(0deg);
+    transform: translate(calc(var(--meet-x) * 0.46), calc(var(--meet-y) * 0.46)) rotate(0deg);
   }
 
   86% {
-    transform: translate(calc(var(--play-gap) * 0.12 * var(--play-dir)), 0) rotate(0deg);
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12)) rotate(0deg);
   }
 }
 
@@ -1566,27 +2131,27 @@ html.dark .home-live-avatar {
   }
 
   18% {
-    transform: translate(calc(var(--play-gap) * 0.4 * var(--play-dir)), 3px)
+    transform: translate(calc(var(--meet-x) * 0.4), calc(var(--meet-y) * 0.4 + 3px))
       rotate(calc(4deg * var(--play-dir)));
   }
 
   34% {
-    transform: translate(calc(var(--play-gap) * 0.44 * var(--play-dir)), 5px)
+    transform: translate(calc(var(--meet-x) * 0.44), calc(var(--meet-y) * 0.44 + 5px))
       rotate(calc(4.5deg * var(--play-dir)));
   }
 
   50% {
-    transform: translate(calc(var(--play-gap) * 0.44 * var(--play-dir)), 3px)
+    transform: translate(calc(var(--meet-x) * 0.44), calc(var(--meet-y) * 0.44 + 3px))
       rotate(calc(4deg * var(--play-dir)));
   }
 
   66% {
-    transform: translate(calc(var(--play-gap) * 0.44 * var(--play-dir)), 5px)
+    transform: translate(calc(var(--meet-x) * 0.44), calc(var(--meet-y) * 0.44 + 5px))
       rotate(calc(4.5deg * var(--play-dir)));
   }
 
   82% {
-    transform: translate(calc(var(--play-gap) * 0.3 * var(--play-dir)), 1px)
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 + 1px))
       rotate(calc(1.5deg * var(--play-dir)));
   }
 }
@@ -1600,7 +2165,8 @@ html.dark .home-live-avatar {
 
   24%,
   70% {
-    transform: translate(calc(var(--play-gap) * 0.06 * var(--play-dir)), 2px) scale(0.985);
+    transform: translate(calc(var(--meet-x) * 0.06), calc(var(--meet-y) * 0.06 + 2px))
+      scale(0.985);
   }
 
   86% {
@@ -1616,26 +2182,26 @@ html.dark .home-live-avatar {
   }
 
   20% {
-    transform: translate(calc(var(--play-gap) * 0.34 * var(--play-dir)), 3px)
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34 + 3px))
       rotate(calc(-2deg * var(--play-dir)));
   }
 
   34% {
-    transform: translate(calc(var(--play-gap) * 0.38 * var(--play-dir)), 1px)
+    transform: translate(calc(var(--meet-x) * 0.38), calc(var(--meet-y) * 0.38 + 1px))
       rotate(calc(-1deg * var(--play-dir)));
   }
 
   58%,
   66% {
-    transform: translate(calc(var(--play-gap) * 0.3 * var(--play-dir)), 4px) rotate(0deg);
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 + 4px)) rotate(0deg);
   }
 
   74% {
-    transform: translate(calc(var(--play-gap) * 0.3 * var(--play-dir)), 1px) rotate(0deg);
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 + 1px)) rotate(0deg);
   }
 
   88% {
-    transform: translate(calc(var(--play-gap) * 0.1 * var(--play-dir)), 0) rotate(0deg);
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1)) rotate(0deg);
   }
 }
 
@@ -1647,20 +2213,20 @@ html.dark .home-live-avatar {
   }
 
   22% {
-    transform: translate(calc(var(--play-gap) * 0.36 * var(--play-dir)), -2px) scale(1.015);
+    transform: translate(calc(var(--meet-x) * 0.36), calc(var(--meet-y) * 0.36 - 2px)) scale(1.015);
   }
 
   36% {
-    transform: translate(calc(var(--play-gap) * 0.32 * var(--play-dir)), 0) scale(1);
+    transform: translate(calc(var(--meet-x) * 0.32), calc(var(--meet-y) * 0.32)) scale(1);
   }
 
   58%,
   74% {
-    transform: translate(calc(var(--play-gap) * 0.3 * var(--play-dir)), 2px) scale(1);
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 + 2px)) scale(1);
   }
 
   66% {
-    transform: translate(calc(var(--play-gap) * 0.3 * var(--play-dir)), 0) scale(1);
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3)) scale(1);
   }
 
   90% {
@@ -1676,25 +2242,25 @@ html.dark .home-live-avatar {
   }
 
   18% {
-    transform: translate(calc(var(--play-gap) * 0.2 * var(--play-dir)), 4px) rotate(0deg);
+    transform: translate(calc(var(--meet-x) * 0.2), calc(var(--meet-y) * 0.2 + 4px)) rotate(0deg);
   }
 
   32% {
-    transform: translate(calc(var(--play-gap) * 0.42 * var(--play-dir)), -26px)
+    transform: translate(calc(var(--meet-x) * 0.42), calc(var(--meet-y) * 0.42 - 26px))
       rotate(calc(-6deg * var(--play-dir)));
   }
 
   46% {
-    transform: translate(calc(var(--play-gap) * 0.34 * var(--play-dir)), -6px)
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34 - 6px))
       rotate(calc(2deg * var(--play-dir)));
   }
 
   58% {
-    transform: translate(calc(var(--play-gap) * 0.2 * var(--play-dir)), -14px) rotate(0deg);
+    transform: translate(calc(var(--meet-x) * 0.2), calc(var(--meet-y) * 0.2 - 14px)) rotate(0deg);
   }
 
   76% {
-    transform: translate(calc(var(--play-gap) * 0.08 * var(--play-dir)), 0) rotate(0deg);
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08)) rotate(0deg);
   }
 }
 
@@ -1734,26 +2300,28 @@ html.dark .home-live-avatar {
   }
 
   10% {
-    transform: translate(calc(var(--play-gap) * -0.18 * var(--play-dir)), 3px)
+    transform: translate(calc(var(--meet-x) * -0.18), calc(var(--meet-y) * -0.18 + 3px))
       rotate(calc(-3deg * var(--play-dir))) scale(0.97);
   }
 
   26% {
-    transform: translate(calc(var(--play-gap) * -0.12 * var(--play-dir)), 2px)
+    transform: translate(calc(var(--meet-x) * -0.12), calc(var(--meet-y) * -0.12 + 2px))
       rotate(calc(-1deg * var(--play-dir))) scale(0.98);
   }
 
   44% {
-    transform: translate(calc(var(--play-gap) * 0.1 * var(--play-dir)), 0)
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1))
       rotate(calc(2deg * var(--play-dir))) scale(1);
   }
 
   60% {
-    transform: translate(calc(var(--play-gap) * 0.06 * var(--play-dir)), 0) rotate(0deg) scale(1);
+    transform: translate(calc(var(--meet-x) * 0.06), calc(var(--meet-y) * 0.06)) rotate(0deg)
+      scale(1);
   }
 
   78% {
-    transform: translate(calc(var(--play-gap) * 0.12 * var(--play-dir)), 0) rotate(0deg) scale(1);
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12)) rotate(0deg)
+      scale(1);
   }
 }
 
@@ -1766,30 +2334,30 @@ html.dark .home-live-avatar {
 
   16% {
     animation-timing-function: linear;
-    transform: translate(calc(var(--play-gap) * 0.4 * var(--play-dir)), -14px)
+    transform: translate(calc(var(--meet-x) * 0.4), calc(var(--meet-y) * 0.4 - 14px))
       rotate(calc(5deg * var(--play-dir)));
   }
 
   32% {
     animation-timing-function: linear;
-    transform: translate(calc(var(--play-gap) * -0.06 * var(--play-dir)), -18px)
+    transform: translate(calc(var(--meet-x) * -0.06), calc(var(--meet-y) * -0.06 - 18px))
       rotate(calc(-4deg * var(--play-dir)));
   }
 
   48% {
     animation-timing-function: linear;
-    transform: translate(calc(var(--play-gap) * -0.42 * var(--play-dir)), -6px)
+    transform: translate(calc(var(--meet-x) * -0.42), calc(var(--meet-y) * -0.42 - 6px))
       rotate(calc(-6deg * var(--play-dir)));
   }
 
   64% {
     animation-timing-function: linear;
-    transform: translate(calc(var(--play-gap) * -0.2 * var(--play-dir)), 12px)
+    transform: translate(calc(var(--meet-x) * -0.2), calc(var(--meet-y) * -0.2 + 12px))
       rotate(calc(3deg * var(--play-dir)));
   }
 
   82% {
-    transform: translate(calc(var(--play-gap) * 0.24 * var(--play-dir)), 6px)
+    transform: translate(calc(var(--meet-x) * 0.24), calc(var(--meet-y) * 0.24 + 6px))
       rotate(calc(-2deg * var(--play-dir)));
   }
 }
@@ -1803,30 +2371,30 @@ html.dark .home-live-avatar {
 
   24% {
     animation-timing-function: linear;
-    transform: translate(calc(var(--play-gap) * 0.26 * var(--play-dir)), -10px)
+    transform: translate(calc(var(--meet-x) * 0.26), calc(var(--meet-y) * 0.26 - 10px))
       rotate(calc(4deg * var(--play-dir)));
   }
 
   40% {
     animation-timing-function: linear;
-    transform: translate(calc(var(--play-gap) * -0.02 * var(--play-dir)), -16px)
+    transform: translate(calc(var(--meet-x) * -0.02), calc(var(--meet-y) * -0.02 - 16px))
       rotate(calc(-3deg * var(--play-dir)));
   }
 
   56% {
     animation-timing-function: linear;
-    transform: translate(calc(var(--play-gap) * -0.3 * var(--play-dir)), -4px)
+    transform: translate(calc(var(--meet-x) * -0.3), calc(var(--meet-y) * -0.3 - 4px))
       rotate(calc(-5deg * var(--play-dir)));
   }
 
   72% {
     animation-timing-function: linear;
-    transform: translate(calc(var(--play-gap) * -0.1 * var(--play-dir)), 10px)
+    transform: translate(calc(var(--meet-x) * -0.1), calc(var(--meet-y) * -0.1 + 10px))
       rotate(calc(2deg * var(--play-dir)));
   }
 
   88% {
-    transform: translate(calc(var(--play-gap) * 0.3 * var(--play-dir)), 4px)
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 + 4px))
       rotate(calc(3deg * var(--play-dir)));
   }
 }
@@ -2347,6 +2915,320 @@ html.dark .home-live-avatar {
   }
 }
 
+/* 咬耳朵 · 下嘴的那只：凑过去低头啃一口就退开，不像真咬 —— 只在原地压一下 */
+@keyframes neko-play-ear-nibble {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  24% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 - 2px))
+      rotate(calc(3deg * var(--play-dir)));
+  }
+
+  40%,
+  54% {
+    transform: translate(calc(var(--meet-x) * 0.36), calc(var(--meet-y) * 0.36 - 1px))
+      rotate(calc(5deg * var(--play-dir)));
+  }
+
+  74% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12))
+      rotate(calc(1deg * var(--play-dir)));
+  }
+}
+
+/* 咬耳朵 · 被咬的那只：耳朵连抖四下（频率递减），然后往旁边躲一点 */
+@keyframes neko-play-ear-twitch {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  28% {
+    transform: rotate(calc(-3deg * var(--play-dir)));
+  }
+
+  36% {
+    transform: rotate(calc(4deg * var(--play-dir)));
+  }
+
+  44% {
+    transform: rotate(calc(-3.5deg * var(--play-dir)));
+  }
+
+  52% {
+    transform: rotate(calc(3deg * var(--play-dir)));
+  }
+
+  62%,
+  80% {
+    transform: translate(calc(var(--meet-x) * -0.05), calc(var(--meet-y) * -0.05))
+      rotate(calc(-1deg * var(--play-dir)));
+  }
+}
+
+/* 蹭背 · 蹭的那只：来回蹭两轮 —— 蹭是转动，位移只占一小档 */
+@keyframes neko-play-back-rub {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  20% {
+    transform: translate(calc(var(--meet-x) * 0.26), calc(var(--meet-y) * 0.26))
+      rotate(calc(-4deg * var(--play-dir)));
+  }
+
+  34% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34))
+      rotate(calc(4deg * var(--play-dir)));
+  }
+
+  48% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3))
+      rotate(calc(-3deg * var(--play-dir)));
+  }
+
+  64% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34))
+      rotate(calc(3deg * var(--play-dir)));
+  }
+
+  84% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08)) rotate(0deg);
+  }
+}
+
+/* 蹭背 · 被蹭的那只：稳稳站着，只在对方压上来时轻轻顶回去一点 */
+@keyframes neko-play-back-take {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  26%,
+  70% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08 + 1px)) scale(1.01);
+  }
+}
+
+/* 一起挤纸箱：往里挤的时候横向收、纵向压 —— 箱子就那么点地方，挤一挤才装得下 */
+@keyframes neko-play-box-squeeze {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  22% {
+    transform: translate(calc(var(--meet-x) * 0.18), calc(var(--meet-y) * 0.18)) scale(1.04, 0.96);
+  }
+
+  40% {
+    transform: translate(calc(var(--meet-x) * 0.26), calc(var(--meet-y) * 0.26 + 3px))
+      scale(1.06, 0.93);
+  }
+
+  58% {
+    transform: translate(calc(var(--meet-x) * 0.24), calc(var(--meet-y) * 0.24 + 2px))
+      scale(1.03, 0.95);
+  }
+
+  78% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12)) scale(1.01, 0.99);
+  }
+}
+
+/* 挨着打呼噜：起伏三轮，一轮比一轮浅；右边慢 0.5 秒，两串呼噜就岔开了 */
+@keyframes neko-play-purr {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  14% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3)) scale(1.02, 0.99);
+  }
+
+  24% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34 + 1px))
+      scale(1.03, 0.97);
+  }
+
+  38% {
+    transform: translate(calc(var(--meet-x) * 0.32), calc(var(--meet-y) * 0.32)) scale(1.02, 0.99);
+  }
+
+  52% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34 + 1px))
+      scale(1.03, 0.97);
+  }
+
+  66% {
+    transform: translate(calc(var(--meet-x) * 0.32), calc(var(--meet-y) * 0.32)) scale(1.02, 0.99);
+  }
+
+  82% {
+    transform: translate(calc(var(--meet-x) * 0.14), calc(var(--meet-y) * 0.14)) scale(1.01, 0.99);
+  }
+}
+
+/* 互相拍爪 · 拍的那只：拍两下，第二下抬手更高 */
+@keyframes neko-play-swat-left {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  18% {
+    transform: translate(calc(var(--meet-x) * 0.24), calc(var(--meet-y) * 0.24 - 4px))
+      rotate(calc(-5deg * var(--play-dir)));
+  }
+
+  30% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12))
+      rotate(calc(2deg * var(--play-dir)));
+  }
+
+  52% {
+    transform: translate(calc(var(--meet-x) * 0.26), calc(var(--meet-y) * 0.26 - 3px))
+      rotate(calc(-4deg * var(--play-dir)));
+  }
+
+  64% {
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1))
+      rotate(calc(1deg * var(--play-dir)));
+  }
+
+  82% {
+    transform: translate(calc(var(--meet-x) * 0.04), calc(var(--meet-y) * 0.04)) rotate(0deg);
+  }
+}
+
+/* 互相拍爪 · 挨拍的那只：每次往后缩一点，缩完又挪回来一半（没真躲） */
+@keyframes neko-play-swat-right {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  22% {
+    transform: translate(calc(var(--meet-x) * -0.05), calc(var(--meet-y) * -0.05))
+      rotate(calc(4deg * var(--play-dir))) scale(0.99);
+  }
+
+  36% {
+    transform: translate(calc(var(--meet-x) * 0.06), calc(var(--meet-y) * 0.06)) rotate(0deg)
+      scale(1);
+  }
+
+  56% {
+    transform: translate(calc(var(--meet-x) * -0.04), calc(var(--meet-y) * -0.04))
+      rotate(calc(3deg * var(--play-dir))) scale(0.99);
+  }
+
+  70% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+}
+
+/* 舔爪子 · 舔的那只：低头贴过去，一上一下舔两遍（上下的劲靠 y 上那几像素） */
+@keyframes neko-play-paw-groom {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  22% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 + 4px))
+      rotate(calc(3deg * var(--play-dir))) scale(1.01);
+  }
+
+  38%,
+  56% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34 + 5px))
+      rotate(calc(4deg * var(--play-dir)));
+  }
+
+  76% {
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1 + 1px))
+      rotate(calc(1deg * var(--play-dir)));
+  }
+}
+
+/* 舔爪子 · 递爪的那只：把爪子送出去就抬着不动，等对方舔完才放下 */
+@keyframes neko-play-paw-offer {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  26% {
+    transform: translate(calc(var(--meet-x) * 0.22), calc(var(--meet-y) * 0.22 - 3px))
+      rotate(calc(-3deg * var(--play-dir)));
+  }
+
+  44%,
+  62% {
+    transform: translate(calc(var(--meet-x) * 0.26), calc(var(--meet-y) * 0.26 - 2px))
+      rotate(calc(-4deg * var(--play-dir)));
+  }
+
+  80% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08))
+      rotate(calc(-1deg * var(--play-dir)));
+  }
+}
+
+/* 肩膀挨肩膀：靠住之后一长段几乎不动，只在中间轻轻挪一下 ——
+   留白是这一段的本意，全程都在动就成打闹了 */
+@keyframes neko-play-shoulder {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  28% {
+    transform: translate(calc(var(--meet-x) * 0.32), calc(var(--meet-y) * 0.32))
+      rotate(calc(3deg * var(--play-dir)));
+  }
+
+  44%,
+  74% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34 + 1px))
+      rotate(calc(1deg * var(--play-dir)));
+  }
+
+  88% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12)) rotate(0deg);
+  }
+}
+
+/* 头尾相接：两只都往里收、往下沉，凑成一个圈；中间那一大段就是躺着 */
+@keyframes neko-play-curl {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  26% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34 + 4px))
+      rotate(calc(-6deg * var(--play-dir))) scale(1.01, 0.98);
+  }
+
+  44%,
+  72% {
+    transform: translate(calc(var(--meet-x) * 0.38), calc(var(--meet-y) * 0.38 + 6px))
+      rotate(calc(-8deg * var(--play-dir))) scale(1.02, 0.96);
+  }
+
+  88% {
+    transform: translate(calc(var(--meet-x) * 0.14), calc(var(--meet-y) * 0.14 + 2px))
+      rotate(calc(-2deg * var(--play-dir))) scale(1);
+  }
+}
+
 @keyframes neko-play-make-up {
   0%,
   100% {
@@ -2354,33 +3236,279 @@ html.dark .home-live-avatar {
   }
 
   14% {
-    transform: translate(calc(var(--play-gap) * -0.16 * var(--play-dir)), 0)
+    transform: translate(calc(var(--meet-x) * -0.16), calc(var(--meet-y) * -0.16))
       rotate(calc(-9deg * var(--play-dir)));
   }
 
   32% {
-    transform: translate(calc(var(--play-gap) * -0.18 * var(--play-dir)), -1px)
+    transform: translate(calc(var(--meet-x) * -0.18), calc(var(--meet-y) * -0.18 - 1px))
       rotate(calc(-10deg * var(--play-dir)));
   }
 
   46% {
-    transform: translate(calc(var(--play-gap) * -0.14 * var(--play-dir)), 0)
+    transform: translate(calc(var(--meet-x) * -0.14), calc(var(--meet-y) * -0.14))
       rotate(calc(-2deg * var(--play-dir)));
   }
 
   58% {
-    transform: translate(calc(var(--play-gap) * -0.16 * var(--play-dir)), 0)
+    transform: translate(calc(var(--meet-x) * -0.16), calc(var(--meet-y) * -0.16))
       rotate(calc(-9deg * var(--play-dir)));
   }
 
   76% {
-    transform: translate(calc(var(--play-gap) * 0.4 * var(--play-dir)), 2px)
+    transform: translate(calc(var(--meet-x) * 0.4), calc(var(--meet-y) * 0.4 + 2px))
       rotate(calc(3deg * var(--play-dir)));
   }
 
   90% {
-    transform: translate(calc(var(--play-gap) * 0.18 * var(--play-dir)), 0)
+    transform: translate(calc(var(--meet-x) * 0.18), calc(var(--meet-y) * 0.18))
       rotate(calc(1deg * var(--play-dir)));
+  }
+}
+
+/* 一起晒太阳：沉下去两轮起伏，每轮都比上一轮更低一点，末尾才撑起来（共用一条） */
+@keyframes neko-play-sun-nap {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1, 1);
+  }
+
+  16% {
+    transform: translate(0, 3px) rotate(calc(1deg * var(--play-dir))) scale(1.01, 0.97);
+  }
+
+  34% {
+    transform: translate(0, 5px) rotate(calc(1.5deg * var(--play-dir))) scale(1.02, 0.95);
+  }
+
+  52% {
+    transform: translate(0, 3px) rotate(calc(1deg * var(--play-dir))) scale(1.01, 0.97);
+  }
+
+  70% {
+    transform: translate(0, 5px) rotate(calc(1.5deg * var(--play-dir))) scale(1.02, 0.95);
+  }
+
+  88% {
+    transform: translate(0, 1px) rotate(0deg) scale(1, 1);
+  }
+}
+
+/* 尾巴勾一起：身体往对方侧过去一点，尾巴那头自然就搭上了；勾住之后晃两下 */
+@keyframes neko-play-tail-hook {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  22% {
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1))
+      rotate(calc(-6deg * var(--play-dir)));
+  }
+
+  38% {
+    transform: translate(calc(var(--meet-x) * 0.16), calc(var(--meet-y) * 0.16))
+      rotate(calc(-8deg * var(--play-dir)));
+  }
+
+  54% {
+    transform: translate(calc(var(--meet-x) * 0.13), calc(var(--meet-y) * 0.13))
+      rotate(calc(-5deg * var(--play-dir)));
+  }
+
+  70% {
+    transform: translate(calc(var(--meet-x) * 0.16), calc(var(--meet-y) * 0.16))
+      rotate(calc(-8deg * var(--play-dir)));
+  }
+
+  86% {
+    transform: translate(calc(var(--meet-x) * 0.06), calc(var(--meet-y) * 0.06))
+      rotate(calc(-2deg * var(--play-dir)));
+  }
+}
+
+/* 来回滚球：推出去的时候伸一下（scale 略大），收回来的时候缩一下，三个回合 */
+@keyframes neko-play-ball-roll {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  18% {
+    transform: translate(calc(var(--meet-x) * 0.26), calc(var(--meet-y) * 0.26)) scale(1.02);
+  }
+
+  30% {
+    transform: translate(calc(var(--meet-x) * 0.16), calc(var(--meet-y) * 0.16)) scale(0.99);
+  }
+
+  48% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3)) scale(1.02);
+  }
+
+  60% {
+    transform: translate(calc(var(--meet-x) * 0.14), calc(var(--meet-y) * 0.14)) scale(0.99);
+  }
+
+  78% {
+    transform: translate(calc(var(--meet-x) * 0.24), calc(var(--meet-y) * 0.24)) scale(1.01);
+  }
+
+  90% {
+    transform: translate(calc(var(--meet-x) * 0.04), calc(var(--meet-y) * 0.04)) scale(1);
+  }
+}
+
+/* 一起伸懒腰：同时往上拉长 —— 舒展就得是「同时」，慢半拍就变成「你跟什么学」了 */
+@keyframes neko-play-double-stretch {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  20% {
+    transform: translate(calc(var(--meet-x) * 0.06), calc(var(--meet-y) * 0.06 - 3px))
+      scale(1.05, 0.95);
+  }
+
+  40%,
+  58% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08 - 4px))
+      scale(1.07, 0.93);
+  }
+
+  76% {
+    transform: translate(calc(var(--meet-x) * 0.04), calc(var(--meet-y) * 0.04)) scale(1.02, 0.99);
+  }
+}
+
+/* 蹭胡子：贴上去之后左右各蹭一下 —— 蹭的动作本身是转动，不是位移 */
+@keyframes neko-play-whisker {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  18% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3))
+      rotate(calc(-3deg * var(--play-dir))) scale(1.01);
+  }
+
+  32% {
+    transform: translate(calc(var(--meet-x) * 0.38), calc(var(--meet-y) * 0.38))
+      rotate(calc(3deg * var(--play-dir))) scale(1.02);
+  }
+
+  46% {
+    transform: translate(calc(var(--meet-x) * 0.32), calc(var(--meet-y) * 0.32))
+      rotate(calc(-2.5deg * var(--play-dir))) scale(1.01);
+  }
+
+  62% {
+    transform: translate(calc(var(--meet-x) * 0.38), calc(var(--meet-y) * 0.38))
+      rotate(calc(2.5deg * var(--play-dir))) scale(1.02);
+  }
+
+  82% {
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1)) rotate(0deg)
+      scale(1);
+  }
+}
+
+/* 爪子叠一起：伸出去、停住压一压 —— 右边那只慢 0.4 秒盖上来，就是「叠」了 */
+@keyframes neko-play-paw-pile {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  22% {
+    transform: translate(calc(var(--meet-x) * 0.2), calc(var(--meet-y) * 0.2 - 3px))
+      rotate(calc(-3deg * var(--play-dir)));
+  }
+
+  40%,
+  66% {
+    transform: translate(calc(var(--meet-x) * 0.24), calc(var(--meet-y) * 0.24 - 1px))
+      rotate(calc(-1deg * var(--play-dir)));
+  }
+
+  80% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12 - 4px))
+      rotate(calc(-2deg * var(--play-dir)));
+  }
+}
+
+/* 一起盯窗外 · 先转的那只：朝同一侧偏头（角度不乘 --play-dir：两只得看同一个方向），
+   盯足两秒多，最后先回头 */
+@keyframes neko-play-bird-watch {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  18% {
+    transform: translate(calc(var(--meet-x) * 0.04), calc(var(--meet-y) * 0.04 - 1px))
+      rotate(-5deg);
+  }
+
+  30%,
+  68% {
+    transform: translate(calc(var(--meet-x) * 0.06), calc(var(--meet-y) * 0.06 - 2px)) rotate(-7deg);
+  }
+
+  84% {
+    transform: translate(calc(var(--meet-x) * 0.02), calc(var(--meet-y) * 0.02)) rotate(-2deg);
+  }
+}
+
+/* 一起盯窗外 · 后知后觉的那只：晚转、多盯一会儿、晚回 */
+@keyframes neko-play-bird-watch-late {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  26% {
+    transform: translate(calc(var(--meet-x) * 0.04), calc(var(--meet-y) * 0.04 - 1px))
+      rotate(-5deg);
+  }
+
+  40%,
+  78% {
+    transform: translate(calc(var(--meet-x) * 0.06), calc(var(--meet-y) * 0.06 - 2px)) rotate(-7deg);
+  }
+
+  90% {
+    transform: translate(calc(var(--meet-x) * 0.02), calc(var(--meet-y) * 0.02)) rotate(-2deg);
+  }
+}
+
+/* 挤同一块阴影：挤住之后还有一下小小的「再挪挪」，像谁偷偷占了多一点地方 */
+@keyframes neko-play-share-shade {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  24% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3))
+      rotate(calc(1.5deg * var(--play-dir))) scale(0.99);
+  }
+
+  46% {
+    transform: translate(calc(var(--meet-x) * 0.42), calc(var(--meet-y) * 0.42))
+      rotate(calc(0.5deg * var(--play-dir))) scale(0.98);
+  }
+
+  62% {
+    transform: translate(calc(var(--meet-x) * 0.36), calc(var(--meet-y) * 0.36))
+      rotate(calc(1deg * var(--play-dir))) scale(0.99);
+  }
+
+  80% {
+    transform: translate(calc(var(--meet-x) * 0.4), calc(var(--meet-y) * 0.4)) rotate(0deg)
+      scale(0.98);
   }
 }
 
@@ -2486,6 +3614,217 @@ html.dark .home-live-avatar {
 
   82% {
     transform: translate(1.4px, 0) rotate(0.7deg);
+  }
+}
+
+/* 舔爪子：低头舔两遍，抬起来顺一下再舔第二遍 */
+@keyframes neko-solo-lick-paw {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  24% {
+    transform: translate(0, 2px) rotate(-4deg) scale(1.02, 0.98);
+  }
+
+  40% {
+    transform: translate(0, 1px) rotate(-2deg) scale(1.01, 0.99);
+  }
+
+  56% {
+    transform: translate(0, 2px) rotate(-4deg) scale(1.02, 0.98);
+  }
+
+  72% {
+    transform: translate(0, 1px) rotate(-2deg) scale(1.01, 0.99);
+  }
+
+  86% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+}
+
+/* 挠耳朵：一串左右快抖，越抖越小（跟抖毛同一个路子，但更慢、幅度更大） */
+@keyframes neko-solo-scratch-ear {
+  0%,
+  100% {
+    transform: rotate(0deg) translate(0, 0);
+  }
+
+  18% {
+    transform: rotate(3.2deg) translate(0, -1px);
+  }
+
+  30% {
+    transform: rotate(-3.2deg) translate(0, 0);
+  }
+
+  42% {
+    transform: rotate(2.8deg) translate(0, -1px);
+  }
+
+  54% {
+    transform: rotate(-2.8deg) translate(0, 0);
+  }
+
+  68% {
+    transform: rotate(2deg) translate(0, -1px);
+  }
+
+  82% {
+    transform: rotate(-1.4deg) translate(0, 0);
+  }
+}
+
+/* 盯自己尾巴：转过去、盯住（中间近一秒不动）、再转回来 */
+@keyframes neko-solo-watch-tail {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  20% {
+    transform: rotate(-9deg);
+  }
+
+  36%,
+  52% {
+    transform: rotate(-12deg);
+  }
+
+  68% {
+    transform: rotate(-6deg);
+  }
+
+  84% {
+    transform: rotate(3deg);
+  }
+}
+
+/* 蜷起来睡：缩下去之后 46%–74% 完全不动 —— 那段就是睡着的部分 */
+@keyframes neko-solo-curl-sleep {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  26% {
+    transform: translate(0, 4px) scale(1.03, 0.94);
+  }
+
+  46%,
+  74% {
+    transform: translate(0, 7px) scale(1.05, 0.9);
+  }
+
+  90% {
+    transform: translate(0, 2px) scale(1.01, 0.98);
+  }
+}
+
+/* 打喷嚏：憋（往下压）→ 炸出去（往上弹、横向收）→ 甩一下，三拍很短 */
+@keyframes neko-solo-sneeze {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1, 1);
+  }
+
+  16% {
+    transform: translate(0, 2px) rotate(0deg) scale(1.03, 0.96);
+  }
+
+  28% {
+    transform: translate(0, -5px) rotate(-2deg) scale(0.96, 1.05);
+  }
+
+  40% {
+    transform: translate(0, 3px) rotate(2deg) scale(1.03, 0.97);
+  }
+
+  58% {
+    transform: translate(0, -1px) rotate(0deg) scale(0.99, 1.01);
+  }
+}
+
+/* 咬玩具：左右来回甩，一下比一下小 */
+@keyframes neko-solo-chew-toy {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  14% {
+    transform: translate(-2px, 1px) rotate(-3deg) scale(1.02, 0.98);
+  }
+
+  26% {
+    transform: translate(2px, 0) rotate(3deg) scale(0.99, 1.01);
+  }
+
+  38% {
+    transform: translate(-2px, 1px) rotate(-2.5deg) scale(1.02, 0.98);
+  }
+
+  50% {
+    transform: translate(2px, 0) rotate(2.5deg) scale(0.99, 1.01);
+  }
+
+  64% {
+    transform: translate(-1px, 1px) rotate(-2deg) scale(1.01, 0.99);
+  }
+
+  80% {
+    transform: translate(1px, 0) rotate(1deg) scale(1, 1);
+  }
+}
+
+/* 摊平晒太阳：横向撑开、纵向压扁 —— 摊开的形状就是这么来的 */
+@keyframes neko-solo-sun-bask {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1, 1);
+  }
+
+  22% {
+    transform: translate(0, 3px) rotate(1deg) scale(1.05, 0.95);
+  }
+
+  40%,
+  68% {
+    transform: translate(0, 4px) rotate(1.5deg) scale(1.06, 0.93);
+  }
+
+  86% {
+    transform: translate(0, 1px) rotate(0deg) scale(1.01, 0.99);
+  }
+}
+
+/* 自己理毛：低头舔两遍，中间抬起来顺一下（抬的那下角度小一点，看着才像在顺毛） */
+@keyframes neko-solo-groom-self {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  22% {
+    transform: translate(0, 4px) rotate(4deg) scale(1.02, 0.97);
+  }
+
+  38% {
+    transform: translate(0, 3px) rotate(3deg) scale(1.01, 0.98);
+  }
+
+  54% {
+    transform: translate(0, 4px) rotate(4deg) scale(1.02, 0.97);
+  }
+
+  70% {
+    transform: translate(0, 3px) rotate(2deg) scale(1.01, 0.98);
+  }
+
+  86% {
+    transform: translate(0, 1px) rotate(1deg) scale(1);
   }
 }
 
@@ -2753,6 +4092,182 @@ html.dark .home-live-avatar {
 }
 
 /* 凑近打招呼：先一起往中间靠，碰一下再退回一点点 */
+/* 对看一眼：转过来、停住、转回去；转动很小，主要靠那半拍停顿 */
+@keyframes neko-play-glance {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  26%,
+  56% {
+    transform: translate(calc(var(--meet-x) * 0.06), calc(var(--meet-y) * 0.06))
+      rotate(calc(3deg * var(--play-dir)));
+  }
+
+  78% {
+    transform: translate(calc(var(--meet-x) * 0.02), calc(var(--meet-y) * 0.02))
+      rotate(calc(-1deg * var(--play-dir)));
+  }
+}
+
+/* 一起点头：点两下（第一下重、第二下轻），只有纵向位移 */
+@keyframes neko-play-nod {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  20% {
+    transform: translate(0, 3px);
+  }
+
+  34% {
+    transform: translate(0, -1px);
+  }
+
+  48% {
+    transform: translate(0, 2px);
+  }
+
+  64% {
+    transform: translate(0, 0);
+  }
+}
+
+/* 静静坐着：30% 到 74% 之间几乎不动 —— 留白是有意的，全程都在动就成打闹了 */
+@keyframes neko-play-quiet-sit {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  30%,
+  74% {
+    transform: translate(calc(var(--meet-x) * 0.28), calc(var(--meet-y) * 0.28)) scale(0.995);
+  }
+
+  88% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08)) scale(1);
+  }
+}
+
+/* 一起呼吸：两个起伏周期同一个节奏，幅度只有 1% */
+@keyframes neko-play-breathe-together {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  22% {
+    transform: translate(calc(var(--meet-x) * 0.16), calc(var(--meet-y) * 0.16 - 1px))
+      scale(1.01, 0.99);
+  }
+
+  44% {
+    transform: translate(calc(var(--meet-x) * 0.16), calc(var(--meet-y) * 0.16)) scale(1, 1);
+  }
+
+  66% {
+    transform: translate(calc(var(--meet-x) * 0.16), calc(var(--meet-y) * 0.16 - 1px))
+      scale(1.01, 0.99);
+  }
+
+  88% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08)) scale(1, 1);
+  }
+}
+
+/* 尾巴搭过去：侧身靠住，转的那几度就是尾巴搭上去的劲 */
+@keyframes neko-play-tail-rest {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  26% {
+    transform: translate(calc(var(--meet-x) * 0.24), calc(var(--meet-y) * 0.24))
+      rotate(calc(-3deg * var(--play-dir)));
+  }
+
+  50%,
+  78% {
+    transform: translate(calc(var(--meet-x) * 0.28), calc(var(--meet-y) * 0.28))
+      rotate(calc(-5deg * var(--play-dir)));
+  }
+
+  90% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08))
+      rotate(calc(-1deg * var(--play-dir)));
+  }
+}
+
+/* 慢慢眨眼：整张卡很轻地压一下再松开 —— 幅度只有 3%，比真的缩下去含蓄 */
+@keyframes neko-play-slow-blink {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  30% {
+    transform: translate(0, 1px) scale(1, 0.985);
+  }
+
+  46%,
+  62% {
+    transform: translate(0, 2px) scale(1, 0.97);
+  }
+
+  80% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+}
+
+/* 侧身让一下：让开之后待一会儿才回来，不是让完就弹回去（那样像被推开） */
+@keyframes neko-play-step-aside {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  28% {
+    transform: translate(calc(var(--meet-x) * -0.18), calc(var(--meet-y) * -0.18))
+      rotate(calc(2deg * var(--play-dir)));
+  }
+
+  50%,
+  72% {
+    transform: translate(calc(var(--meet-x) * -0.22), calc(var(--meet-y) * -0.22))
+      rotate(calc(1deg * var(--play-dir)));
+  }
+
+  88% {
+    transform: translate(calc(var(--meet-x) * -0.06), calc(var(--meet-y) * -0.06)) rotate(0deg);
+  }
+}
+
+/* 一起等：朝同一侧偏着（角度不乘 --play-dir，两只得望同一个方向），
+   中间只挪一下重心，说明还在等、没走 */
+@keyframes neko-play-wait-together {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  22% {
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1 - 1px)) rotate(-2deg);
+  }
+
+  36%,
+  70% {
+    transform: translate(calc(var(--meet-x) * 0.14), calc(var(--meet-y) * 0.14 - 2px)) rotate(-3deg);
+  }
+
+  86% {
+    transform: translate(calc(var(--meet-x) * 0.04), calc(var(--meet-y) * 0.04)) rotate(-1deg);
+  }
+}
+
 @keyframes neko-play-meet {
   0%,
   100% {
@@ -2844,6 +4359,224 @@ html.dark .home-live-avatar {
 
   88% {
     transform: translateY(0) scale(1, 1);
+  }
+}
+
+/* 碰鼻尖：一起凑过去，鼻尖那一贴有个小小的过冲，再各自缩回半步（共用一条，两只对称） */
+@keyframes neko-play-nose-boop {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  30% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 - 2px)) scale(1.02);
+  }
+
+  42% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34)) scale(1.03);
+  }
+
+  58% {
+    transform: translate(calc(var(--meet-x) * 0.28), calc(var(--meet-y) * 0.28)) scale(1.01);
+  }
+
+  80% {
+    transform: translate(calc(var(--meet-x) * 0.06), calc(var(--meet-y) * 0.06)) scale(1);
+  }
+}
+
+/* 挥爪：抬一下、晃两下、放下；左右各一遍，右边慢半拍就成了「你挥我也挥」 */
+@keyframes neko-play-paw-wave {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  20% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08 - 2px))
+      rotate(calc(-5deg * var(--play-dir)));
+  }
+
+  38% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08 - 1px))
+      rotate(calc(4deg * var(--play-dir)));
+  }
+
+  56% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08 - 2px))
+      rotate(calc(-4deg * var(--play-dir)));
+  }
+
+  76% {
+    transform: translate(calc(var(--meet-x) * 0.05), calc(var(--meet-y) * 0.05))
+      rotate(calc(2deg * var(--play-dir)));
+  }
+}
+
+/* 悄悄摸过去 · 挪的那只：三小步，步子一步比一步小，最后轻轻贴上。
+   步子越来越小是有意的 —— 匀速挪看着像被拖走，不是「蹑手蹑脚」 */
+@keyframes neko-play-sneak {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  20% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12))
+      rotate(calc(1deg * var(--play-dir)));
+  }
+
+  42% {
+    transform: translate(calc(var(--meet-x) * 0.22), calc(var(--meet-y) * 0.22))
+      rotate(calc(1.5deg * var(--play-dir)));
+  }
+
+  60% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3))
+      rotate(calc(2deg * var(--play-dir)));
+  }
+
+  72% {
+    transform: translate(calc(var(--meet-x) * 0.4), calc(var(--meet-y) * 0.4 - 2px))
+      rotate(calc(-2deg * var(--play-dir)));
+  }
+
+  88% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12)) rotate(0deg);
+  }
+}
+
+/* 悄悄摸过去 · 被摸的那只：前大半程一动不动，末了才一惊、回头，然后若无其事站回去 */
+@keyframes neko-play-sneak-notice {
+  0%,
+  60% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  72% {
+    transform: translate(calc(var(--meet-x) * -0.06), calc(var(--meet-y) * -0.06))
+      rotate(calc(-4deg * var(--play-dir))) scale(1.02);
+  }
+
+  84% {
+    transform: translate(calc(var(--meet-x) * 0.08), calc(var(--meet-y) * 0.08))
+      rotate(calc(3deg * var(--play-dir))) scale(1);
+  }
+}
+
+/* 一起低头：往下压同时横向收一点，才像「矮下去」而不是单纯往下掉 */
+@keyframes neko-play-duck {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  16% {
+    transform: translate(0, 6px) scale(1.04, 0.92);
+  }
+
+  38%,
+  58% {
+    transform: translate(0, 8px) scale(1.05, 0.9);
+  }
+
+  78% {
+    transform: translate(0, 1px) scale(0.99, 1.01);
+  }
+}
+
+/* 原地转一圈：转满 360 后保持住，末帧再落回 0 ——
+   末帧若直接从 360 回到 0，浏览器会倒着转回去，看着像被倒带 */
+@keyframes neko-play-spin-turn {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  34% {
+    transform: rotate(calc(150deg * var(--play-dir))) scale(0.96);
+  }
+
+  52% {
+    transform: rotate(calc(210deg * var(--play-dir))) scale(0.98);
+  }
+
+  82%,
+  100% {
+    transform: rotate(calc(360deg * var(--play-dir))) scale(1);
+  }
+}
+
+/* 一起歪头：歪过去停半拍，回来的时候反向多歪一点点，才有「咦？」的意思 */
+@keyframes neko-play-head-tilt {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  28%,
+  62% {
+    transform: rotate(calc(7deg * var(--play-dir)));
+  }
+
+  80% {
+    transform: rotate(calc(-2deg * var(--play-dir)));
+  }
+}
+
+/* 猛地散开：往后弹的那一下最快，站定之后迟迟不回来，末尾才挪回去一点 */
+@keyframes neko-play-scatter {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  12% {
+    transform: translate(calc(var(--meet-x) * -0.16), calc(var(--meet-y) * -0.16 - 4px))
+      rotate(calc(-4deg * var(--play-dir))) scale(1.03);
+  }
+
+  30% {
+    transform: translate(calc(var(--meet-x) * -0.2), calc(var(--meet-y) * -0.2))
+      rotate(calc(-3deg * var(--play-dir))) scale(1);
+  }
+
+  62% {
+    transform: translate(calc(var(--meet-x) * -0.19), calc(var(--meet-y) * -0.19))
+      rotate(calc(-3deg * var(--play-dir))) scale(1);
+  }
+
+  86% {
+    transform: translate(calc(var(--meet-x) * -0.05), calc(var(--meet-y) * -0.05)) rotate(0deg)
+      scale(1);
+  }
+}
+
+/* 又挤回来：贴住之后两只都往同一边小幅晃两下 —— 像谁在偷偷挤谁 */
+@keyframes neko-play-huddle {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  26% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34))
+      rotate(calc(2deg * var(--play-dir))) scale(1.02);
+  }
+
+  46% {
+    transform: translate(calc(var(--meet-x) * 0.4), calc(var(--meet-y) * 0.4))
+      rotate(calc(-1deg * var(--play-dir))) scale(1.03);
+  }
+
+  60% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34 + 2px))
+      rotate(calc(1deg * var(--play-dir))) scale(1.01);
+  }
+
+  78% {
+    transform: translate(calc(var(--meet-x) * 0.16), calc(var(--meet-y) * 0.16)) rotate(0deg)
+      scale(1);
   }
 }
 
