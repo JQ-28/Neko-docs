@@ -4,6 +4,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, type ComputedRef, type Ref } from "vue";
 import { markEgg } from "../eggs/egg-utils";
 import { EGG_THRESHOLDS } from "../neko-shared-eggs";
+import type { EmoState } from "./live-lines";
 import type { CardSpec } from "./live-peer";
 
 /** 互动脚本：两张卡片配合演一段，每次进站随机挑一段 */
@@ -19,6 +20,9 @@ export interface PlayScript {
   byLineOnly?: boolean;
   /** 大编舞：动作大、时间长，当「特别节目」偶尔来一次，不掺进平时的打闹里 */
   big?: boolean;
+  /** 安静向：靠在一起、打盹、看鸟这类不出声的段。
+      眼下心情犯困、发闲、落单的时候，挑段时会往这些段上多偏一点（见 pickScript） */
+  vibe?: "calm";
 }
 
 export const PLAY_SCRIPTS: readonly PlayScript[] = [
@@ -41,27 +45,27 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "spinTurn", durationMs: 2000, withPeek: false },
   { name: "headTilt", durationMs: 1600, withPeek: true },
   { name: "scatterOff", durationMs: 1900, withPeek: false },
-  { name: "huddleUp", durationMs: 2300, withPeek: false },
+  { name: "huddleUp", durationMs: 2300, withPeek: false, vibe: "calm" },
   // 多拍子的日常：不是「A 动一下、B 动一下」就完，而是来回好几个回合，久看不厌。
   // 位移一律走 --meet-x / --meet-y（朝对方那个轴，两张卡上下摞着时自动换成纵向），
   // 只按相对间距算、不跨屏，所以窄屏也甩不出去
-  { name: "nuzzle", durationMs: 4200, withPeek: false },
-  { name: "leanNap", durationMs: 6500, withPeek: false },
-  { name: "shareBite", durationMs: 4800, withPeek: false },
+  { name: "nuzzle", durationMs: 4200, withPeek: false, vibe: "calm" },
+  { name: "leanNap", durationMs: 6500, withPeek: false, vibe: "calm" },
+  { name: "shareBite", durationMs: 4800, withPeek: false, vibe: "calm" },
   { name: "highPaw", durationMs: 2800, withPeek: true },
   { name: "startle", durationMs: 3400, withPeek: false },
   { name: "roundChase", durationMs: 4600, withPeek: false },
   { name: "tailSpin", durationMs: 5200, withPeek: false },
   { name: "makeUp", durationMs: 4400, withPeek: false },
   // 后来补的八段多拍子日常：也是来回好几个回合，位移同样走 --meet-x / --meet-y
-  { name: "sunNap", durationMs: 6500, withPeek: false },
-  { name: "tailHook", durationMs: 5200, withPeek: false },
+  { name: "sunNap", durationMs: 6500, withPeek: false, vibe: "calm" },
+  { name: "tailHook", durationMs: 5200, withPeek: false, vibe: "calm" },
   { name: "ballRoll", durationMs: 4800, withPeek: false },
   { name: "doubleStretch", durationMs: 6000, withPeek: false },
-  { name: "whiskerTouch", durationMs: 4400, withPeek: false },
-  { name: "pawPile", durationMs: 5400, withPeek: false },
-  { name: "birdWatch", durationMs: 7000, withPeek: false },
-  { name: "shareShade", durationMs: 4800, withPeek: false },
+  { name: "whiskerTouch", durationMs: 4400, withPeek: false, vibe: "calm" },
+  { name: "pawPile", durationMs: 5400, withPeek: false, vibe: "calm" },
+  { name: "birdWatch", durationMs: 7000, withPeek: false, vibe: "calm" },
+  { name: "shareShade", durationMs: 4800, withPeek: false, vibe: "calm" },
   // 又一批日常对手戏：动作都只按相对量挪窝，不写死像素
   { name: "knead", durationMs: 3200, withPeek: true },
   { name: "groom", durationMs: 3600, withPeek: false },
@@ -70,16 +74,27 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "playDead", durationMs: 3400, withPeek: true },
   { name: "parade", durationMs: 4200, withPeek: false },
   { name: "shove", durationMs: 2800, withPeek: false },
-  { name: "spoon", durationMs: 3600, withPeek: false },
+  { name: "spoon", durationMs: 3600, withPeek: false, vibe: "calm" },
   // 后来补的八段家常对手戏：都短、动作都不大（位移同样走 --meet-x / --meet-y）
   { name: "earBite", durationMs: 3200, withPeek: false },
-  { name: "backRub", durationMs: 3600, withPeek: false },
-  { name: "boxSit", durationMs: 4500, withPeek: false },
-  { name: "purrPile", durationMs: 5500, withPeek: false },
+  { name: "backRub", durationMs: 3600, withPeek: false, vibe: "calm" },
+  { name: "boxSit", durationMs: 4500, withPeek: false, vibe: "calm" },
+  { name: "purrPile", durationMs: 5500, withPeek: false, vibe: "calm" },
   { name: "pawSwat", durationMs: 3000, withPeek: false },
   { name: "pawLick", durationMs: 3400, withPeek: false },
-  { name: "shoulderLean", durationMs: 4400, withPeek: false },
-  { name: "curlPair", durationMs: 5500, withPeek: false },
+  { name: "shoulderLean", durationMs: 4400, withPeek: false, vibe: "calm" },
+  { name: "curlPair", durationMs: 5500, withPeek: false, vibe: "calm" },
+  // 再补的八段「两只猫自己玩」：传染式打哈欠、互相眨眼、爪子挡眼睛、叼东西过来、
+  // 尾巴扫脸、下巴搁人家背上、喷嚏吓一跳、肩膀撞一下。
+  // 位移照旧只走 --meet-x / --meet-y（朝对方那个轴，横排竖排都成立），幅度都在三分之一以内
+  { name: "yawnChain", durationMs: 4600, withPeek: false, vibe: "calm" },
+  { name: "blinkExchange", durationMs: 3200, withPeek: false, vibe: "calm" },
+  { name: "pawOverEyes", durationMs: 3400, withPeek: true },
+  { name: "giftDrop", durationMs: 4200, withPeek: false },
+  { name: "tailCurtain", durationMs: 3000, withPeek: true },
+  { name: "chinRest", durationMs: 4600, withPeek: false, vibe: "calm" },
+  { name: "sneezeStartle", durationMs: 2800, withPeek: false },
+  { name: "shoulderBump", durationMs: 3600, withPeek: true },
   { name: "lean", durationMs: 1800, withPeek: false, byLineOnly: true },
   { name: "pass", durationMs: 1600, withPeek: false, byLineOnly: true },
   { name: "mimic", durationMs: 1950, withPeek: false, byLineOnly: true },
@@ -152,6 +167,20 @@ const SOLO_RETRY_MS = 12_000;
 const RECENT_DANCE_MEMORY = 8;
 const RECENT_BIG_MEMORY = 4;
 const RECENT_SOLO_MEMORY = 4;
+/** 四秒往上的对手戏当「小节目」：偶尔来一次好看，次次都演就成了拖时间 */
+const DANCE_LONG_MS = 3_600;
+/** 这些心情算「安静的时候」：犯困、发闲、只剩自己、久别重逢、被摸服了软在那儿 */
+const CALM_MOODS: readonly EmoState[] = ["sleepy", "bored", "lost", "miss", "purr"];
+
+/** 日常对手戏挑段用的权重：三段半以内的家常段给足机会，长的只给三成；
+   「安静的时候」安静向的段加倍、闹腾的减半，平常心情则让安静向的略少一点。
+   只在这一层加权 —— 多窗口齐舞那条路是纯函数，不能掺心情（见 scriptForSlot） */
+function danceWeight(script: PlayScript, quiet: boolean): number {
+  const long = script.durationMs > DANCE_LONG_MS ? 0.35 : 1;
+  const calm = script.vibe === "calm";
+  if (quiet) return long * (calm ? 2.4 : 0.7);
+  return long * (calm ? 0.7 : 1);
+}
 
 /** 特别节目之间至少隔这么久，不然就成蹦迪了 */
 const BIG_MIN_GAP_MS = 6 * 60_000;
@@ -217,6 +246,9 @@ export interface ShowHost {
       大编舞靠它判断能不能演：余量小不是不演，而是幅度跟着缩小。
       没实现就当作任意宽，按老规矩演 */
   measureSpan?: () => number;
+  /** 她这会儿什么心情：犯困、发闲、落单的时候，日常对手戏会多挑安静向的那几段。
+      没实现就一律按平常算（见 pickScript） */
+  mood?: () => EmoState;
 }
 
 export interface LiveShow {
@@ -321,8 +353,28 @@ export function useLiveShow(host: ShowHost): LiveShow {
     return script;
   }
 
+  /** 挑一段日常对手戏：家常的段机会多、长的少，安静的时候安静向的多演一点。
+      有邻居时不走这儿 —— 那条路要按时间槽算，两边必须算出同一段（见 scriptForSlot），
+      掺进心情就不齐了 */
   function pickScript(): PlayScript {
-    return pickFresh(DANCE_SCRIPTS, recentDance, RECENT_DANCE_MEMORY);
+    const quiet = CALM_MOODS.includes(host.mood?.() ?? "normal");
+    const fresh = DANCE_SCRIPTS.filter((script) => !recentDance.includes(script.name));
+    // 最近演过的那几段先出局；整轮都演过一遍了就只按权重挑
+    const candidates = fresh.length > 0 ? fresh : [...DANCE_SCRIPTS];
+    const weights = candidates.map((script) => danceWeight(script, quiet));
+    // 每条的权重都是正数，和一定大于 0，所以这一圈必定挑得中一段
+    let roll = Math.random() * weights.reduce((sum, weight) => sum + weight, 0);
+    let chosen = candidates[candidates.length - 1];
+    for (let index = 0; index < candidates.length; index += 1) {
+      roll -= weights[index];
+      if (roll <= 0) {
+        chosen = candidates[index];
+        break;
+      }
+    }
+    recentDance.unshift(chosen.name);
+    if (recentDance.length > RECENT_DANCE_MEMORY) recentDance.length = RECENT_DANCE_MEMORY;
+    return chosen;
   }
 
   function peek(root: HTMLElement | null, selector: string): void {
@@ -453,6 +505,13 @@ export function useLiveShow(host: ShowHost): LiveShow {
       // 台上正演着别的一段（独处小动作、见面小戏）：过会儿再来问。
       // 以前只有对手戏这条排期没写这条判据，于是它一开演就直接把台上那段掐掉
       if (isPlaying()) {
+        schedule(DANCE_RETRY_MS);
+        return;
+      }
+      // 台面这会儿不空：正说着话（holding）、手正拎着卡、大编舞的规矩不满足 —— 都过会儿再来问。
+      // 这里必须问 bigReady：拎卡那条只有它管着，缺了它，卡片被拎在手上时这段照演，
+      // 手里那只还在跟旁边那张配合着动，看着像没听见自己被拎起来了
+      if (holding || !(host.bigReady?.() ?? true)) {
         schedule(DANCE_RETRY_MS);
         return;
       }

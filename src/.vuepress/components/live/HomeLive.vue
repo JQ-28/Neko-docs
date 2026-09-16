@@ -876,14 +876,19 @@ const show = useLiveShow({
     // 是对话中间插的那一下就把话接上，接不上才当普通的「刚演完」
     if (!talk.actDone()) talk.markPlayed();
   },
-  // 大编舞要独占台面：话没说完、或者手正拎着卡，就先别演
-  bigReady: () => !talk.isChatting() && !drag,
+  // 台面空不空：话没说完、手正拎着卡、或者卡片正飘去隔壁，就先别演。
+  // 三条排期链（日常对手戏、独处小动作、大编舞）都读它，所以这里的每一条都要算全 ——
+  // 少了「拎着卡」这一条，卡片在人手上也会跟旁边那张配合着动；
+  // 少了「飘去隔壁」这一条，飘走的那只会隔着屏幕跟留下来的那只对演
+  bigReady: () => !talk.isChatting() && !drag && roamingIds.value.length === 0,
   // 特别节目开演前现量一次余地：量完顺手把 --play-gap / --play-span 写到槽位上，
   // 所以「量到多少」就是「这一段能走多远」
   measureSpan: () => {
     measurePlayDistance();
     return playSpan.value;
   },
+  // 挑日常对手戏时要看心情：犯困、发闲、落单的时候，多演那些靠在一起不出声的段
+  mood: () => talk.mood.value,
 });
 
 /** 说话：谁来说、说什么、多久说一段 */

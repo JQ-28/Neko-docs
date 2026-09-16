@@ -1891,6 +1891,78 @@ html.dark .home-live-avatar {
   animation: neko-play-curl 5.5s var(--play-ease);
 }
 
+/* —— 再补的八段「两只猫自己玩」：都是家常的小互动，进日常排期 ——
+   错拍一律写在关键帧里，不用 animation-delay：延迟会让实际时长比 durationMs 长，
+   那一段的尾巴就会被收工的定时器掐掉 */
+
+/* 打哈欠会传染：一只先打，另一只看着看着也跟着打一个 */
+.home-live-slot--left.is-playing[data-play="yawnChain"] {
+  animation: neko-play-yawn-first 4.6s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="yawnChain"] {
+  animation: neko-play-yawn-echo 4.6s var(--play-ease);
+}
+
+/* 互相慢眨眼：你一下我一下，幅度只到 1.5% —— 猫之间那个「我信你」的眨眼 */
+.home-live-slot--left.is-playing[data-play="blinkExchange"] {
+  animation: neko-play-blink-a 3.2s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="blinkExchange"] {
+  animation: neko-play-blink-b 3.2s var(--play-ease);
+}
+
+/* 爪子挡眼睛：一只凑过来抬爪盖住对方的脸，被盖的那只往后一缩再往前探 */
+.home-live-slot--left.is-playing[data-play="pawOverEyes"] {
+  animation: neko-play-paw-eyes-blind 3.4s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="pawOverEyes"] {
+  animation: neko-play-paw-eyes-reach 3.4s var(--play-ease);
+}
+
+/* 叼东西过来：一只低头把东西放下、停一拍再退回去，另一只往前挪半步收下 */
+.home-live-slot--left.is-playing[data-play="giftDrop"] {
+  animation: neko-play-gift-give 4.2s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="giftDrop"] {
+  animation: neko-play-gift-take 4.2s var(--play-ease);
+}
+
+/* 尾巴扫脸：一只甩着尾巴扫过去，另一只被扫到、脖子往下缩一下 */
+.home-live-slot--left.is-playing[data-play="tailCurtain"] {
+  animation: neko-play-tail-sweep 3s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="tailCurtain"] {
+  animation: neko-play-tail-duck 3s var(--play-ease);
+}
+
+/* 下巴搁背上：一只把下巴搁过去赖着不动，另一只被压得往下沉一点、忍着不动 */
+.home-live-slot--left.is-playing[data-play="chinRest"] {
+  animation: neko-play-chin-rest 4.6s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="chinRest"] {
+  animation: neko-play-chin-hold 4.6s var(--play-ease);
+}
+
+/* 一个喷嚏：一只抽了一下，旁边那只被吓得弹起来再落下 */
+.home-live-slot--left.is-playing[data-play="sneezeStartle"] {
+  animation: neko-play-sneeze 2.8s var(--play-ease);
+}
+
+.home-live-slot--right.is-playing[data-play="sneezeStartle"] {
+  animation: neko-play-startled 2.8s var(--play-ease);
+}
+
+/* 肩膀撞一下：两只同时往中间挪，撞上各自弹开，谁也不吃亏 */
+.home-live-slot.is-playing[data-play="shoulderBump"] {
+  animation: neko-play-shoulder-bump 3.6s var(--play-ease);
+}
+
 /* 两张卡上下摞着时（窄窗口那条带）：「朝对方」得换成纵轴，
    不然上面这些「凑近」的位移会变成左右错开 */
 .home-live-cards[data-layout="stacked"] .home-live-slot {
@@ -3711,6 +3783,329 @@ html.dark .home-live-avatar {
   88% {
     transform: translate(calc(var(--meet-x) * 0.14), calc(var(--meet-y) * 0.14 + 2px))
       rotate(calc(-2deg * var(--play-dir))) scale(1);
+  }
+}
+
+/* —— 再补的八段「两只猫自己玩」 ——
+   位移照旧只走 --meet-x / --meet-y（朝对方那个轴），幅度都在三分之一以内，
+   窄屏与竖排都不会甩出去；一张卡的动作都收在 100% 回正，收工时不会僵在半路 */
+
+/* 打哈欠会传染：先打的这只占前半段，另一只后半段跟着来一个 */
+@keyframes neko-play-yawn-first {
+  0%,
+  8%,
+  46%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  20% {
+    transform: translate(0, -2px) scale(1.045);
+  }
+
+  32% {
+    transform: translate(0, 1.5px) scale(0.985);
+  }
+}
+
+@keyframes neko-play-yawn-echo {
+  0%,
+  38%,
+  80%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate(0, -2px) scale(1.045);
+  }
+
+  64% {
+    transform: translate(0, 1.5px) scale(0.985);
+  }
+}
+
+/* 互相慢眨眼：你一下我一下，两次之间隔着看对方的空档 */
+@keyframes neko-play-blink-a {
+  0%,
+  20% {
+    transform: scale(1);
+  }
+
+  30% {
+    transform: scale(0.985);
+  }
+
+  40%,
+  68% {
+    transform: scale(1);
+  }
+
+  78% {
+    transform: scale(0.985);
+  }
+
+  88%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes neko-play-blink-b {
+  0%,
+  6% {
+    transform: scale(1);
+  }
+
+  16% {
+    transform: scale(0.985);
+  }
+
+  26%,
+  54% {
+    transform: scale(1);
+  }
+
+  64% {
+    transform: scale(0.985);
+  }
+
+  74%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 爪子挡眼睛：凑过去抬爪盖住，被盖的那只先缩后探 */
+@keyframes neko-play-paw-eyes-reach {
+  0%,
+  12%,
+  72%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  30% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 - 3px))
+      rotate(calc(-5deg * var(--play-dir)));
+  }
+
+  55% {
+    transform: translate(calc(var(--meet-x) * 0.34), calc(var(--meet-y) * 0.34 - 2px))
+      rotate(calc(-7deg * var(--play-dir)));
+  }
+}
+
+@keyframes neko-play-paw-eyes-blind {
+  0%,
+  18%,
+  78%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  36% {
+    transform: translate(calc(var(--meet-x) * -0.08), 1px) scale(0.99);
+  }
+
+  58% {
+    transform: translate(calc(var(--meet-x) * 0.06), 0) scale(1.01);
+  }
+}
+
+/* 叼东西过来：低头放下、停一拍、退回；另一只探头往前挪半步收下 */
+@keyframes neko-play-gift-give {
+  0%,
+  10%,
+  86%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  28% {
+    transform: translate(calc(var(--meet-x) * 0.24), calc(var(--meet-y) * 0.24 + 2px))
+      scale(0.985);
+  }
+
+  48% {
+    transform: translate(calc(var(--meet-x) * 0.28), calc(var(--meet-y) * 0.28 + 3px))
+      scale(0.98);
+  }
+
+  70% {
+    transform: translate(calc(var(--meet-x) * 0.05), calc(var(--meet-y) * 0.05)) scale(1);
+  }
+}
+
+@keyframes neko-play-gift-take {
+  0%,
+  20% {
+    transform: translate(0, -1.5px) scale(1.005);
+  }
+
+  40% {
+    transform: translate(0, -2px) scale(1.01);
+  }
+
+  58% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12 - 1px))
+      scale(1.015);
+  }
+
+  78%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* 尾巴扫脸：甩一下扫过去，被扫到的脖子往下缩 */
+@keyframes neko-play-tail-sweep {
+  0%,
+  10% {
+    transform: translate(calc(var(--meet-x) * 0.12), calc(var(--meet-y) * 0.12))
+      rotate(calc(-7deg * var(--play-dir)));
+  }
+
+  26% {
+    transform: translate(calc(var(--meet-x) * 0.17), calc(var(--meet-y) * 0.17))
+      rotate(calc(6deg * var(--play-dir)));
+  }
+
+  44% {
+    transform: translate(calc(var(--meet-x) * 0.15), calc(var(--meet-y) * 0.15))
+      rotate(calc(-8deg * var(--play-dir)));
+  }
+
+  62% {
+    transform: translate(calc(var(--meet-x) * 0.1), calc(var(--meet-y) * 0.1))
+      rotate(calc(3deg * var(--play-dir)));
+  }
+
+  80%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@keyframes neko-play-tail-duck {
+  0%,
+  22%,
+  72%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  34% {
+    transform: translate(calc(var(--meet-x) * -0.05), 2px) scale(0.985);
+  }
+
+  52% {
+    transform: translate(0, 1px) scale(0.995);
+  }
+}
+
+/* 下巴搁背上：搁上去就一直赖着，被搁的那只往下沉一点、忍着不动 */
+@keyframes neko-play-chin-rest {
+  0%,
+  12%,
+  90%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  26% {
+    transform: translate(calc(var(--meet-x) * 0.26), calc(var(--meet-y) * 0.26 - 1px))
+      scale(1.01);
+  }
+
+  38%,
+  76% {
+    transform: translate(calc(var(--meet-x) * 0.3), calc(var(--meet-y) * 0.3 + 1px))
+      scale(1.005);
+  }
+}
+
+@keyframes neko-play-chin-hold {
+  0%,
+  22% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  40%,
+  72% {
+    transform: translate(0, 1.5px) rotate(calc(2deg * var(--play-dir)));
+  }
+
+  88%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+/* 一个喷嚏：抽一下；旁边那只被吓得弹起来再落下 */
+@keyframes neko-play-sneeze {
+  0%,
+  8% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  16% {
+    transform: translate(0, -1px) scale(1.03);
+  }
+
+  24% {
+    transform: translate(0, 1px) scale(0.965);
+  }
+
+  36%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes neko-play-startled {
+  0%,
+  26%,
+  80%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  38% {
+    transform: translate(calc(var(--meet-x) * -0.06), -3px) scale(1.03);
+  }
+
+  52% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  66% {
+    transform: translate(0, -1px) scale(1.008);
+  }
+}
+
+/* 肩膀撞一下：同时往里挪、撞上、各自弹开 */
+@keyframes neko-play-shoulder-bump {
+  0%,
+  14% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  32% {
+    transform: translate(calc(var(--meet-x) * 0.18), calc(var(--meet-y) * 0.18)) scale(1.01);
+  }
+
+  42% {
+    transform: translate(calc(var(--meet-x) * 0.26), calc(var(--meet-y) * 0.26)) scale(1.025);
+  }
+
+  56% {
+    transform: translate(calc(var(--meet-x) * -0.05), calc(var(--meet-y) * -0.05)) scale(1);
+  }
+
+  74%,
+  100% {
+    transform: translate(0, 0) scale(1);
   }
 }
 
