@@ -524,9 +524,12 @@ function compensateScroll(): void {
   const lift = drag.touch ? DRAG_LIFT_PX : 0;
   drag.slot.style.translate = `${drag.shiftX}px ${drag.shiftY - lift}px`;
 
+  // 反过来推「不含位移时的原位」：行内位移里带着上浮量，反推时也得一起减掉。
+  // 漏掉那个 lift 的话，每滚过一次基准就往上跑 30px（手机上拖到一半页面自动滚页时必然发生），
+  // 落点高亮会比看得见的卡片中心高出一行
   const rect = drag.slot.getBoundingClientRect();
   drag.baseLeft = rect.left + (rect.width - drag.width) / 2 - drag.shiftX;
-  drag.baseTop = rect.top + (rect.height - drag.height) / 2 - drag.shiftY;
+  drag.baseTop = rect.top + (rect.height - drag.height) / 2 - (drag.shiftY - lift);
 }
 
 /** 一口气从顶滚到底：从顶部算起一秒半之内见底才算「嗖一下」 */
@@ -814,13 +817,14 @@ async function welcomeCard(cardId: string, edge: LiveEdge, over: number): Promis
 
   window.clearTimeout(greetTimer);
   greetTimer = window.setTimeout(() => {
-    if (drag || show.isPlaying()) return;
-    // 主人家搭一句，凑成「落地先聊两句」
+    // 主人家搭一句，凑成「落地先聊两句」；只有一张卡就没人接话、正拖着卡或正演着戏就先跳过。
+    // 但不管哪种情况，台面都得还回去 —— hold 了没人对冲的话，独处小动作与特别节目会被一直压着
     const mate = liveCards.value.find((item) => item.id !== card.id);
-    if (!mate) return;
-    talk.say(mate, "idle");
-    // 恰好两张才演得成对手戏，多凑了几张就只聊天
-    if (show.canPlay()) show.play({ script: show.pickGreeting() });
+    if (mate && !drag && !show.isPlaying()) {
+      talk.say(mate, "idle");
+      // 恰好两张才演得成对手戏，多凑了几张就只聊天
+      if (show.canPlay()) show.play({ script: show.pickGreeting() });
+    }
     show.resume();
   }, GREETING_REPLY_MS);
 
@@ -883,6 +887,8 @@ function receiveCard(payload: HandoffPayload): void {
 function handleCardLeave(cardId: string): void {
   // 它欠着的那笔换页账跟它一起作废：一张已经不在手上的卡不该把页面带走
   cancelCarry(cardId);
+  // 寄养那笔也一样：卡都搬走了，别再让它隔两秒冒出来说一句寄养台词
+  cancelRetire(cardId);
   // 停在落点上等话说完的那笔停留也一样作废：卡都搬走了，别再让收尾去动那个槽位
   if (dropLingerCardId === cardId) clearDropLinger();
   if (drag?.cardId === cardId) releaseDrag();
@@ -1022,10 +1028,8 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   flashTap(slot);
   talk.poke(card);
 
-  // 正在演互动动画、已经有一张在手上、另一根手指还按着 / 正在滚页面，都别再拎
-  if (drag || touchHoldAt || pageScroll || show.isPlaying()) return;
-  // 页面刚滚过：这一下多半是想让页面停下来，不是想拎猫
-  if (Date.now() - lastScrollAt < SCROLL_SETTLE_MS) return;
+  // 已经有一张在手上、另一根手指还按着、正在滚页面：这一下都不作数
+  if (drag || touchHoldAt || pageScroll) return;
 
   const handle = (event.target as HTMLElement | null)?.closest<HTMLElement>(
     ".home-live-card, .home-online"
@@ -1033,13 +1037,21 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   // 抓住的必须是这张卡本身，不能是隔壁那张
   if (!handle || !slot.contains(handle)) return;
 
+  // 演出中 / 页面刚滚过：这一下多半不是想拎猫（是想让页面停住，或者在接着滑）。
+  // 但**不能就这么撒手不管** —— 卡片身上写着 touch-action: none，浏览器不会替我们滚，
+  // 直接 return 的话这一段手势就彻底空转了（页面不动、卡也不拎）。所以还是接过来，
+  // 只是不给拎：手指挪开了就当滚页面（见 beginPageScroll）
+  const noDrag = show.isPlaying() || Date.now() - lastScrollAt < SCROLL_SETTLE_MS;
+
   // 手指头先按住一小会儿才算是「拎」：一压就走的话分不清是想滚页面还是想拎猫，
   // 按住的这段时间页面本来也不会滚，等真拎起来了再把竖向滚动一并收走
   if (event.pointerType !== "mouse") {
-    holdToDrag(event, card, slot, handle);
+    holdToDrag(event, card, slot, handle, noDrag);
     return;
   }
 
+  // 鼠标没有「手势被吞」这回事（滚轮照旧能滚），演出中与刚滚过就干脆不拎
+  if (noDrag) return;
   beginDrag(event, card, slot, handle);
 }
 
@@ -1066,29 +1078,35 @@ function slotLabel(card: CardSpec): string {
   return `${card.kind === "online" ? "在线猫猫" : "Neko 本猫"}，按回车或空格戳一下`;
 }
 
-/** 手机上：按住不动到点才进入拖拽，这期间挪开或抬手都当成滚页面 */
+/** 手机上：按住不动到点才进入拖拽，这期间挪开或抬手都当成滚页面。
+    onlyScroll 是「这一下只许滚页面、不许拎」：演出中或者页面刚滚过时按下来的手，
+    多半是想滑页面而不是想拎猫 —— 但手势还得接过来（卡片的 touch-action 是 none，
+    浏览器不会替我们滚），所以只把「拎」这一步省掉，滑出去照样滚页面 */
 function holdToDrag(
   event: PointerEvent,
   card: CardSpec,
   slot: HTMLElement,
-  handle: HTMLElement
+  handle: HTMLElement,
+  onlyScroll = false
 ): void {
   window.clearTimeout(touchHoldTimer);
   window.clearTimeout(armTimer);
   touchHoldAt = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, slot };
-  // 按住的这几百毫秒里卡片先微微抬起来：「按住能拎」这件事得让人看得出来。
-  // 但要等一小会儿再抬 —— 立刻抬就把「点击」那一下的按下反馈盖掉了（见 ARMING_DELAY_MS）
-  armTimer = window.setTimeout(() => {
-    if (touchHoldAt?.slot === slot) slot.dataset.arming = "true";
-  }, ARMING_DELAY_MS);
-  touchHoldTimer = window.setTimeout(() => {
-    touchHoldAt = null;
-    if (drag) return;
-    delete slot.dataset.arming;
-    beginDrag(event, card, slot, handle);
-    // 手上轻轻震一下，有个「抓住了」的分界（安卓有，iOS 没这能力就算了）
-    navigator.vibrate?.(12);
-  }, TOUCH_HOLD_MS);
+  if (!onlyScroll) {
+    // 按住的这几百毫秒里卡片先微微抬起来：「按住能拎」这件事得让人看得出来。
+    // 但要等一小会儿再抬 —— 立刻抬就把「点击」那一下的按下反馈盖掉了（见 ARMING_DELAY_MS）
+    armTimer = window.setTimeout(() => {
+      if (touchHoldAt?.slot === slot) slot.dataset.arming = "true";
+    }, ARMING_DELAY_MS);
+    touchHoldTimer = window.setTimeout(() => {
+      touchHoldAt = null;
+      if (drag) return;
+      delete slot.dataset.arming;
+      beginDrag(event, card, slot, handle);
+      // 手上轻轻震一下，有个「抓住了」的分界（安卓有，iOS 没这能力就算了）
+      navigator.vibrate?.(12);
+    }, TOUCH_HOLD_MS);
+  }
   // 先把指针接管过来：手指滑出卡片也收得到消息，好及时判断人家其实是想滚页面
   // （卡片身上的 touch-action: none 已经把整段手势交给我们了，浏览器不会再抢）
   try {
@@ -1146,9 +1164,11 @@ function beginDrag(
   // 不清掉的话，定时器到点会去清位移 —— 而那时它已经被拖着走了，卡片会当场弹回原位。
   // 位移留着，所以它接着从眼下这个位置跟手；另一张的停留不归这次管，它自己会到点回位
   if (dropLingerCardId === card.id) clearDropLinger();
-  // 拎起来那一刻这张卡身上还欠着一笔「等着换页」的账吗（见 cancelCarry）
-  const carrying = carryTimers.get(card.id);
-  staleCarry = carrying === undefined ? null : { cardId: card.id, timer: carrying };
+  // 它要是正走在「被收走」的路上（跳转位那 320 毫秒、寄养处那 2.6 秒），那两笔账一起作废：
+  // 卡已经在人手上了。不作废的话，它会带着收走动画的样子被拖着走（`data-retired` 那段
+  // 正是 opacity 0 的隐形区间），到点还会突然冒出来说一句寄养台词、甚至把页面带走
+  cancelCarry(card.id);
+  cancelRetire(card.id);
   dragTrack.reset(event.clientX);
   // 新的一轮命中测试：把上一轮记的测试时刻作废，第一帧该测就测
   dropHitAt = 0;
@@ -1172,8 +1192,6 @@ function dropRelease(keepSpeech = false): void {
   // 松手、被接住、被取消三条路都从这儿出去：自动滚页的循环也归拖拽的生命周期管
   stopEdgeScroll();
   drag = null;
-  // 上一轮把这张卡丢在跳转位上、正等着换页：卡又回到手上了，那笔账作废
-  forgetStaleCarry();
   if (!keepSpeech) talk.hush();
   lightDrop(null);
 }
@@ -1230,12 +1248,6 @@ let dropHitAt = 0;
     而 data-carried / data-retired 是 forwards 动画的状态，没人清就永远缩在那里 */
 const carryTimers = new Map<string, number>();
 const retireTimers = new Map<string, number>();
-
-/** 拎起某张卡的那一刻，它身上还欠着一笔「等着换页」的账（卡 id 与那笔定时器）。
-    松手时要把它作废 —— 卡已经不在那次落点上了，不清掉 320 毫秒后页面照样被带走。
-    记下来而不是松手时现查：goto 那条路是「先开新账、再 dropRelease」，
-    现查会把刚开的这一笔一起清掉，猫就再也带不走页面了 */
-let staleCarry: { cardId: string; timer: number } | null = null;
 
 /** 落在什么上：自己标了 `data-drop` 的落点优先（那几处有专门的行为），
     没有就按元素类别归一个泛化落点 —— 首页上任何元素都接得住。
@@ -1407,6 +1419,10 @@ function homeOffscreen(): boolean {
 function lingerAfterDrop(cardId: string, line: string): void {
   const slot = slotEls.get(cardId);
   if (!slot) return;
+  // 上一张还停着（比如刚把另一张丢在别处）：先把它送回原位再接管。
+  // 直接 clearDropLinger 的话，那笔停留的定时器被清了、位移却没人清 ——
+  // 那只猫会永久半悬在落点那一带，直到被搬去隔壁或者刷新
+  if (dropLingerCardId && dropLingerCardId !== cardId) restoreCard(dropLingerCardId);
   clearDropLinger();
   dropLingerCardId = cardId;
   // 角度先归正：留在那儿说话的时候歪着脖子不像话（位移留着，位置稳稳停在落点上）
@@ -1436,14 +1452,14 @@ function cancelCarry(cardId: string): void {
   restoreCard(cardId);
 }
 
-/** 拎起来那一刻记下的那笔换页账（见 beginDrag）：卡又回到手上、或者又落到别处去了，
-    这笔账就得作废 —— 不然过几百毫秒页面照样会被带走 */
-function forgetStaleCarry(): void {
-  if (!staleCarry) return;
-  const { cardId, timer } = staleCarry;
-  staleCarry = null;
-  // 只在还是原来那笔时才清 —— goto 那条路是先开新账再走到这儿，清掉就把刚开的这笔也毁了
-  if (carryTimers.get(cardId) === timer) cancelCarry(cardId);
+/** 寄养那笔收尾作废：卡片又被拎起来了，别让它带着退场动画（半透明、缩没）被拖在手上，
+    也别让它在两秒多后突然冒出来说一句寄养台词（见 beginDrag） */
+function cancelRetire(cardId: string): void {
+  const timer = retireTimers.get(cardId);
+  if (timer === undefined) return;
+  window.clearTimeout(timer);
+  retireTimers.delete(cardId);
+  restoreCard(cardId);
 }
 
 /** 拎到跳转位上松手：猫被那个按钮收进去，然后带着它一起换页 */
@@ -1788,11 +1804,12 @@ function onPointerUp(event: PointerEvent): void {
     slot.style.translate = "";
     slot.style.rotate = "";
   }
-  // 这条松手路径不走 dropRelease，滚页循环要自己收（否则会一直滚下去）
+  // 这条松手路径不走 dropRelease，滚页循环与落点高亮都得自己收
   stopEdgeScroll();
   drag = null;
-  // 同理：这条路径没进落点，等着换页的那笔账也得作废，不然页面照样会被带走
-  forgetStaleCarry();
+  // 高亮不灭的话那个元素会一直亮着、一直放大，而且下次扫到它连点亮都不做了
+  // （lightDrop 看见「还是它」就直接返回）—— 上面几条走 dropRelease 的路径都顺手灭了，这条漏了
+  lightDrop(null);
 
   // 刚被拎起来玩过，过一小会儿就让它们嘀咕两句——趁这会儿还记得
   talk.lingerSpeech();
@@ -1823,11 +1840,18 @@ function onPointerCancel(event: PointerEvent): void {
     所以要等这一轮事件派发走完再判断（同一根指针的松手，onPointerUp 会先把 drag 清掉） */
 function onPointerEndFallback(event: PointerEvent): void {
   // 「在卡片上滚页面」那条路也在这儿兜：抬手要是没送到槽位上，pageScroll 会一直挂着，
-  // 下一次按在任何地方都会被当成接着滚
+  // 下一次按在任何地方都会被当成接着滚。
+  // 「还在等长按」那条同样得兜 —— 手指按住的那 180 毫秒里槽位被隔壁搬走时，槽位上的
+  // pointerup 就再也送不到了，而定时器到点照样会把 drag 建起来；那张卡是游离节点，
+  // 之后所有指针消息都到不了它，两张卡从此都拎不起来
   const scrollId = pageScroll?.pointerId;
   const dragId = drag?.pointerId;
-  if (event.pointerId !== scrollId && event.pointerId !== dragId) return;
+  const holdId = touchHoldAt?.pointerId;
+  if (event.pointerId !== scrollId && event.pointerId !== dragId && event.pointerId !== holdId) {
+    return;
+  }
   window.setTimeout(() => {
+    if (holdId !== undefined && touchHoldAt?.pointerId === holdId) cancelHold();
     if (scrollId !== undefined && pageScroll?.pointerId === scrollId) glideAway();
     if (dragId !== undefined && drag?.pointerId === dragId) abortDrag();
   }, 0);
@@ -1919,6 +1943,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(peerHintTimer);
   window.clearTimeout(roamerTimer);
   window.clearTimeout(touchHoldTimer);
+  window.clearTimeout(armTimer);
   window.clearTimeout(topScrollTimer);
   // 停在落点上那笔「把话说完再回去」的收尾：组件都走了，别再回来动 DOM
   clearDropLinger();

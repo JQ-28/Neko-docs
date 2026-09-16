@@ -189,6 +189,8 @@ export function useLiveShow(host: ShowHost): LiveShow {
       独处小动作就永远等不到那 26–52 秒 */
   let soloStopped = false;
   let bigStopped = false;
+  /** 独处小动作与特别节目这两条链点着过没有：进站第一次露头才点，之后只看上面那两个标记 */
+  let soloBigStarted = false;
   /** 这一场演过哪些剧本，用来凑「猫猫剧场」 */
   const seenShows = new Set<string>();
 
@@ -432,10 +434,23 @@ export function useLiveShow(host: ShowHost): LiveShow {
       schedule(
         gapLeft + FIRST_PLAY_MIN_MS + Math.random() * (FIRST_PLAY_MAX_MS - FIRST_PLAY_MIN_MS)
       );
-      // 特别节目是给「待了一阵子的人」看的，所以从进站就开始计时
-      scheduleBig();
-      // 独处小动作的链子也从这儿起步：往后它自己接自己，被占就隔一会儿再问
-      scheduleSolo();
+      // 特别节目与独处小动作：只有进站第一次露头才点着这两条链。之后每次滚回来，
+      // 只在它们「确实停过」时才补排 —— 无条件重排等于每滚一次就把倒计时清零一次，
+      // 大编舞 8–12 分钟、独处 26–52 秒，来回滚两下就永远等不到了（resume() 里同理）
+      if (!soloBigStarted) {
+        soloBigStarted = true;
+        scheduleBig();
+        scheduleSolo();
+        return;
+      }
+      if (bigStopped) {
+        bigStopped = false;
+        scheduleBig();
+      }
+      if (soloStopped) {
+        soloStopped = false;
+        scheduleSolo();
+      }
     },
     resume: () => {
       holding = false;
