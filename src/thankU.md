@@ -213,9 +213,9 @@ Neko 的电费、网费、话费一直是 JQ 自己扛着的，日复一日。�
   </div>
 
   <div class="stat-card glass-card">
-    <span class="stat-ico"><img src="https://api.iconify.design/mdi:heart.svg?color=%23f9bdeb" alt="grateful"></span>
-    <b style="color: #f9bdeb; line-height: 1;"><img src="https://api.iconify.design/mdi:heart.svg?color=%23f9bdeb" alt="grateful" style="width:34px;height:34px;vertical-align:-2px;"></b>
-    <p>无限感激</p>
+    <span class="stat-ico"><img src="https://api.iconify.design/mdi:cake-variant.svg?color=%23f9bdeb" alt="age"></span>
+    <b style="color: #f9bdeb;">4 岁 6 个月</b>
+    <p>她多大了</p>
   </div>
 </div>
 
@@ -260,8 +260,8 @@ Neko 的电费、网费、话费一直是 JQ 自己扛着的，日复一日。�
 
 <div style="text-align: center; margin: 40px 0;">
   <p style="font-size: 18px; color: #666; margin-bottom: 15px; line-height: 1.8;">
-    <strong>再次感谢你们的赞助！</strong><br>
-    你们的每一份支持都是 Neko 前进的动力 ฅ^•ﻌ•^ฅ
+    <strong>名单还会一直长下去</strong><br>
+    下次加人时，希望上面有你 ฅ^•ﻌ•^ฅ
   </p>
 
   <p style="margin: 30px 0;">
