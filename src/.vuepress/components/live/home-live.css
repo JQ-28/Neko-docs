@@ -649,16 +649,17 @@ html.dark .home-live-roamer {
    透视参数跟指令卡统一（720px），两张卡转起来才是同一个手感。
    走 transform：卡片自己的浮动在 translate 上、歪头在 rotate 上、说话点头也在 translate 上、
    演出在 slot 上 —— 四本账各记各的，谁也盖不掉谁。
-   那 0.5 秒过渡是给「手停下之后把头转回来」用的；跟着指针走的时候每帧都在写新值，
-   过渡追的是一小步一小步，所以只会显得柔顺，不会拖出黏滞感。
+   ★ 不给 transform 设过渡：过渡会让它一直追一个正在移动的目标，每帧只走到目标的一小部分，
+   实测目标 1.7 度时屏幕上只有 0.02 度，看着就是「没动」。指令卡那份也写着同一句
+   「不设 transition，倾斜直接跟手」。
+   那手停下 2.6 秒后的归零就是瞬时回去了 —— 角度本来只有几度，这一下看不出来。
    在线卡的选择器必须带 :deep —— 这份样式是 scoped 的，不穿透就选不到子组件里的元素，
    再加 .home-live-slot 一层是为了压过它自己那份 transition，又不影响别处用到这个组件的地方 */
 .home-live-card,
 .home-live-slot :deep(.home-online) {
   transform: perspective(720px) rotateX(calc(var(--look-y, 0) * -3.5deg))
     rotateY(calc(var(--look-x, 0) * 3.5deg));
-  transition: transform 0.5s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
-    rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+  transition: rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     scale 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     translate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     box-shadow 0.45s ease, border-color 0.3s ease;
