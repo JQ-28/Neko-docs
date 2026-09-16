@@ -342,23 +342,26 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     return now - lastPokeAt >= ms && now - lastDragAt >= ms;
   }
 
-  /** 这会儿是什么心情：事件带起来的优先，其次是被观众的动作带起来的那三档
-      （黏人 / 好奇 / 无聊），最后才轮到夜里、只剩自己这些时段档。
-      动作那三档不走 holdEmo 的定时 —— 它们靠条件实时成立，条件一散自己就回落。
-      顺序是「手停在卡上（最明确）→ 手在动（想看下一步点哪）→ 久待又没互动（无聊）」：
-      手停在卡上时当然也算「手是新鲜的」，先判黏人才不会把它误判成好奇。
-      顺手把算出来的结果写回 mood，状态灯跟着变；事件到点后就是这么回落的 */
+  /** 这会儿是什么心情：事件带起来的优先，其次是被观众的动作带起来的那两档
+      （好奇 / 黏人），再往后才是夜里、饭点、只剩自己这些客观档，
+      最后才是「什么都没发生」的无聊。
+      动作那两档不走 holdEmo 的定时 —— 它们靠条件实时成立，条件一散自己就回落。
+      顺序上「手在动」排在「手停在卡上」前面：cursorFresh 只在最后这几秒里动过时为真，
+      手真停下来它自己就是 false，所以不会把「手搁着不动」误判成好奇；
+      反过来把黏人放前面的话，手在卡片区里晃来晃去也永远是黏人，好奇那一档根本出不来。
+      无聊压在最后：它靠的是「累计看满多久 + 多久没互动」，两个都是只增不减的量，
+      一满足就长期成立；排在时段档前面的话，深夜、饭点、只剩一张猫这三档再也看不到了 */
   function currentEmo(count: number): EmoState {
     // 事件带起来的心情还没到点，就照它算
     if (mood.value !== "normal" && Date.now() < emoUntil) return mood.value;
     const hour = new Date().getHours();
     // cursorFresh 与 hoverHoldMs 这两个信号由 HomeLive 喂进来（可选调用，没喂就当没有）
-    if ((host.hoverHoldMs?.() ?? 0) >= CLINGY_HOVER_MS) mood.value = "clingy";
-    else if (host.cursorFresh?.()) mood.value = "curious";
-    else if (host.linger() >= BORED_LINGER_S && quietFor(BORED_LINGER_S * 1000)) mood.value = "bored";
+    if (host.cursorFresh?.()) mood.value = "curious";
+    else if ((host.hoverHoldMs?.() ?? 0) >= CLINGY_HOVER_MS) mood.value = "clingy";
     else if (count === 1) mood.value = "lost";
     else if (hour < 5 || hour >= 23) mood.value = "sleepy";
     else if (hour >= 17 && hour < 19) mood.value = "hungry";
+    else if (host.linger() >= BORED_LINGER_S && quietFor(BORED_LINGER_S * 1000)) mood.value = "bored";
     else mood.value = "normal";
     return mood.value;
   }

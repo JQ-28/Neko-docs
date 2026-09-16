@@ -122,6 +122,9 @@ const REPLAY_MIN_MS = 22_000;
 const REPLAY_MAX_MS = 42_000;
 /** 滚走了又滚回来，离上一段太近就先补够这点时间，免得来回刷屏 */
 const RESUME_GAP_MS = 6_000;
+/** 到点了台上却正演着别的一段，就让一让、过这么一会儿再来问。
+    不让的话会把独处小动作、刚落地那对见面小戏拦腰掐断，看着像猫抽了一下 */
+const DANCE_RETRY_MS = 1_500;
 /** 恰好两张才演得成对手戏：多凑了几张就停播，只留它们自己聊天 */
 const PLAY_CARDS = 2;
 /** 隔壁也开着页面时改用统一的时间槽排期：两边不通信也能算出同一段、同一时刻 */
@@ -389,6 +392,12 @@ export function useLiveShow(host: ShowHost): LiveShow {
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       // 滚出视野、或者手里凑不齐两张卡，就先歇着；卡片回来后由组件重新排期
       if (!canPlay()) return;
+      // 台上正演着别的一段（独处小动作、见面小戏）：过会儿再来问。
+      // 这条判据独处与大编舞那边都有，只有对手戏漏了 —— 它一开演就直接把台上那段掐掉
+      if (isPlaying()) {
+        schedule(DANCE_RETRY_MS);
+        return;
+      }
       // 有邻居就跟着时间槽演，两边动作才齐
       if (host.hasPeers()) {
         void playScript({ script: scriptForSlot(nextDanceSlot().slot), dance: true });

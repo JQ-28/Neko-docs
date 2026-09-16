@@ -395,6 +395,11 @@ const TOUCH_HOLD_MS = 180;
     那一下的「按下」反馈就整没了 —— 手机上点卡片会显得毫无反应 */
 const ARMING_DELAY_MS = 90;
 const TOUCH_SLOP_PX = 16;
+/** 从按下到抬手挪过这么点距离才算「拎着走了一趟」，否则只当戳了一下。
+    鼠标那条路按下就直接进拖拽，没有这道门槛的话，单击会一路走完落点判定 ——
+    卡片中心那一点穿透到底下的卡片区容器上，被认成一个泛化落点，
+    抬手瞬间把刚回的那句顶掉、整排卡闪一下，还白白记成「刚被拎过」 */
+const CLICK_SLOP_PX = 6;
 /** 页面刚滚过之后这么久内按住卡片不给拎 —— 那多半是想让页面停下来 */
 const SCROLL_SETTLE_MS = 180;
 /** 拖动中的命中测试节流：手指挪过这么多、或者离上次测试过了这么久，才重新测一次。
@@ -1050,6 +1055,10 @@ async function reorderCards(cardId: string, targetId: string): Promise<void> {
     slot.style.transition = "";
     slot.style.translate = "";
   });
+
+  // 换位这条不走 restoreCard（那是「回原位」那条路）：气泡朝向的标记得自己摘 ——
+  // 不然拎到屏幕顶上换过位的那张，之后气泡一直挂在卡片下面
+  [moving, target].forEach((slot) => delete slot.dataset.bubbleBelow);
 }
 
 function onPointerDown(event: PointerEvent, card: CardSpec): void {
@@ -1442,6 +1451,15 @@ function keepSlotOnTop(slot: HTMLElement, cardId: string): void {
   );
 }
 
+/** 清掉拖拽留在槽位上的行内样式。气泡朝向那个标记也归这儿 ——
+    只在 restoreCard 里摘的话，「就地松手」与「换位」这两条不走 restoreCard 的路会漏掉它，
+    之后这只猫每次开口气泡都挂在卡片下面（卡片滚到屏幕下半截时正好被挤出视口） */
+function resetSlotInline(slot: HTMLElement): void {
+  slot.style.translate = "";
+  slot.style.rotate = "";
+  delete slot.dataset.bubbleBelow;
+}
+
 /** 把一张卡从「被收走」的动画里放出来：那两条动画都是 forwards 的，
     不主动把标记和行内位移清掉，这张卡就一直停在缩没的状态上 */
 function restoreCard(cardId: string): void {
@@ -1449,10 +1467,8 @@ function restoreCard(cardId: string): void {
   if (!slot) return;
   delete slot.dataset.carried;
   delete slot.dataset.retired;
-  slot.style.translate = "";
-  slot.style.rotate = "";
   // 贴着屏幕顶时气泡临时翻到了下面（见 syncBubbleSide），回位也还原成默认朝上
-  delete slot.dataset.bubbleBelow;
+  resetSlotInline(slot);
   // 停在落点上时抬过层级（见 lingerAfterDrop），也要还原 —— 但得等它滑回原位再撤
   keepSlotOnTop(slot, cardId);
 }
@@ -1594,7 +1610,9 @@ function retireCard(card: CardSpec): void {
     card.id,
     window.setTimeout(() => {
       retireTimers.delete(card.id);
-      delete slot.dataset.retired;
+      // 这张卡是停在落点上把退场动画演完的，没有别的地方会替它走 restoreCard ——
+      // 不收拾的话摘掉标记之后它带着位移永久停在寄养处
+      restoreCard(card.id);
       talk.sayLine(card, dropLineFor(card.kind, "bin"));
     }, RETIRE_MS)
   );
@@ -1834,6 +1852,16 @@ function onPointerUp(event: PointerEvent): void {
     handle.releasePointerCapture(event.pointerId);
   }
 
+  // 抬手时几乎没挪动过：这一下就是戳了一下，按下时那句回话已经在说了，到此为止。
+  // 接着往下走会跑完一整套落点判定（原因见 CLICK_SLOP_PX 那段），把刚说的那句顶掉
+  if (Math.hypot(drag.shiftX, drag.shiftY) < CLICK_SLOP_PX) {
+    resetSlotInline(slot);
+    // 留着说话：那句 poke 还在气泡里，不能跟着「拎着时那句抱怨」一起收掉
+    dropRelease(true);
+    show.resume();
+    return;
+  }
+
   // 卡片正飘在大桌面上（跨屏自由拖）：落在谁的屏幕里就搬到谁那儿
   if (roamingIds.value.includes(cardId)) {
     const point = cardPointAbs(drag, drag.shiftX, drag.shiftY);
@@ -1879,6 +1907,11 @@ function onPointerUp(event: PointerEvent): void {
       slot.style.translate = "";
       slot.style.rotate = "";
       dropRelease(true);
+    } else if (target.kind === "bin") {
+      // 寄养那条动画是「在落点上缩没 → 待一会儿 → 自己爬回来」，位移得留着才看得见；
+      // 走 releaseDrag 的话 restoreCard 会把 data-retired 一起摘掉，动画永远启动不了。
+      // 卡片由 retireCard 那笔收尾放回原位
+      dropRelease(true);
     } else if (drop.lingers) {
       // 这句话还没说完，而且回位之后没人看得见：卡片先原地停着，到点由 lingerAfterDrop 送回去。
       // 位移得留着 —— 所以走 dropRelease（只收跟手状态）而不是 releaseDrag（那个会把位移清掉）
@@ -1901,8 +1934,7 @@ function onPointerUp(event: PointerEvent): void {
   } else {
     // 交还样式：过渡会把卡片带着惯性送回原位，顺带晃两下
     draggingId.value = "";
-    slot.style.translate = "";
-    slot.style.rotate = "";
+    resetSlotInline(slot);
   }
   // 这条松手路径不走 dropRelease，滚页循环与落点高亮都得自己收
   stopEdgeScroll();
