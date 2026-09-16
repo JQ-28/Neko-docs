@@ -103,7 +103,7 @@ import { useRouter } from "vue-router";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "./egg-utils";
 import { GREETING_REPLY_MS, useLiveTalk } from "./live-chat";
-import { dropLineFor, nekoMetaLine, recentLine } from "./live-lines";
+import { anyDropLines, dropLineFor, nekoMetaLine, recentLine } from "./live-lines";
 import {
   cardPointAbs,
   createDragTrack,
@@ -129,6 +129,11 @@ import {
   type DragState,
 } from "./live-drag";
 import { EGG_THRESHOLDS } from "./neko-shared-eggs";
+import {
+  isBackToTop,
+  resolveDropTarget,
+  type DropCategory,
+} from "./live-drop-targets";
 import {
   idlePeerLink,
   startPeerLink,
@@ -817,9 +822,10 @@ const stageNote = computed(() => {
 });
 
 let drag: DragState | null = null;
-/** 手指/鼠标这会儿在屏幕的哪个高度：自动滚页看它，比卡片中心更贴边 ——
-    卡片被 limitShift 挡在离边 16px 处，中心到不了最边上，速度的档位就拉不开 */
-let dragPointerY = 0;
+/** 手指/鼠标这会儿在屏幕的哪儿：自动滚页看它（比卡片中心更贴边 ——
+    卡片被 limitShift 挡在离边 16px 处，中心到不了最边上，速度的档位就拉不开）；
+    中心那点认不出落点时也拿它再问一次（导航栏、回顶按钮就钉在视口边上） */
+const dragPointer = { x: 0, y: 0 };
 /** 拎着卡片时顺手统计的动作：摇猫猫、遛猫 */
 const dragTrack = createDragTrack();
 
@@ -993,7 +999,8 @@ function beginDrag(
     shiftY: 0,
     touch: event.pointerType !== "mouse",
   };
-  dragPointerY = event.clientY;
+  dragPointer.x = event.clientX;
+  dragPointer.y = event.clientY;
   // 滚动基准从这里起算：拖动中页面一滚就要把手上的位移补回来（见 compensateScroll）
   lastScrollY = window.scrollY;
   // 手指点得太快时指针可能已经抬起了，抓不到就按没抓到继续走
@@ -1062,8 +1069,13 @@ function abortDrag(): void {
 const CARRY_MS = 320;
 /** 寄养：收进去多久之后自己爬回来 */
 const RETIRE_MS = 2600;
+/** 猫被放到回顶按钮上之后，隔这么久才真的滚上去：先让它那句「我送你上去」说完 ——
+    立刻滚的话舞台转眼就出了视野，那句刚出口就被闭麦了 */
+const TOP_SCROLL_MS = 700;
 /** 猫被带去哪个页面，先记在本地，到站那边（CardCourier）认出来再演一段 */
 const CARRIED_KEY = "neko-carried";
+/** 「放上回顶按钮」那笔延后的滚动，卸载时得收掉（不然换了页还在滚） */
+let topScrollTimer = 0;
 
 let dropLit: HTMLElement | null = null;
 /** 命中测试的节流现场：按「卡片中心挪了多少」算，挪得少就不用每帧去问一次 elementFromPoint
@@ -1077,34 +1089,130 @@ let dropHitAt = 0;
 const carryTimers = new Map<string, number>();
 const retireTimers = new Map<string, number>();
 
-/** 指针这会儿压在哪个落点上（没压着就是 null）。落点自己在 DOM 上标 data-drop */
-function dropUnder(x: number, y: number): HTMLElement | null {
-  const el = document.elementFromPoint(x, y);
-  return el instanceof HTMLElement ? el.closest<HTMLElement>("[data-drop]") : null;
+/** 落在什么上：自己标了 `data-drop` 的落点优先（那几处有专门的行为），
+    没有就按元素类别归一个泛化落点 —— 首页上任何元素都接得住。
+    kind 于是有两套来源：`feat` / `recent` / `goto` / `bin` / `title` 那套，
+    与 `link` / `heading` / … 这套（category 非空就说明走的是泛化那条路） */
+interface DropHit {
+  el: HTMLElement;
+  kind: string;
+  category: DropCategory | null;
 }
 
-/** 点亮/熄灭落点。用 dataset 而不是 class：这两处的 class 都由 Vue 说了算，加了会被冲掉 */
-function lightDrop(el: HTMLElement | null): void {
+/** 指针这会儿压在什么上（没压着就是 null）。落点自己在 DOM 上标 data-drop，其余靠归类。
+    blocked 表示「这点压在另一张卡身上」——那是换位的地盘，别再往下找 */
+function probeAt(x: number, y: number): { hit: DropHit | null; blocked: boolean } {
+  const found = document.elementFromPoint(x, y);
+  if (!(found instanceof HTMLElement)) return { hit: null, blocked: false };
+  const marked = found.closest<HTMLElement>("[data-drop]");
+  if (marked) return { hit: { el: marked, kind: marked.dataset.drop ?? "", category: null }, blocked: false };
+
+  const slot = found.closest<HTMLElement>(".home-live-slot");
+  if (slot) {
+    return slot === slotEls.get(drag?.cardId ?? "")
+      ? { hit: { el: slot, kind: "card", category: "card" }, blocked: false }
+      : { hit: null, blocked: true };
+  }
+
+  const resolved = resolveDropTarget(found);
+  return {
+    hit: resolved ? { el: resolved.el, kind: resolved.category, category: resolved.category } : null,
+    blocked: false,
+  };
+}
+
+/** 卡片这会儿在屏幕上的那个框（已经算上手上的位移和上浮） */
+function heldBox(): { left: number; top: number; right: number; bottom: number } | null {
+  if (!drag) return null;
+  const lift = drag.touch ? DRAG_LIFT_PX : 0;
+  const left = drag.baseLeft + drag.shiftX;
+  const top = drag.baseTop + drag.shiftY - lift;
+  return { left, top, right: left + drag.width, bottom: top + drag.height };
+}
+
+/** 卡片中心那点落在什么上。有两种情况要改看指针那一点：
+    ① 指针跑到卡片外头去了（卡片被贴边限位顶住、手还在往外推）—— 导航栏、回顶按钮
+       这类钉在视口边上的东西，卡片中心永远够不到，可指针就在它们身上；
+    ② 中心那点认不出是什么（空白、认不出的容器）。
+    指针这一路**只认归类出来的落点**，自己标了 data-drop 的不算 ——
+    那几处要维持「猫压住哪儿就是哪儿」，不然又回到「手指压在落点上、猫其实在别处」 */
+function dropUnder(x: number, y: number): DropHit | null {
+  const center = probeAt(x, y);
+  if (center.blocked) return null;
+
+  const box = heldBox();
+  // 留一点余量：手机那条路手指就在卡片下沿附近（卡片被抬起 30px，手指离中心也是 30px），
+  // 差一两像素就算「在外头」会把手指数进去 —— 那几像素不算「往外推」
+  const slack = 6;
+  const pointerOutside =
+    box != null &&
+    (dragPointer.x < box.left - slack ||
+      dragPointer.x > box.right + slack ||
+      dragPointer.y < box.top - slack ||
+      dragPointer.y > box.bottom + slack);
+  const centerWeak = !center.hit || center.hit.category === "other";
+  if (pointerOutside || centerWeak) {
+    const near = probeAt(dragPointer.x, dragPointer.y);
+    const category = near.hit?.category;
+    if (!near.blocked && category && category !== "other") return near.hit;
+  }
+  return center.hit;
+}
+
+/** 点亮/熄灭落点。用 dataset 而不是 class：这两处的 class 都由 Vue 说了算，加了会被冲掉。
+    泛化落点还要带上类别，CSS 照着它决定弹哪一下 */
+function lightDrop(hit: DropHit | null): void {
+  const el = hit?.el ?? null;
   if (el === dropLit) return;
-  if (dropLit) delete dropLit.dataset.dropLit;
+  if (dropLit) {
+    delete dropLit.dataset.dropLit;
+    delete dropLit.dataset.dropKind;
+  }
   dropLit = el;
-  if (dropLit) dropLit.dataset.dropLit = "true";
+  if (dropLit && hit) {
+    dropLit.dataset.dropLit = "true";
+    dropLit.dataset.dropKind = hit.kind;
+  }
 }
 
 /** 每个落点自己那个「刚接住」的计时器：同一点连中两次要撤掉上一个，
     不然前一个会把后一个的弹一下提前掐灭 */
 const dropTimers = new WeakMap<HTMLElement, number>();
 
-/** 落点接住了：给一下短促的反馈，让手感落地 */
-function flashDrop(el: HTMLElement): void {
+/** 落点接住了：给一下短促的反馈，让手感落地。
+    泛化落点连类别一起写上 —— CSS 靠 `data-drop-kind` 决定弹哪一下 */
+function flashDrop(el: HTMLElement, kind = el.dataset.drop ?? "other"): void {
   window.clearTimeout(dropTimers.get(el));
+  el.dataset.dropKind = kind;
   el.dataset.dropHit = "true";
-  dropTimers.set(el, window.setTimeout(() => delete el.dataset.dropHit, 600));
+  dropTimers.set(
+    el,
+    window.setTimeout(() => {
+      delete el.dataset.dropHit;
+      // 泛化落点的类别也一起收掉：它只是这一下的反馈标记，留着没意义
+      if (!el.dataset.drop) delete el.dataset.dropKind;
+    }, 600)
+  );
 }
 
-/** 这个落点该说哪句：功能卡按功能名查表，最近更新是现编的。
+/** 泛化落点该说哪句：同一处轮着说，免得来回拖老是同一句 */
+const lastAnyLine = new Map<string, string>();
+
+function anyLine(card: CardSpec, category: DropCategory): string {
+  const pool = anyDropLines(card.kind, category);
+  const key = `${card.kind}:${category}`;
+  const fresh = pool.filter((line) => line !== lastAnyLine.get(key));
+  const usable = fresh.length > 0 ? fresh : pool;
+  const line = usable[Math.floor(Math.random() * usable.length)] ?? "";
+  if (line) lastAnyLine.set(key, line);
+  return line;
+}
+
+/** 这个落点该说哪句：功能卡按功能名查表，最近更新是现编的，泛化落点按类别挑一句。
     台词按卡种分层 —— 在线猫猫说的是统计那摊子事，别让它念猫的话 */
-function dropLine(el: HTMLElement, kind: string, card: CardSpec): string {
+function dropLine(hit: DropHit, card: CardSpec): string {
+  if (hit.category) return anyLine(card, hit.category);
+  const { el, kind } = hit;
   if (kind === "feat") return dropLineFor(card.kind, el.dataset.dropKey ?? "");
   if (kind === "recent") {
     const message = el.querySelector(".home-recent-message")?.textContent?.trim() ?? "";
@@ -1176,8 +1284,8 @@ function retireCard(card: CardSpec): void {
 }
 
 /** 松手把卡放在落点上：真接住了返回 true，接不住就当没这回事、卡片自己弹回原位 */
-function useDrop(el: HTMLElement, card: CardSpec): boolean {
-  const kind = el.dataset.drop ?? "";
+function useDrop(hit: DropHit, card: CardSpec): boolean {
+  const { el, kind } = hit;
 
   if (kind === "goto") {
     const to = el.dataset.dropTo;
@@ -1187,15 +1295,23 @@ function useDrop(el: HTMLElement, card: CardSpec): boolean {
   }
 
   if (kind === "bin") {
-    flashDrop(el);
+    flashDrop(el, kind);
     retireCard(card);
     return true;
   }
 
-  const line = dropLine(el, kind, card);
+  const line = dropLine(hit, card);
   if (!line) return false;
-  flashDrop(el);
+  flashDrop(el, kind);
   talk.sayLine(card, line);
+  // 回顶按钮：它本来就是干这个的，只是平时用鼠标点；猫放上去就真的把页面送回顶部。
+  // 让它先把那句说完 —— 立刻滚的话舞台转眼出了视野，话刚出口就被闭麦
+  if (isBackToTop(el)) {
+    window.clearTimeout(topScrollTimer);
+    topScrollTimer = window.setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, TOP_SCROLL_MS);
+  }
   return true;
 }
 
@@ -1245,7 +1361,7 @@ function edgeScrollStep(): void {
   // 卡片正飘在别的窗口的地盘上、或者已经松手了：这一轮到这儿为止
   if (!drag || roamingIds.value.includes(drag.cardId)) return;
 
-  const speed = edgeScrollSpeed(dragPointerY, window.innerHeight);
+  const speed = edgeScrollSpeed(dragPointer.y, window.innerHeight);
   const top = window.scrollY;
   const max = document.documentElement.scrollHeight - window.innerHeight;
   const room = speed < 0 ? top : max - top;
@@ -1278,7 +1394,7 @@ function edgeScrollStep(): void {
 
 /** 手进没进边缘带：进了就保证滚动循环在跑，出了就立刻停 */
 function updateEdgeScroll(): void {
-  if (!drag || edgeScrollSpeed(dragPointerY, window.innerHeight) === 0) {
+  if (!drag || edgeScrollSpeed(dragPointer.y, window.innerHeight) === 0) {
     stopEdgeScroll();
     return;
   }
@@ -1295,7 +1411,8 @@ function onPointerMove(event: PointerEvent): void {
     return;
   }
   if (!drag || event.pointerId !== drag.pointerId) return;
-  dragPointerY = event.clientY;
+  dragPointer.x = event.clientX;
+  dragPointer.y = event.clientY;
 
   const now = performance.now();
   const rawX = event.clientX - drag.startX;
@@ -1417,10 +1534,13 @@ function onPointerUp(event: PointerEvent): void {
   const dropped = liveCards.value.find((item) => item.id === cardId);
   const center = heldCenter();
   const target = dropped && center ? dropUnder(center.x, center.y) : null;
-  if (dropped && target && useDrop(target, dropped)) {
+  // 泛化落点给「换位」让路：卡片中心正压在另一张卡上时，那是要换位 ——
+  // 这时候 hitTest 可能只看得见盖在上面的浮层（公告、更新卡），别用一个泛化落点把它抢了
+  const swapWins = target?.category != null && reorderTarget(slot, cardId) !== null;
+  if (dropped && target && !swapWins && useDrop(target, dropped)) {
     // 被跳转位收进按钮的那张留在原地，别回弹；其它落点都让它跳回原位。
     // 两个都要留住刚落点说的那句，收尾别出声
-    if (target.dataset.drop === "goto") {
+    if (target.kind === "goto") {
       // 留在原地的是卡片，不是拖拽留下的行内位移：位移和角度得清掉，
       // 不然换页被取消（接着又丢了张卡到别处）时那张卡会带着残留偏移停在半路
       slot.style.translate = "";
@@ -1568,6 +1688,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(peerHintTimer);
   window.clearTimeout(roamerTimer);
   window.clearTimeout(touchHoldTimer);
+  window.clearTimeout(topScrollTimer);
   // 组件走了就别再滚页面：拖拽中切页时循环可能正跑着
   stopEdgeScroll();
   for (const timer of carryTimers.values()) window.clearTimeout(timer);

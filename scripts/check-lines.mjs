@@ -121,6 +121,7 @@ const {
   LINE_GESTURES,
   MOOD_GESTURES,
   DROP_LINES,
+  ANY_DROP_LINES,
   MOMENT_GATE_CHANCE,
   IMPROV_WARMUP_S,
   chineseNumber,
@@ -128,6 +129,7 @@ const {
   dropLineFor,
   recentLine,
 } = await import(pathToFileURL(path.join(dir, "live-lines.ts")).href);
+const { DROP_CATEGORIES } = await import(pathToFileURL(path.join(dir, "live-drop-targets.ts")).href);
 /** 台词文件的源码：有两项检查要在源码里数一数 */
 const linesSource = await readFile(path.join(dir, "live-lines.ts"), "utf8");
 
@@ -479,6 +481,37 @@ for (const kind of ["neko", "online"]) {
   const line = recentLine("回退按键逻辑优化（无法回退时隐藏）", kind);
   checkText(line, `recentLine("${kind}")`);
   checkNumber(line, `recentLine("${kind}")`);
+}
+
+// 泛化落点：首页上任何元素都能接住。每个类别两种卡各有一池（同一处轮着说，池里至少三条，
+// 不然拖两下就重了），文案过同一套体检，另外每类都得有「被压住时」的反馈 —— 少一条就是
+// 扫过去一点动静都没有，看着像没认出来
+const styleSource = await readFile(
+  path.join(root, "src", ".vuepress", "styles", "index.scss"),
+  "utf8"
+);
+for (const [kind, pools] of Object.entries(ANY_DROP_LINES)) {
+  for (const category of DROP_CATEGORIES) {
+    const where = `ANY_DROP_LINES.${kind}.${category}`;
+    const pool = pools[category];
+    if (!Array.isArray(pool) || pool.length < 3) {
+      errors.push(`${where} 不足三条，同一处轮不开`);
+      continue;
+    }
+    if (new Set(pool).size !== pool.length) errors.push(`${where} 池里有重复的句子`);
+    for (const line of pool) {
+      checkText(line, where);
+      checkNumber(line, where);
+    }
+    if (!styleSource.includes(`data-drop-kind="${category}"`)) {
+      errors.push(`类别 ${category} 没有反馈样式：index.scss 里找不到 data-drop-kind="${category}"`);
+    }
+  }
+  for (const key of Object.keys(pools)) {
+    if (!DROP_CATEGORIES.includes(key)) {
+      errors.push(`ANY_DROP_LINES.${kind} 里多了个不在册的类别「${key}」，它永远不会被用到`);
+    }
+  }
 }
 
 // 功能卡的台词和首页那张功能池得一一对上：漏一条，它被拎上去就只会干站着

@@ -36,6 +36,94 @@
   }
 }
 
+// ===== 首页上任何元素都能当落点 =====
+// 拎着卡片扫过普通元素时，HomeLive 往它身上写 data-drop-lit / data-drop-kind（扫过点亮），
+// 松手接住写 data-drop-hit。这几条用 :not([data-drop]) 让开自己标了落点的那几处 ——
+// 它们本来就有自己那套高亮（HomeIntro 里那个 box-shadow + scale），别叠两层
+// 点亮用 outline：它不参与布局，也不会像 transform 那样给 fixed 后代另立包含块
+//（导航栏、页脚上会踩到这件事）
+[data-drop-lit][data-drop-kind]:not([data-drop]) {
+  outline: 2px solid color-mix(in srgb, var(--vp-c-accent, #096dd9) 45%, transparent);
+  outline-offset: 3px;
+}
+
+@keyframes neko-drop-lift {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  45% {
+    translate: 0 -3px;
+  }
+}
+
+@keyframes neko-drop-zoom {
+  0%,
+  100% {
+    scale: 1;
+  }
+
+  45% {
+    scale: 1.035;
+  }
+}
+
+@keyframes neko-drop-press {
+  0%,
+  100% {
+    scale: 1;
+  }
+
+  40% {
+    scale: 0.96;
+  }
+}
+
+@keyframes neko-drop-glow {
+  0% {
+    outline-color: color-mix(in srgb, var(--vp-c-accent, #096dd9) 70%, transparent);
+    outline-offset: 1px;
+  }
+
+  100% {
+    outline-color: transparent;
+    outline-offset: 7px;
+  }
+}
+
+[data-drop-hit][data-drop-kind="link"],
+[data-drop-hit][data-drop-kind="heading"],
+[data-drop-hit][data-drop-kind="text"],
+[data-drop-hit][data-drop-kind="list"],
+[data-drop-hit][data-drop-kind="footer"] {
+  animation: neko-drop-lift 0.4s var(--ease-out);
+}
+
+[data-drop-hit][data-drop-kind="image"],
+[data-drop-hit][data-drop-kind="card"] {
+  animation: neko-drop-zoom 0.4s var(--ease-out);
+}
+
+[data-drop-hit][data-drop-kind="button"] {
+  animation: neko-drop-press 0.32s var(--ease-out);
+}
+
+// 代码块、导航栏、认不出来的地方：不推不挤，只让描边亮一下散开。
+// 导航栏是 fixed 的，动它一层 transform 会连带换掉里面 fixed 后代的包含块
+[data-drop-hit][data-drop-kind="code"],
+[data-drop-hit][data-drop-kind="nav"],
+[data-drop-hit][data-drop-kind="other"],
+[data-drop-hit][data-drop-kind="image"].vp-hero-mask {
+  animation: neko-drop-glow 0.45s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-drop-hit][data-drop-kind] {
+    animation: none;
+  }
+}
+
 .qq-chat-interface {
   border: 2px solid #f9bdeb;
   border-radius: 20px;
