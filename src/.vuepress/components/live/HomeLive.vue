@@ -399,6 +399,10 @@ const TOUCH_SLOP_PX = 16;
     卡片中心那一点穿透到底下的卡片区容器上，被认成一个泛化落点，
     抬手瞬间把刚回的那句顶掉、整排卡闪一下，还白白记成「刚被拎过」 */
 const CLICK_SLOP_PX = 6;
+/** 鼠标按下之后挪过这么多像素才算「要拎」，在那之前只是按下。
+    原先按下就进拖拽，于是「点一下」也照样晃起来、还说一句被拎起来的抱怨 ——
+    点一下就该是点一下，拖才是拖（手指那条路有自己的长按等待，见 holdToDrag） */
+const MOUSE_DRAG_SLOP_PX = 4;
 /** 页面刚滚过之后这么久内按住卡片不给拎 —— 那多半是想让页面停下来 */
 const SCROLL_SETTLE_MS = 180;
 /** 拖动中的命中测试节流：手指挪过这么多、或者离上次测试过了这么久，才重新测一次。
@@ -982,6 +986,16 @@ const stageNote = computed(() => {
 });
 
 let drag: DragState | null = null;
+/** 鼠标按下之后、还没挪够距离的那一小段：这一刻还不算拎起来，挪够了才转成 drag */
+interface ArmedDrag {
+  readonly pointerId: number;
+  readonly card: CardSpec;
+  readonly slot: HTMLElement;
+  readonly handle: HTMLElement;
+  readonly startX: number;
+  readonly startY: number;
+}
+let armedDrag: ArmedDrag | null = null;
 /** 手指/鼠标这会儿在屏幕的哪儿：自动滚页看它（比卡片中心更贴边 ——
     卡片被 limitShift 挡在离边 16px 处，中心到不了最边上，速度的档位就拉不开）；
     中心那点认不出落点时也拿它再问一次（导航栏、回顶按钮就钉在视口边上） */
@@ -1078,7 +1092,7 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   talk.poke(card);
 
   // 已经有一张在手上、另一根手指还按着、正在滚页面：这一下都不作数
-  if (drag || touchHoldAt || pageScroll) return;
+  if (drag || armedDrag || touchHoldAt || pageScroll) return;
 
   const handle = (event.target as HTMLElement | null)?.closest<HTMLElement>(
     ".home-live-card, .home-online"
@@ -1101,7 +1115,8 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
 
   // 鼠标没有「手势被吞」这回事（滚轮照旧能滚），演出中与刚滚过就干脆不拎
   if (noDrag) return;
-  beginDrag(event, card, slot, handle);
+  // 先只是「按着」，挪够了才算拎（见 onPointerMove）：点一下不该把猫晃起来
+  armMouseDrag(event, card, slot, handle);
 }
 
 /** 键盘那条路：Enter / 空格走跟「鼠标点一下」完全相同的一套 —— 数连戳、闪灯、顺口回一句。
@@ -1165,12 +1180,37 @@ function holdToDrag(
   }
 }
 
-/** 真的把卡片拿起来：鼠标按下、或者手指按住够久了，都走这儿 */
-function beginDrag(
+/** 鼠标按下了，先只是「按着」：等指针挪过 `MOUSE_DRAG_SLOP_PX` 才算真要拎（见 onPointerMove）。
+    不这么做的话，按下的那一刻卡片就晃起来、还说一句被拎起来的抱怨 —— 点一下也会那样 */
+function armMouseDrag(
   event: PointerEvent,
   card: CardSpec,
   slot: HTMLElement,
   handle: HTMLElement
+): void {
+  armedDrag = {
+    pointerId: event.pointerId,
+    card,
+    slot,
+    handle,
+    startX: event.clientX,
+    startY: event.clientY,
+  };
+  // 指针捕获现在就设上：挪够之前指针可能已经滑出卡片了，消息得照样送回来
+  try {
+    handle.setPointerCapture(event.pointerId);
+  } catch {
+    /* 抓不到就按没抓到继续走，兜底那条路会收拾 */
+  }
+}
+
+/** 真的把卡片拿起来：鼠标挪够距离了、或者手指按住够久了，都走这儿 */
+function beginDrag(
+  event: PointerEvent,
+  card: CardSpec,
+  slot: HTMLElement,
+  handle: HTMLElement,
+  origin?: { x: number; y: number }
 ): void {
   // 拎卡前先把各家窗口的位置对一遍：刚被搬过的窗口，别拿几秒前的旧坐标去认邻居
   peerLink.refresh();
@@ -1182,9 +1222,11 @@ function beginDrag(
     kind: card.kind,
     slot,
     handle,
-    startX: event.clientX,
-    startY: event.clientY,
-    lastX: event.clientX,
+    // 鼠标那条路是「按下之后挪够了才进来」的，起点得用当初按下那一点，
+    // 不然这几像素的差值会让卡片一拎起来就跳一下
+    startX: origin?.x ?? event.clientX,
+    startY: origin?.y ?? event.clientY,
+    lastX: origin?.x ?? event.clientX,
     // 时间取此刻的 performance.now()，不取这个 event 的时间戳：手指那条路是按住
     // 180 毫秒后才拿着当初的 pointerdown 事件进来的，用那个旧时间戳当分母，
     // 第一帧算出来的速度趋近于 0，甩动的角度也就一直是 0
@@ -1259,6 +1301,8 @@ function releaseDrag(keepSpeech = false): void {
     drag 是空的时候也能调：那多半只是还有一根手指在等长按，收掉就好 */
 function abortDrag(): void {
   cancelHold();
+  // 「按着还没挪够」那种半截状态也一并收掉：留着的话下次按下才发现它是旧的
+  armedDrag = null;
   // 在卡片上滚页面那条路也一并收掉：窗口失焦这类情况手指不会再回来了，惯性也不该再滑
   pageScroll = null;
   stopGlide();
@@ -1795,6 +1839,16 @@ function onPointerMove(event: PointerEvent, card: CardSpec): void {
     if (moved > TOUCH_SLOP_PX) beginPageScroll(event);
     return;
   }
+  // 鼠标按下之后挪够距离了：这一刻才真的拎起来（起点仍按「按下的那一点」算，
+  // 跟手不会因为这几像素而跳）；接着落到下面那段跟手逻辑，这一帧就追上手的当前位置
+  if (armedDrag && event.pointerId === armedDrag.pointerId) {
+    const moved = Math.hypot(event.clientX - armedDrag.startX, event.clientY - armedDrag.startY);
+    if (moved < MOUSE_DRAG_SLOP_PX) return;
+    const armed = armedDrag;
+    armedDrag = null;
+    beginDrag(event, armed.card, armed.slot, armed.handle, { x: armed.startX, y: armed.startY });
+  }
+
   // 手上没拎着东西：这一下多半只是鼠标搁在卡面上摸来摸去（摸头）
   if (!drag || event.pointerId !== drag.pointerId) {
     maybePat(event, card);
@@ -1893,6 +1947,16 @@ function onPointerUp(event: PointerEvent): void {
   }
   // 还在等长按：抬手就是一次普通点击，不是拎
   if (touchHoldAt && event.pointerId === touchHoldAt.pointerId) cancelHold();
+  // 鼠标按下之后没挪够距离就抬手了：这一下就是戳了一下 —— poke 在按下时已经回过了，
+  // 中途没晃起来、也没说那句被拎起来的抱怨，正是「点一下」该有的样子
+  if (armedDrag && event.pointerId === armedDrag.pointerId) {
+    const armed = armedDrag;
+    armedDrag = null;
+    if (armed.handle.hasPointerCapture(event.pointerId)) {
+      armed.handle.releasePointerCapture(event.pointerId);
+    }
+    return;
+  }
   if (!drag || event.pointerId !== drag.pointerId) return;
 
   const { slot, handle, cardId, kind } = drag;
@@ -2007,6 +2071,7 @@ function onPointerCancel(event: PointerEvent): void {
     stopGlide();
   }
   if (touchHoldAt && event.pointerId === touchHoldAt.pointerId) cancelHold();
+  if (armedDrag && event.pointerId === armedDrag.pointerId) armedDrag = null;
   // 另一根手指的取消别去打断手上这张卡
   if (!drag || event.pointerId !== drag.pointerId) return;
   abortDrag();
@@ -2027,11 +2092,20 @@ function onPointerEndFallback(event: PointerEvent): void {
   const scrollId = pageScroll?.pointerId;
   const dragId = drag?.pointerId;
   const holdId = touchHoldAt?.pointerId;
-  if (event.pointerId !== scrollId && event.pointerId !== dragId && event.pointerId !== holdId) {
+  const armedId = armedDrag?.pointerId;
+  if (
+    event.pointerId !== scrollId &&
+    event.pointerId !== dragId &&
+    event.pointerId !== holdId &&
+    event.pointerId !== armedId
+  ) {
     return;
   }
   window.setTimeout(() => {
     if (holdId !== undefined && touchHoldAt?.pointerId === holdId) cancelHold();
+    // 「按着还没挪够」这一小段也得兜：它挂着的时候下一次按下会被那道守卫挡掉，
+    // 表现就是「点了没反应、卡也拎不起来」
+    if (armedId !== undefined && armedDrag?.pointerId === armedId) armedDrag = null;
     if (scrollId !== undefined && pageScroll?.pointerId === scrollId) glideAway();
     if (dragId !== undefined && drag?.pointerId === dragId) abortDrag();
   }, 0);
@@ -2039,7 +2113,7 @@ function onPointerEndFallback(event: PointerEvent): void {
 
 /** 窗口失去焦点（切到别的应用、Alt+Tab）：指针消息不会再有下文了，直接收拾 */
 function onWindowBlur(): void {
-  if (drag || touchHoldAt || pageScroll) abortDrag();
+  if (drag || armedDrag || touchHoldAt || pageScroll) abortDrag();
 }
 
 onMounted(() => {
