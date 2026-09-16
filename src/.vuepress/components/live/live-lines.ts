@@ -99,6 +99,12 @@ export interface ChatMood {
   readonly online: number;
   /** 今天第几次打开这个页面（本机记的，头一回是 1） */
   readonly visitTimes: number;
+  /** 连着第几天来（今天头一回打开才有意义；断了两天以上从头数） */
+  readonly streak: number;
+  /** 她今天在干什么（拿日期当种子抽的一句，见 todayDoing） */
+  readonly doing: string;
+  /** 今天头一回打开、而且进站那句还没说过：只有这一轮才说「第 N 天见啦」这些 */
+  readonly arriveFresh: boolean;
 }
 
 /** 专门为某个光景写的对话：眼下正赶上就说这一档，赶不上就回落到常备的那几套 */
@@ -1150,17 +1156,8 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "online", line: "翻抽屉也是浏览。数据照记" },
     ],
   },
-  {
-    cast: "mixed",
-    when: (mood) => mood.awayDays >= 7,
-    egg: "backAfterWeek",
-    once: "backAfterWeek",
-    turns: [
-      { by: "neko", line: "好久不见喵…你上次来的时候，我还在打呼噜" },
-      { by: "online", line: "距上次会话隔了一周多。你那一格，中间一直是零" },
-      { by: "neko", line: "零听起来好孤单喵。现在不是零了" },
-    ],
-  },
+  // 「好久不见」「第 N 天见啦」这些不在这个表里：它们要现读连续天数与日期，
+  // 而这张表的 line 只能是写死的字符串（见文件末尾的 arriveGreeting）
   // 屏幕外面那个人类：盯久了先愣一下，再看久一点才开始嘀咕，最后自己给自己找台阶。
   // 第一段是那颗蛋的入口，专门为这一刻写，轮到了就优先说；后两段跟大家一样排队，
   // 还得过这一轮的骰子，过不了就照常走别处的光景
@@ -2790,6 +2787,91 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     ],
   },
 ];
+
+/** 她今天在干什么：进站那句问候要说的事，所以是「在…」这样的片段，好往句子里嵌。
+    拿本地日序号当种子抽，同一天所有窗口、所有人看到的是同一句，第二天自然换 */
+export const DOING_LINES: readonly string[] = [
+  "在窗台晒着",
+  "在啃鱼干",
+  "在打谱",
+  "在发呆",
+  "在追自己的尾巴",
+  "在数窗外的鸟",
+  "在毯子上摊着",
+  "在啃数据线",
+  "在等布丁",
+  "在打盹",
+  "在磨爪子",
+  "在看上次留下的字",
+  "在给自己梳毛",
+  "在偷听隔壁的猫",
+  "在啃纸箱角",
+  "在盯着那个光标",
+  "在阳台巡逻",
+  "在窗边看雨",
+  "在纸箱里蹲着",
+  "在翻你以前留的话",
+  "在扒拉猫草",
+  "在等饭点",
+  "在踩你的键盘",
+  "在把尾巴收好",
+];
+
+/** 今天她大概在干什么：步长取质数再取模（跟池子长度互质），
+    免得相邻两天总挑到语义相近的那几句 */
+export function todayDoing(dayNumber: number): string {
+  return DOING_LINES[(dayNumber * 7) % DOING_LINES.length];
+}
+
+/** 进站那句问候连同它要点亮的彩蛋 */
+export interface ArriveGreeting {
+  readonly turns: readonly ChatTurn[];
+  readonly egg?: string;
+}
+
+/** 隔了一周多才回来时，进站先说这三句。单独抽成导出常量而不是写在函数里，
+    是为了让它跟别的台词池一样进体检 —— 那个脚本只认导出出来的静态表 */
+export const ARRIVE_BACK_TURNS: readonly ChatTurn[] = [
+  { by: "neko", line: "好久不见喵…你上次来的时候，我还在打呼噜" },
+  { by: "online", line: "距上次会话隔了一周多。你那一格，中间一直是零" },
+  { by: "neko", line: "零听起来好孤单喵。现在不是零了" },
+];
+
+/** 进站那几句：今天头一回打开这一页时，让她先开口说这个（live-chat 挑对话之前先问它）。
+    之所以现拼而不是写进 CHAT_MOMENTS：那一表的 line 只能是写死的字符串，而这句要读
+    「连着第几天」与「今天在干什么」；即兴档虽然能现拼，但它有 75 秒热身期挡着
+    （见 IMPROV_WARMUP_S），进站这句必须一进来就说。
+    靠 mood.arriveFresh 兜住「一天只说一次」—— 它由 live-chat 那边管，刷新页面对不上 */
+export function arriveGreeting(mood: ChatMood): ArriveGreeting | null {
+  if (!mood.arriveFresh) return null;
+  // 隔了这么久才回来，先说的是这句，别急着报今天在干什么
+  if (mood.awayDays >= 7) return { egg: "backAfterWeek", turns: ARRIVE_BACK_TURNS };
+  if (mood.streak >= 7) {
+    return {
+      turns: [
+        { by: "neko", line: "整整一周了喵…你每天都在，我都记着" },
+        { by: "online", line: "连续访问已刷新记录" },
+        { by: "neko", line: `今天${mood.doing}喵` },
+      ],
+    };
+  }
+  if (mood.streak >= 2) {
+    return {
+      turns: [
+        { by: "neko", line: `第${chineseNumber(mood.streak)}天见啦，喵` },
+        { by: "online", line: "连续记录已更新" },
+        { by: "neko", line: `今天${mood.doing}喵` },
+      ],
+    };
+  }
+  // 头一回来（或者断了几天重新数）：没有天数可报，就说今天在干什么
+  return {
+    turns: [
+      { by: "neko", line: `今天${mood.doing}喵` },
+      { by: "online", line: "本日首次会话已登记" },
+    ],
+  };
+}
 
 /** 几点算什么时候：深夜 / 清晨 / 白天 / 傍晚以后。
     在线猫卡片（OnlineCounter）与挑对话那套（live-chat）共用这一份 ——

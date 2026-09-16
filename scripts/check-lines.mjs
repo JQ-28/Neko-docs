@@ -123,6 +123,8 @@ const {
   MOOD_GESTURES,
   DROP_LINES,
   ANY_DROP_LINES,
+  DOING_LINES,
+  ARRIVE_BACK_TURNS,
   MOMENT_GATE_CHANCE,
   IMPROV_WARMUP_S,
   chineseNumber,
@@ -140,6 +142,10 @@ for (const [kind, pools] of Object.entries(SPEECH_LINES)) {
 for (const [kind, pools] of Object.entries(MOOD_LINES)) {
   for (const [state, lines] of Object.entries(pools)) collectPool(`MOOD_LINES.${kind}.${state}`, lines);
 }
+// 她今天在干什么：只是一段片段，会嵌进「今天…喵」里说出口，按同样的规矩体检
+collectPool("DOING_LINES", DOING_LINES);
+// 进站问候里那几句写死的（剩下的几档要现拼天数与日期，在 live-lines 的 arriveGreeting 里）
+collectPool("ARRIVE_BACK_TURNS", ARRIVE_BACK_TURNS.map((turn) => turn.line));
 
 // 同一池里出现两条一模一样的，基本就是手滑
 for (const [name, lines] of singlePools) {

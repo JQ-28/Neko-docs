@@ -118,7 +118,7 @@ import { useRouter } from "vue-router";
 import OnlineCounter from "./OnlineCounter.vue";
 import { markEgg } from "../eggs/egg-utils";
 import { GREETING_REPLY_MS, speechLingerMs, useLiveTalk } from "./live-chat";
-import { anyDropLines, dropLineFor, nekoMetaLine, recentLine } from "./live-lines";
+import { anyDropLines, dropLineFor, nekoMetaLine, recentLine, todayDoing } from "./live-lines";
 import {
   cardPointAbs,
   createDragTrack,
@@ -355,6 +355,8 @@ const MOMENT_FRESH_MS = 30_000;
 const LAST_SEEN_KEY = "neko-live-last-seen";
 /** 今天来过几次记在这儿，换一天从头数 */
 const VISITS_KEY = "neko-live-visits";
+/** 连着第几天来记在这儿 */
+const STREAK_KEY = "neko-live-streak";
 const DAY_MS = 86_400_000;
 
 /** 小箭头最后动过是什么时候、同一张卡连着戳了几次、什么时候戳满的、什么时候一口气滚到底的 */
@@ -371,6 +373,10 @@ let lastScrollAt = 0;
 let awayDays = 0;
 /** 今天第几次打开这一页（本机记的，头一回是 1） */
 let visitTimes = 1;
+/** 连着第几天来（断了两天以上从头数） */
+let streak = 1;
+/** 她今天在干什么：挂载时按日期算一回，同一天不变 */
+let doingToday = "";
 /** 在线卡报上来的真实人数：卡片说话时要拿它当梗 */
 let onlineCount = 0;
 
@@ -609,6 +615,31 @@ function readVisitTimes(): number {
   }
 }
 
+/** 本地自然日的序号：按 0 点切，不是满 24 小时。连续天数要按这个算 ——
+    存时间戳的话「昨晚十一点来过、今早八点又来」会被算成没断过 */
+function localDayNumber(date: Date): number {
+  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY_MS);
+}
+
+/** 连着第几天打开这一页：同一天再来不动、昨天来过就 +1、断了两天以上从头数。
+    读完就把今天记下（跟 readAwayDays 一个路子）；隐私模式读不到就当作头一回来 */
+function readStreak(): number {
+  try {
+    const today = localDayNumber(new Date());
+    const raw = window.localStorage.getItem(STREAK_KEY);
+    const saved = raw ? (JSON.parse(raw) as { day?: number; streak?: number }) : null;
+    const before = saved?.streak ?? 1;
+    let next = 1;
+    if (saved?.day === today) next = Math.max(before, 1);
+    else if (saved?.day === today - 1) next = before + 1;
+    window.localStorage.setItem(STREAK_KEY, JSON.stringify({ day: today, streak: next }));
+    return next;
+  } catch {
+    // 隐私模式等存储异常：当头一回来
+    return 1;
+  }
+}
+
 /** 上一次来是什么时候：读完就把此刻记下，下回再算隔了几天 */
 function readAwayDays(): number {
   try {
@@ -667,6 +698,8 @@ const talk = useLiveTalk({
   awayDays: () => awayDays,
   online: () => onlineCount,
   visitTimes: () => visitTimes,
+  streak: () => streak,
+  doing: () => doingToday,
   act: (name) => show.playByName(name),
   holdShow: show.hold,
   releaseShow: show.resume,
@@ -2142,6 +2175,8 @@ onMounted(() => {
   // 观众手上在忙什么：划、点、敲键盘都算，滚页面另外记
   awayDays = readAwayDays();
   visitTimes = readVisitTimes();
+  streak = readStreak();
+  doingToday = todayDoing(localDayNumber(new Date()));
   window.addEventListener("pointermove", noteActivity, { passive: true });
   window.addEventListener("keydown", noteActivity);
   window.addEventListener("pointerdown", noteActivity, { passive: true });

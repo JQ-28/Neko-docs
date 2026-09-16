@@ -20,6 +20,7 @@ import {
   MOMENT_GATE_CHANCE,
   SPEECH_LINES,
   STARE_GAP_MS,
+  arriveGreeting,
   periodOfHour,
   type ChatAct,
   type ChatCast,
@@ -35,6 +36,16 @@ import {
 export const GREETING_REPLY_MS = 1800;
 /** 一段说完隔多久再来一段（20–45 秒之间随便挑，不固定才不像机器） */
 const CHAT_MIN_MS = 20_000; const CHAT_MAX_MS = 45_000;
+/** 今天头一回打开这一页时，第一轮提前到入场动画落定之后 ——
+    好让「第 N 天见啦」这类进站话早点说出口。不提前的话第一句要等 20–45 秒，新访客多半等不到 */
+const ARRIVE_CHAT_MIN_MS = 1_600;
+const ARRIVE_CHAT_MAX_MS = 2_400;
+/** 进站那一轮被台面占着（正演着入场那段对手戏）就先让开，过这么一会儿再问一次 */
+const ARRIVE_RETRY_MS = 1_500;
+/** 进站那一轮最多让这么多次（≈45 秒）就放弃，改回正常节奏。
+    要给得这么宽：入场那段对手戏动辄三五秒，后面还跟着独处小动作，
+    上限小了就成了「新人一进来、问候永远说不出口」—— 而那正是最该说的时候 */
+const ARRIVE_MAX_TRIES = 30;
 /** 对话里两句之间最少隔多久：上一句的气泡刚收，下一句就接上 */
 const CHAT_TURN_MS = 2400;
 /** 上一句太长时最多等这么久，别把整段对话拖成慢动作。
@@ -131,6 +142,10 @@ export interface TalkHost {
   online: () => number;
   /** 今天第几次打开这个页面（本机记的，头一回是 1） */
   visitTimes: () => number;
+  /** 连着第几天来（断了两天以上从头数） */
+  streak: () => number;
+  /** 她今天在干什么（拿日期当种子抽的一句，同一天不变） */
+  doing: () => string;
   /** 中间插一段戏（用演出脚本的名字）；演不成返回 false，好让话接着往下说 */
   act: (name: ChatAct) => boolean;
   /** 说话期间先把演戏的排期让开 */
@@ -244,6 +259,13 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   let lastPokeAt = 0;
   /** 上一回被摸头顶是什么时候（摸头有自己的间隔，比戳松一点） */
   let lastPatAt = 0;
+  /** 进站那一轮还等着开口：今天头一回打开才有，说成了或放弃了都归 false。
+      它就是 mood 里的 arriveFresh —— 进站那几档台词只认它，所以一天只说一次 */
+  let arrivePending = false;
+  /** 「第一轮提前」只做一次（scheduleNext 在挂载、卡片数变化、回前台时都会被调） */
+  let arriveHandled = false;
+  /** 进站那一轮已经让开几次了（见 ARRIVE_MAX_TRIES） */
+  let arriveTries = 0;
   /** 「屏幕外面那个人类」说到第几段了、上一段是什么时候说的 */
   let stareLevel = 0;
   let lastStareAt = 0;
@@ -479,12 +501,19 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       workHours: day >= 1 && day <= 5 && hour >= WORK_START_HOUR && hour < WORK_END_HOUR,
       online: host.online(),
       visitTimes: host.visitTimes(),
+      streak: host.streak(),
+      doing: host.doing(),
+      arriveFresh: arrivePending,
     };
   }
 
   /** 挑一段当下说得成的对话：正赶上什么光景就多说几句那档的，剩下的留给常备的那几套 */
   function pickChatTurns(): PickedChat | null {
     const mood = readMood(rollGates());
+    // 进站那句问候排在最前面：今天头一回打开这一页就先说它（「第 N 天见啦」「好久不见」），
+    // 说完这一轮 arriveFresh 就落下去，之后照常走别的路
+    const arrival = arriveGreeting(mood);
+    if (arrival && castFits(arrival.turns)) return { turns: arrival.turns, egg: arrival.egg };
     // 即兴的那几段读的是真数字，优先级最高：错过这会儿就说不成了
     const improv = pickImprov(mood);
     if (improv) return improv;
@@ -675,18 +704,30 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
   function schedule(delayMs: number): void {
     window.clearTimeout(chatTimer);
     chatTimer = window.setTimeout(() => {
+      // 进站那一轮要是赶上正演戏，就过会儿再问一次（见 ARRIVE_RETRY_MS）
+      let askAgain = false;
       try {
-        if (host.visible() && host.ready()) startChat();
+        if (host.visible() && host.ready()) {
+          // 说完了才落这个标记：startChat 挑段子时要读它（mood.arriveFresh 就是它），
+          // 先清掉等于自己把这句进站问候掐了
+          startChat();
+          arrivePending = false;
+        } else if (arrivePending) {
+          arriveTries += 1;
+          askAgain = arriveTries < ARRIVE_MAX_TRIES;
+          if (!askAgain) arrivePending = false;
+        }
       } catch (error) {
         // startChat 里已经先 holdShow() 了，抛出去的话台面（holding）就永远还不回来：
         // 独处小动作与特别节目被永久压住，猫看着像突然变懒、只剩说话
+        arrivePending = false;
         host.releaseShow();
         console.error("[live-chat] 这一轮说话出错，已把台面还回去", error);
       } finally {
         // 不管这一轮出了什么事，排期链都得接上：这里断了，首页就再也不说话了。
         // 唯一的例外是切到后台：那会儿排了也没人看，定时器还会被浏览器节流成空转、白耗电，
         // 所以链子在这儿断掉是有意的 —— 回前台由 HomeLive 的 resumeAll() 调 scheduleNext() 接回来
-        if (!document.hidden) schedule(nextChatDelay());
+        if (!document.hidden) schedule(askAgain ? ARRIVE_RETRY_MS : nextChatDelay());
       }
     }, delayMs);
   }
@@ -782,7 +823,19 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       lastPokeAt = now;
       showSpeech(card.id, pickLine(card, "pat"));
     },
-    scheduleNext: () => schedule(nextChatDelay()),
+    // 今天头一回打开这一页：先把第一轮提前，好让进站那句问候早点说出口（见 ARRIVE_CHAT_MIN_MS）。
+    // 刷新之后 visitTimes 已经不是 1 了，所以这句一天只说一次
+    scheduleNext: () => {
+      if (!arriveHandled) {
+        arriveHandled = true;
+        if (host.visitTimes() === 1) {
+          arrivePending = true;
+          schedule(ARRIVE_CHAT_MIN_MS + Math.random() * (ARRIVE_CHAT_MAX_MS - ARRIVE_CHAT_MIN_MS));
+          return;
+        }
+      }
+      schedule(nextChatDelay());
+    },
     refreshMood,
     actDone: resumePending,
   };
