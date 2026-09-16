@@ -1,10 +1,18 @@
 <template>
-  <section ref="stage" class="home-live" :class="{ 'is-resting': resting }">
+  <section
+    ref="stage"
+    class="home-live"
+    :class="{ 'is-resting': resting, 'is-static': staticMode }"
+  >
     <h2 class="home-intro-title">
       <span class="home-intro-bar" aria-hidden="true"></span>
       此刻的小站
       <span class="home-intro-sub">{{ stageNote }}</span>
     </h2>
+
+    <!-- 卡片说的话在气泡里，而那层是 aria-hidden 的（视觉用）：读屏那条道单独走这里，
+         只报「谁在说什么」。不能塞进角色是 button 的槽位里 —— 那会变成按钮的名字 -->
+    <p class="home-live-sr" role="status" aria-live="polite">{{ spokenLine }}</p>
 
     <!-- 卡片住在哪扇窗口就由哪扇窗口渲染：本窗口生的 + 隔壁搬过来的，拖走一张这里就少一张。
          有哪些卡要等挂载后才知道（每扇窗口各生各的），首帧先空着，水合才对得上 -->
@@ -14,13 +22,16 @@
       :style="{ '--play-gap': `${playGap}px`, '--play-span': `${playSpan}px` }"
       :data-layout="stackedPlay ? 'stacked' : 'side'"
       role="group"
-      aria-label="可以拖着玩的卡片：鼠标直接拖，手机按住片刻再拖，丢到页面各处会有不同反应"
+      aria-label="可以拖着玩的卡片：鼠标直接拖，手机按住片刻再拖；按回车或空格戳一下"
     >
       <div
         v-for="(card, index) in liveCards"
         :key="card.id"
         :ref="(el) => setSlot(card.id, el)"
         class="home-live-slot"
+        tabindex="0"
+        role="button"
+        :aria-label="slotLabel(card)"
         :class="{
           'home-live-slot--left': playSide.left === card.id,
           'home-live-slot--right': playSide.right === card.id,
@@ -37,6 +48,7 @@
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
         @pointercancel="onPointerCancel"
+        @keydown="onSlotKeydown($event, card)"
       >
         <div v-if="card.kind === 'neko'" class="home-live-card">
           <span class="home-live-glass" aria-hidden="true"></span>
@@ -59,7 +71,7 @@
             <span class="home-live-light-core"></span>
           </span>
         </div>
-        <OnlineCounter v-else @count="onOnlineCount" />
+        <OnlineCounter v-else :static="staticMode" @count="onOnlineCount" />
         <!-- 随口的嘀咕是看的东西，不是读的东西：别让读屏软件一路念下去 -->
         <span
           v-if="speakingId === card.id"
@@ -536,6 +548,15 @@ const nekoMeta = computed(() =>
   nekoMetaLine(mood.value, liveCards.value.length, new Date().getHours())
 );
 
+/** 说的话另送一份给读屏：气泡那层是 aria-hidden 的（只给眼睛看），
+    这里带上「是哪张卡在说」，不然只听到一句话，不知道谁开的腔 */
+const spokenLine = computed(() => {
+  const id = speakingId.value;
+  if (!id) return "";
+  const card = liveCards.value.find((item) => item.id === id);
+  return `${card?.kind === "online" ? "在线猫猫" : "Neko 本猫"}：${speech.value}`;
+});
+
 /** 拎到跳转位上松手要把页面换过去 */
 const router = useRouter();
 
@@ -606,7 +627,11 @@ function syncResting(): void {
 
 /** 页面切走、切回来：常驻动画跟着停/走，回来那一瞬间记一笔 */
 function onVisibilityChange(): void {
-  if (!document.hidden) {
+  if (document.hidden) {
+    // 切到后台先把正在演的那段收掉：后台里动画停在半路，回来接着走完，
+    // 看着就是「卡片弹回去又重来一遍」
+    if (show.isPlaying()) show.abortPlaying();
+  } else {
     returnedAt = Date.now();
     // 藏在后台这段时间定时器被浏览器节流，心跳基本停摆，隔壁可能已经按超时把我当成关掉的窗口了；
     // 醒来先自报一次家门，把位置和家当重新说清楚
@@ -776,6 +801,8 @@ function receiveCard(payload: HandoffPayload): void {
 
 /** 住在我这儿的卡片被搬走 / 主人没了：手上正拎着它的就撒手，别再动它 */
 function handleCardLeave(cardId: string): void {
+  // 它欠着的那笔换页账跟它一起作废：一张已经不在手上的卡不该把页面带走
+  cancelCarry(cardId);
   if (drag?.cardId === cardId) releaseDrag();
   if (roamingIds.value.includes(cardId)) setRoaming(false, cardId);
   // 说的话、以及这张卡的记录一起收掉
@@ -934,6 +961,29 @@ function onPointerDown(event: PointerEvent, card: CardSpec): void {
   beginDrag(event, card, slot, handle);
 }
 
+/** 键盘那条路：Enter / 空格走跟「鼠标点一下」完全相同的一套 —— 数连戳、闪灯、顺口回一句。
+    Enter 在 window 上还挂着 noteActivity（只记「手在动」），两边互不打扰 */
+function onSlotKeydown(event: KeyboardEvent, card: CardSpec): void {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  // 按住不放会一直重复触发，当一次就好
+  if (event.repeat) return;
+  // 空格默认会把页面滚下去，而当按钮按的时候不该滚
+  event.preventDefault();
+  // 静态模式的卡片只摆着看：跟鼠标那条路一样，戳了也不回应
+  if (staticMode) return;
+  const slot = slotEls.get(card.id);
+  if (!slot) return;
+  noteActivity();
+  countTap(card.id);
+  flashTap(slot);
+  talk.poke(card);
+}
+
+/** 键盘与读屏那条路得知道「这是哪张卡」（鼠标那条路靠看名字就行） */
+function slotLabel(card: CardSpec): string {
+  return `${card.kind === "online" ? "在线猫猫" : "Neko 本猫"}，按回车或空格戳一下`;
+}
+
 /** 手机上：按住不动到点才进入拖拽，这期间挪开或抬手都当成滚页面 */
 function holdToDrag(
   event: PointerEvent,
@@ -997,6 +1047,7 @@ function beginDrag(
     height: rect.height,
     shiftX: 0,
     shiftY: 0,
+    clamped: false,
     touch: event.pointerType !== "mouse",
   };
   dragPointer.x = event.clientX;
@@ -1010,6 +1061,9 @@ function beginDrag(
     // 交给冒泡上来的事件处理，不影响的
   }
   draggingId.value = card.id;
+  // 拎起来那一刻这张卡身上还欠着一笔「等着换页」的账吗（见 cancelCarry）
+  const carrying = carryTimers.get(card.id);
+  staleCarry = carrying === undefined ? null : { cardId: card.id, timer: carrying };
   dragTrack.reset(event.clientX);
   // 新的一轮命中测试：把上一轮记的测试时刻作废，第一帧该测就测
   dropHitAt = 0;
@@ -1035,6 +1089,8 @@ function dropRelease(keepSpeech = false): void {
   // 松手、被接住、被取消三条路都从这儿出去：自动滚页的循环也归拖拽的生命周期管
   stopEdgeScroll();
   drag = null;
+  // 上一轮把这张卡丢在跳转位上、正等着换页：卡又回到手上了，那笔账作废
+  forgetStaleCarry();
   if (!keepSpeech) talk.hush();
   lightDrop(null);
 }
@@ -1089,6 +1145,12 @@ let dropHitAt = 0;
 const carryTimers = new Map<string, number>();
 const retireTimers = new Map<string, number>();
 
+/** 拎起某张卡的那一刻，它身上还欠着一笔「等着换页」的账（卡 id 与那笔定时器）。
+    松手时要把它作废 —— 卡已经不在那次落点上了，不清掉 320 毫秒后页面照样被带走。
+    记下来而不是松手时现查：goto 那条路是「先开新账、再 dropRelease」，
+    现查会把刚开的这一笔一起清掉，猫就再也带不走页面了 */
+let staleCarry: { cardId: string; timer: number } | null = null;
+
 /** 落在什么上：自己标了 `data-drop` 的落点优先（那几处有专门的行为），
     没有就按元素类别归一个泛化落点 —— 首页上任何元素都接得住。
     kind 于是有两套来源：`feat` / `recent` / `goto` / `bin` / `title` 那套，
@@ -1099,62 +1161,66 @@ interface DropHit {
   category: DropCategory | null;
 }
 
+/** 命中的元素多半是 HTML，可导航栏的画笔图标、公告的关闭叉、CTA 胶囊里的小图标都是内联 SVG ——
+    `<svg>` / `<path>` 不是 HTMLElement，得往上找到最近那层 HTML 容器当反馈对象。
+    少了这一步，压在这些图标上一点反应都没有，而旁边挪 20 像素又有 */
+function nearestHtml(el: Element): HTMLElement | null {
+  for (let node: Element | null = el; node; node = node.parentElement) {
+    if (node instanceof HTMLElement) return node;
+  }
+  return null;
+}
+
+/** 泛化兜底给的「最近一块容器」可能大得离谱 —— 首页上就是整块 hero、整段首页。
+    压在整屏大小的东西上等于什么都没压着：点亮会给整屏描一圈蓝框，说的那句也毫无意义。
+    阈值取视口面积的 0.6 倍：真当落点的板块（功能卡、最近更新的一条）都远在这之下 */
+const OTHER_MAX_AREA_RATIO = 0.6;
+
+function tooBigForOther(el: HTMLElement): boolean {
+  const { width, height } = el.getBoundingClientRect();
+  return width * height > window.innerWidth * window.innerHeight * OTHER_MAX_AREA_RATIO;
+}
+
 /** 指针这会儿压在什么上（没压着就是 null）。落点自己在 DOM 上标 data-drop，其余靠归类。
-    blocked 表示「这点压在另一张卡身上」——那是换位的地盘，别再往下找 */
+    blocked 表示这点压在卡片槽位上 —— 那是换位的地盘，别再往下找。
+    被拎着的那张自己也算：它挂着 pointer-events: none，elementFromPoint 返回不到它，
+    所以「落到自己身上」这一类本来就不该有，一律按换位处理 */
 function probeAt(x: number, y: number): { hit: DropHit | null; blocked: boolean } {
   const found = document.elementFromPoint(x, y);
-  if (!(found instanceof HTMLElement)) return { hit: null, blocked: false };
+  if (!(found instanceof Element)) return { hit: null, blocked: false };
   const marked = found.closest<HTMLElement>("[data-drop]");
   if (marked) return { hit: { el: marked, kind: marked.dataset.drop ?? "", category: null }, blocked: false };
 
-  const slot = found.closest<HTMLElement>(".home-live-slot");
-  if (slot) {
-    return slot === slotEls.get(drag?.cardId ?? "")
-      ? { hit: { el: slot, kind: "card", category: "card" }, blocked: false }
-      : { hit: null, blocked: true };
-  }
+  if (found.closest(".home-live-slot")) return { hit: null, blocked: true };
 
-  const resolved = resolveDropTarget(found);
+  const html = nearestHtml(found);
+  const resolved = html ? resolveDropTarget(html) : null;
+  if (!resolved) return { hit: null, blocked: false };
+  // 兜底那一类再收一道口：块太大就当这儿什么都没压着
+  if (resolved.category === "other" && tooBigForOther(resolved.el)) {
+    return { hit: null, blocked: false };
+  }
   return {
-    hit: resolved ? { el: resolved.el, kind: resolved.category, category: resolved.category } : null,
+    hit: { el: resolved.el, kind: resolved.category, category: resolved.category },
     blocked: false,
   };
 }
 
-/** 卡片这会儿在屏幕上的那个框（已经算上手上的位移和上浮） */
-function heldBox(): { left: number; top: number; right: number; bottom: number } | null {
-  if (!drag) return null;
-  const lift = drag.touch ? DRAG_LIFT_PX : 0;
-  const left = drag.baseLeft + drag.shiftX;
-  const top = drag.baseTop + drag.shiftY - lift;
-  return { left, top, right: left + drag.width, bottom: top + drag.height };
-}
-
 /** 卡片中心那点落在什么上。有两种情况要改看指针那一点：
-    ① 指针跑到卡片外头去了（卡片被贴边限位顶住、手还在往外推）—— 导航栏、回顶按钮
-       这类钉在视口边上的东西，卡片中心永远够不到，可指针就在它们身上；
-    ② 中心那点认不出是什么（空白、认不出的容器）。
-    指针这一路**只认归类出来的落点**，自己标了 data-drop 的不算 ——
-    那几处要维持「猫压住哪儿就是哪儿」，不然又回到「手指压在落点上、猫其实在别处」 */
+    ① 位移被贴边限位削过（卡片被顶在窗口边上、手还在往外推）—— 这时候中心已经不再跟着手走，
+       而导航栏、回顶按钮钉在视口边上，功能卡里那行小字又窄，中心永远够不到，指针那一点才是指哪儿打哪儿；
+    ② 中心那点认不出是什么（空白、认不出的容器），指针这一路能兜住，
+       但它**只认归类出来的落点**，自己标了 data-drop 的不算 ——
+       那几处要维持「猫压住哪儿就是哪儿」，不然又回到「手指压在落点上、猫其实在别处」 */
 function dropUnder(x: number, y: number): DropHit | null {
   const center = probeAt(x, y);
   if (center.blocked) return null;
 
-  const box = heldBox();
-  // 留一点余量：手机那条路手指就在卡片下沿附近（卡片被抬起 30px，手指离中心也是 30px），
-  // 差一两像素就算「在外头」会把手指数进去 —— 那几像素不算「往外推」
-  const slack = 6;
-  const pointerOutside =
-    box != null &&
-    (dragPointer.x < box.left - slack ||
-      dragPointer.x > box.right + slack ||
-      dragPointer.y < box.top - slack ||
-      dragPointer.y > box.bottom + slack);
-  const centerWeak = !center.hit || center.hit.category === "other";
-  if (pointerOutside || centerWeak) {
-    const near = probeAt(dragPointer.x, dragPointer.y);
-    const category = near.hit?.category;
-    if (!near.blocked && category && category !== "other") return near.hit;
+  const pointed = probeAt(dragPointer.x, dragPointer.y).hit;
+  if (pointed) {
+    if (drag?.clamped) return pointed;
+    const weakCenter = !center.hit || center.hit.category === "other";
+    if (weakCenter && pointed.category != null && pointed.category !== "other") return pointed;
   }
   return center.hit;
 }
@@ -1195,17 +1261,10 @@ function flashDrop(el: HTMLElement, kind = el.dataset.drop ?? "other"): void {
   );
 }
 
-/** 泛化落点该说哪句：同一处轮着说，免得来回拖老是同一句 */
-const lastAnyLine = new Map<string, string>();
-
+/** 泛化落点该说哪句：交给说话那边那个「说过的账本」挑最久没说过的 ——
+    这里只把池子递过去，不再自己记上一句（本地那份只认得住同一处，来回拖两下又开始复述） */
 function anyLine(card: CardSpec, category: DropCategory): string {
-  const pool = anyDropLines(card.kind, category);
-  const key = `${card.kind}:${category}`;
-  const fresh = pool.filter((line) => line !== lastAnyLine.get(key));
-  const usable = fresh.length > 0 ? fresh : pool;
-  const line = usable[Math.floor(Math.random() * usable.length)] ?? "";
-  if (line) lastAnyLine.set(key, line);
-  return line;
+  return talk.pickFresh(anyDropLines(card.kind, category));
 }
 
 /** 这个落点该说哪句：功能卡按功能名查表，最近更新是现编的，泛化落点按类别挑一句。
@@ -1241,6 +1300,26 @@ function restoreOtherCards(timers: Map<string, number>, keepCardId: string): voi
     timers.delete(cardId);
     restoreCard(cardId);
   }
+}
+
+/** 把一张卡欠着的那笔换页账清掉并让它复原：卡已经不在手上了（被隔壁要走、被销毁、
+    又回到自己手里），再让它过 320 毫秒把页面带跳走就是错的了 */
+function cancelCarry(cardId: string): void {
+  const timer = carryTimers.get(cardId);
+  if (timer === undefined) return;
+  window.clearTimeout(timer);
+  carryTimers.delete(cardId);
+  restoreCard(cardId);
+}
+
+/** 拎起来那一刻记下的那笔换页账（见 beginDrag）：卡又回到手上、或者又落到别处去了，
+    这笔账就得作废 —— 不然过几百毫秒页面照样会被带走 */
+function forgetStaleCarry(): void {
+  if (!staleCarry) return;
+  const { cardId, timer } = staleCarry;
+  staleCarry = null;
+  // 只在还是原来那笔时才清 —— goto 那条路是先开新账再走到这儿，清掉就把刚开的这笔也毁了
+  if (carryTimers.get(cardId) === timer) cancelCarry(cardId);
 }
 
 /** 拎到跳转位上松手：猫被那个按钮收进去，然后带着它一起换页 */
@@ -1431,6 +1510,8 @@ function onPointerMove(event: PointerEvent): void {
     : limitShift(rawY, drag.baseTop, drag.height, window.innerHeight, slack, DRAG_TOP_MARGIN);
   drag.shiftX = dx;
   drag.shiftY = dy;
+  // 贴边限位削过位移就记一笔：卡片中心已经不再跟着手走，落点判定要改看指针那一点
+  drag.clamped = dx !== rawX || dy !== rawY;
 
   // 卡片飘到别人地盘上了就把自己那张收起来，位置实时报给各个窗口接力
   if (freeRoam) {
@@ -1482,7 +1563,7 @@ function onPointerMove(event: PointerEvent): void {
   updateEdgeScroll();
 
   // 甩得越快歪得越厉害，手一停角度自己荡回来，看着就像被拎着的猫
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (reduceMotionQuery?.matches) return;
 
   const elapsed = Math.max(now - drag.lastMoveAt, 1);
   const speed = (event.clientX - drag.lastX) / elapsed;
@@ -1570,6 +1651,8 @@ function onPointerUp(event: PointerEvent): void {
   // 这条松手路径不走 dropRelease，滚页循环要自己收（否则会一直滚下去）
   stopEdgeScroll();
   drag = null;
+  // 同理：这条路径没进落点，等着换页的那笔账也得作废，不然页面照样会被带走
+  forgetStaleCarry();
   // 拎完了，竖向滚动还给页面（换位那条路走的是 reorderCards，同样要还）
   slot.style.touchAction = "";
 
@@ -1619,14 +1702,15 @@ onMounted(() => {
   window.addEventListener("pageshow", onPageShow);
   reduceMotionQuery?.addEventListener("change", onReduceMotionChange);
 
-  // 心情的兜底时钟：不靠开口也能按时段换档（小字与状态灯跟着走）
+  // 静态模式到这儿就够了：演出、说话、歪头、串门这些排期一个都不排
+  if (staticMode) return;
+
+  // 心情的兜底时钟：不靠开口也能按时段换档（小字与状态灯跟着走）。
+  // 必须排在上面那道早退之后 —— 静态模式根本不说话，每半分钟重算一次纯属白烧电
   window.clearInterval(moodTimer);
   moodTimer = window.setInterval(() => {
     if (!document.hidden) talk.refreshMood();
   }, MOOD_TICK_MS);
-
-  // 静态模式到这儿就够了：演出、说话、歪头、串门这些排期一个都不排
-  if (staticMode) return;
 
   scheduleNudge();
 
@@ -1779,6 +1863,13 @@ html.dark .home-intro-sub {
   transition: translate 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
     rotate 0.62s cubic-bezier(0.34, 1.45, 0.64, 1),
     scale 0.4s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease-out;
+}
+
+/* 键盘走到这张卡上（鼠标点出来的焦点不算，:focus-visible 自己管这件事）。
+   用 outline 不用 transform：transform 会给 fixed 定位的后代另立包含块 */
+.home-live-slot:focus-visible {
+  outline: 2px solid var(--vp-c-accent, #096dd9);
+  outline-offset: 3px;
 }
 
 /* 猫被丢到隔壁窗口去了：位子留着，猫不在 */
@@ -1964,6 +2055,18 @@ html.dark .home-live-bubble {
   /* 深色下主题把 accent 提到约 #2389f6，压在 #262a33 上只有 4.06:1；
      换成粉蓝渐变那一端的蓝，实测 6.5:1，色系也一致 */
   color: #7fb0ff;
+}
+
+/* 猫说的话给读屏留的那一份：视觉上收成一个点，不参与排版，也不依赖主题的 .sr-only */
+.home-live-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* 串门：隔壁窗口的猫探个小脑袋出来看一眼，晃两下又缩回去 */
@@ -4306,6 +4409,15 @@ html.dark .home-live-avatar {
 .home-live.is-resting .home-live-slot.is-playing[data-play],
 .home-live.is-resting .home-live-cards[data-layout] .home-live-slot.is-playing[data-play] {
   animation-play-state: paused;
+}
+
+/* ?static 那一屏只是摆着看：常驻浮动（卡片自己的慢浮、状态灯的呼吸与涟漪）整个停掉。
+   省电模式要的就是「合成器什么都不用干」，光是不排期是不够的 */
+.home-live.is-static .home-live-card,
+.home-live.is-static .home-live-card *,
+.home-live.is-static :deep(.home-online),
+.home-live.is-static :deep(.home-online *) {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

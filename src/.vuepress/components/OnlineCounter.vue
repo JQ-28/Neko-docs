@@ -1,5 +1,12 @@
 <template>
-  <div v-if="count > 0" class="home-online" role="status" aria-live="polite">
+  <!-- 永远渲染：这块槽位在首页是排好版的，数据没到就空着会留下一个洞，
+       对手戏、拖拽「换位」还会把它当一张卡算进去 -->
+  <div
+    class="home-online"
+    :class="{ 'is-static': props.static }"
+    role="status"
+    aria-live="polite"
+  >
     <span class="home-online-glass" aria-hidden="true"></span>
     <img
       ref="avatarRef"
@@ -28,6 +35,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { markEgg } from "./egg-utils";
 import { chineseNumber } from "./live-lines";
 
+/** 省电模式（地址带 ?static）：不发心跳、也不跑常驻动画，只安静地摆在那儿 */
+const props = withDefaults(defineProps<{ static?: boolean }>(), { static: false });
+
 const ENDPOINT = "/api/online";
 /** 心跳间隔，与后端判定「掉线」的窗口配套：后端容忍 3 次心跳的静默 */
 const HEARTBEAT_MS = 30_000;
@@ -35,6 +45,13 @@ const VISITOR_KEY = "neko-visitor-id";
 const REQUEST_TIMEOUT_MS = 5_000;
 
 const count = ref(0);
+/** 人数到底拿到没有：「未知」（首次心跳还在路上 / 接口挂了）与「真的 0 只」是两回事，
+    不能用同一个 0 混过去 —— 前者只能说句降级文案 */
+type CountStatus = "unknown" | "known";
+const status = ref<CountStatus>("unknown");
+/** 降级与空场两句话：字数与常态那句接近，刷新时卡片高度不跳 */
+const UNKNOWN_HEADLINE = "这会儿数不清，先按一只算";
+const EMPTY_HEADLINE = "现在一只猫都没在逛";
 /** 时间自己会走：人数没变时 computed 不会重算，跨过整点（例如 23:00 的深夜档）
     就会一直停在白天那句，所以敲一个会变的数让时段相关的文案跟着刷新 */
 const clockTick = ref(0);
@@ -63,13 +80,31 @@ function nudgeAvatar(): void {
 
 function scheduleIdleMove(): void {
   // 偏好减少动效时整个不调度，省得空转着往元素上贴 class
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (reduceMotion) return;
   window.clearTimeout(idleTimer);
   const delay = IDLE_MIN_MS + Math.random() * (IDLE_MAX_MS - IDLE_MIN_MS);
   idleTimer = window.setTimeout(() => {
-    nudgeAvatar();
+    // 后台标签页里不歪头：nudgeAvatar 要读一次 offsetWidth 强制重排，
+    // 看不见的时候纯属白烧电。链子照排，回到前台自然就接上了
+    if (!document.hidden) nudgeAvatar();
     scheduleIdleMove();
   }, delay);
+}
+
+/** 偏好减少动效的匹配器：构造一次、change 里更新即可，
+    每次回调都现建一个 MediaQueryList 是白花钱 */
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+let reduceMotionQuery: MediaQueryList | null = null;
+let reduceMotion = false;
+
+function onReduceMotionChange(event: MediaQueryListEvent): void {
+  reduceMotion = event.matches;
+}
+
+function watchReducedMotion(): void {
+  reduceMotionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
+  reduceMotion = reduceMotionQuery.matches;
+  reduceMotionQuery.addEventListener("change", onReduceMotionChange);
 }
 
 function periodOfHour(hour: number): "night" | "morning" | "day" | "evening" {
@@ -87,8 +122,11 @@ const period = computed(() => {
 });
 
 const baseHeadline = computed(() => {
+  // 还没拿到过人数：先给一句降级文案，别让卡片空着
+  if (status.value === "unknown") return UNKNOWN_HEADLINE;
+
   const total = count.value;
-  if (total <= 0) return "";
+  if (total <= 0) return EMPTY_HEADLINE;
 
   const words = chineseNumber(total);
   if (total === 1) {
@@ -116,6 +154,7 @@ watch(aloneLateNight, (alone) => {
 // 有人来就报一声；有人走不吭声，免得像在赶客
 function applyCount(next: number): void {
   const previous = count.value;
+  status.value = "known";
   count.value = next;
   if (previous > 0 && next > previous) {
     hint.value = "又来了一只猫";
@@ -172,7 +211,9 @@ async function beat(): Promise<void> {
     });
     if (!response.ok) return;
     const data = (await response.json()) as { count?: unknown };
-    if (typeof data.count === "number" && data.count > 0) {
+    // 0 只也是合法结果（自己那份心跳已经算进去了，只是接口这么答），
+    // 得让它落到「空场」那句上，别跟「还没拿到」混着
+    if (typeof data.count === "number" && data.count >= 0) {
       applyCount(data.count);
     }
   } catch {
@@ -191,7 +232,11 @@ function handleVisibilityChange(): void {
 }
 
 onMounted(() => {
+  // 省电模式：不打卡、也不排歪头，卡片就安安静静摆在那儿
+  if (props.static) return;
+
   visitorId = readVisitorId();
+  watchReducedMotion();
   void beat();
   scheduleIdleMove();
   timer = window.setInterval(() => {
@@ -208,6 +253,8 @@ onBeforeUnmount(() => {
   timer = undefined;
   window.clearTimeout(arriveTimer);
   window.clearTimeout(idleTimer);
+  reduceMotionQuery?.removeEventListener("change", onReduceMotionChange);
+  reduceMotionQuery = null;
   document.removeEventListener("visibilitychange", handleVisibilityChange);
   // 卸载时把在途的那次心跳掐掉：组件走了，回来的响应也没人要了
   beatController?.abort();
@@ -450,6 +497,14 @@ html.dark .home-online-avatar {
     transform: scale(var(--live-ring-scale, 2.1));
     opacity: 0;
   }
+}
+
+/* 省电模式（?static）：常驻的浮动、呼吸、涟漪全关，卡片只是安静摆在那儿。
+   特异性都比被覆盖的那几条高，位置也写在它们之后 */
+.home-online.is-static,
+.home-online.is-static .home-online-light-core,
+.home-online.is-static .home-online-light-ring {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

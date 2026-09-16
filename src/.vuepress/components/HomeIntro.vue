@@ -18,7 +18,8 @@
         :data-drop-key="feat.name"
       >
         <span class="home-feat-glass" aria-hidden="true"></span>
-        <RouterLink :to="feat.link" class="home-feat-name" data-drop="goto" :data-drop-to="feat.link">
+        <!-- 名字上也是「这张卡」自己的落点：同一张卡不该有两种命运，跳转只留给两个 CTA 与指令速查 -->
+        <RouterLink :to="feat.link" class="home-feat-name" data-drop="feat" :data-drop-key="feat.name">
           {{ feat.name }}
         </RouterLink>
         <span class="home-feat-desc">{{ feat.desc }}</span>
@@ -28,6 +29,7 @@
             :key="cmd"
             type="button"
             class="home-feat-cmd"
+            data-drop="cmd"
             :title="feat.desc"
             :aria-label="`复制指令 ${cmd}`"
             @click="copy(cmd)"

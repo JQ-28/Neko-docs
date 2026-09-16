@@ -17,7 +17,6 @@ export type DropCategory =
   | "nav"
   | "footer"
   | "text"
-  | "card"
   | "other";
 
 /** 全部类别（体检脚本照着它核对台词池有没有漏项） */
@@ -31,12 +30,8 @@ export const DROP_CATEGORIES: readonly DropCategory[] = [
   "nav",
   "footer",
   "text",
-  "card",
   "other",
 ];
-
-/** 一张卡身上的小件（名字、小字、指示灯、气泡）：落到自己身上也有话说 */
-const CARD_PARTS = ".home-live-slot, .home-live-card, .home-online, .home-live-name, .home-live-meta, .home-live-light, .home-live-bubble";
 
 /** 越靠前越先认。同一层里可能几个都命中（比如 hero 上那个既是 <a> 又是按钮的胶囊），
     顺序就是取舍：胶囊当按钮、导航里的条目当链接 */
@@ -51,40 +46,54 @@ const RULES: readonly { category: DropCategory; selector: string }[] = [
   // 只认导航栏本体：hero 那块信息容器本身也是个 <header>，写 header 会把它算成导航
   { category: "nav", selector: "nav, .vp-navbar, .vp-navbar-container, .vp-navbar-items" },
   { category: "footer", selector: "footer, .vp-footer" },
-  { category: "card", selector: CARD_PARTS },
   { category: "text", selector: "p, blockquote, figcaption, .home-feat-desc, .home-more" },
 ];
 
 /** 兜底那一层给的反馈对象：往上找回一个有点面积的容器，别去抖一个行内小字 */
 const BLOCK_FALLBACK = "section, article, aside, nav, main, form, table, ul, ol, div";
 
-/** 这个元素认成哪一类落点（认不出就是 other）。
-    从命中元素一层层往上找，找到最近的一层为止 —— 所以点到 <a> 里那个 <span>，
-    认的还是外面那个链接 */
-export function classifyDropTarget(hit: Element | null): DropCategory {
-  for (let el: Element | null = hit; el && el !== document.body; el = el.parentElement) {
-    for (const rule of RULES) {
-      if (el.matches(rule.selector)) return rule.category;
-    }
+/** 兜底的块最多能有多大（占视口面积的比例）。首页上最近的那层块状容器往往是整块 hero，
+    再往上就是整段首页 —— 拖到空白处会给整屏描蓝框，只认不超过这个比例的 */
+const MAX_FALLBACK_AREA_RATIO = 0.6;
+
+/** 最近的 HTML 祖先：命中的是内联 SVG（图标、插图）时，反馈不能打在 svg / path 上 ——
+    outline 与那几条动画都是给 HTML 元素写的 */
+function nearestHtml(el: Element): HTMLElement | null {
+  for (let node: Element | null = el; node; node = node.parentElement) {
+    if (node instanceof HTMLElement) return node;
   }
-  return "other";
+  return null;
 }
 
-/** 落点归到哪个元素上：反馈（描边、弹一下）要打在整块东西上，不是那一粒小字上 */
-export function resolveDropTarget(hit: Element | null): { el: HTMLElement; category: DropCategory } | null {
-  if (!(hit instanceof HTMLElement)) return null;
-  const category = classifyDropTarget(hit);
-  if (category === "other") {
-    const block = hit.closest<HTMLElement>(BLOCK_FALLBACK);
-    return { el: block ?? hit, category };
-  }
-  // 往上找到第一个属于这个类别的元素：从 <p> 里那截 <strong> 认到的是外面那段话
+/** 认不出类别时的反馈对象：往上找最近的、面积不超限的块状容器。
+    最近那层就已经比视口还大（整块 hero / 整段首页）就不再往上找，直接退回命中元素自己 */
+function fallbackBlock(hit: Element): HTMLElement | null {
+  const limit = window.innerWidth * window.innerHeight * MAX_FALLBACK_AREA_RATIO;
   for (let el: Element | null = hit; el && el !== document.body; el = el.parentElement) {
-    if (RULES.some((rule) => rule.category === category && el!.matches(rule.selector))) {
-      return el instanceof HTMLElement ? { el, category } : null;
-    }
+    if (!el.matches(BLOCK_FALLBACK)) continue;
+    const rect = el.getBoundingClientRect();
+    const area = rect.width * rect.height;
+    // 零高度的包裹层（子元素全靠绝对定位撑着）：描上去看不见，接着往上找
+    if (area === 0) continue;
+    if (area > limit) break;
+    return nearestHtml(el);
   }
-  return { el: hit, category };
+  return nearestHtml(hit);
+}
+
+/** 落点归到哪个元素上：反馈（描边、弹一下）要打在整块东西上，不是那一粒小字上。
+    归类与挑反馈元素是同一次向上遍历 —— 认到类别之后，再把这一层收到最近的 HTML 祖先 */
+export function resolveDropTarget(hit: Element | null): { el: HTMLElement; category: DropCategory } | null {
+  if (!hit) return null;
+  for (let node: Element | null = hit; node && node !== document.body; node = node.parentElement) {
+    const el = node;
+    const rule = RULES.find((item) => el.matches(item.selector));
+    if (!rule) continue;
+    const target = nearestHtml(el);
+    return target ? { el: target, category: rule.category } : null;
+  }
+  const block = fallbackBlock(hit);
+  return block ? { el: block, category: "other" } : null;
 }
 
 /** 主题那个「回到顶部」按钮 */

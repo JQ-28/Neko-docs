@@ -66,6 +66,8 @@ export interface DragState {
   /** 最近一次算出来的位移，松手时用它判断猫是不是顶在窗口边上 */
   shiftX: number;
   shiftY: number;
+  /** 位移被贴边限位削过：中心不再跟着手走了，落点判定得改看指针那一点 */
+  clamped: boolean;
   /** 手指头拎起来的：手机上看不见手指底下，卡片要浮上去一点 */
   touch: boolean;
 }

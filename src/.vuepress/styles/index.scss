@@ -100,8 +100,7 @@
   animation: neko-drop-lift 0.4s var(--ease-out);
 }
 
-[data-drop-hit][data-drop-kind="image"],
-[data-drop-hit][data-drop-kind="card"] {
+[data-drop-hit][data-drop-kind="image"] {
   animation: neko-drop-zoom 0.4s var(--ease-out);
 }
 
@@ -564,6 +563,8 @@ div[class*="language-"]::before {
   }
 }
 
+// 吐司容器：只负责摆位置与排队，自己不需要被点（里面的「提示」标题也不该被
+// 拎着的猫当成落点接住）——同 .neko-egg-tips 一样让开指针
 .alert-list {
   position: fixed;
   top: 4rem;
@@ -572,6 +573,7 @@ div[class*="language-"]::before {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .v-notification__group {

@@ -451,7 +451,8 @@ for (const match of showSource.matchAll(/name:\s*"([a-zA-Z]+)"[^}]*byLineOnly:\s
 
 // 拎到首页别处松手：落点得认得出来，台词得挂在真有的落点上
 const introSource = await readFile(path.join(dir, "HomeIntro.vue"), "utf8");
-const DROP_KINDS = new Set(["feat", "recent", "goto", "title", "bin"]);
+// cmd 是功能卡里那些指令小胶囊上的落点（英文 key，不受「必须是一个真有的功能」那条管）
+const DROP_KINDS = new Set(["feat", "recent", "goto", "title", "bin", "cmd"]);
 for (const match of introSource.matchAll(/data-drop="(\w+)"/g)) {
   if (!DROP_KINDS.has(match[1])) errors.push(`不认识的落点类型：data-drop="${match[1]}"`);
 }

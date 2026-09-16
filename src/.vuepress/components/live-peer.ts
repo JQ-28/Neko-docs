@@ -176,6 +176,15 @@ function plainPoint(point: RoamPoint): RoamPoint {
   return { card: plainCard(point.card), x: point.x, y: point.y };
 }
 
+/** 本窗口开窗时自己生的那两张卡。正常路径与降级路径共用这一份来源，
+    两边的 id 规则才不会走偏（联动没建成时这两张卡照样得摆出来） */
+function bornCardsOf(ownerId: string): CardSpec[] {
+  return [
+    { id: `${ownerId}-neko`, kind: "neko" },
+    { id: `${ownerId}-online`, kind: "online" },
+  ];
+}
+
 /**
  * 卡片形状闸：消息是别的窗口发来的，字段对不对全看对面。
  * 收下一张 kind 认不出的卡会被渲染出来，之后挑台词时按 kind 取台词池必抛，
@@ -281,12 +290,16 @@ function createWire(onMessage: (message: LiveMessage) => void): Wire | null {
   };
 }
 
-/** 不支持跨窗口通信（或跑在服务端、或者用户把互动关了）时给个空壳，调用方不用到处判空 */
-export function idlePeerLink(): PeerLink {
+/** 不支持跨窗口通信（或跑在服务端、或者用户把互动关了）时给个空壳，调用方不用到处判空。
+    cards 默认空着 —— `?static` 那条路照旧（它自己固定摆 STATIC_CARDS，不看这份）；
+    但联动建不起来时要把本窗口生的那两张卡传进来：隐私模式下通道与存储都被禁，
+    而本地这两张卡本来就不依赖通信，不给的话卡片区整块空白、标题还写着「两张卡都去隔壁串门了」。
+    这里只关掉「联动」：hasPeers 恒假、不建通道、不收也不发任何消息 */
+export function idlePeerLink(cards: readonly CardSpec[] = []): PeerLink {
   return {
     peerCount: ref(0),
     peerSides: ref({ ...NO_PEER_SIDES }),
-    cards: ref<CardSpec[]>([]),
+    cards: ref<CardSpec[]>(cards.map(plainCard)),
     liveRoam: false,
     hasPeers: () => false,
     windowRects: () => [],
@@ -323,10 +336,7 @@ export function startPeerLink(): PeerLink {
   });
 
   /** 我这扇窗口生的两张卡，窗口没了它们也就没了 */
-  const bornCards: CardSpec[] = [
-    { id: `${selfId}-neko`, kind: "neko" },
-    { id: `${selfId}-online`, kind: "online" },
-  ];
+  const bornCards: CardSpec[] = bornCardsOf(selfId);
   /** 眼下住在我这儿的卡（含别人搬过来的）；普通数组，往外发之前再拍成普通对象 */
   let held: CardSpec[] = [...bornCards];
 
@@ -520,8 +530,9 @@ export function startPeerLink(): PeerLink {
   }
 
   wire = createWire(handleMessage);
-  // 通道两条路都走不通（隐私模式 / 禁存储的 iframe）：静默降级成单机卡片，别让首页整块挂掉
-  if (!wire) return idlePeerLink();
+  // 通道两条路都走不通（隐私模式 / 禁存储的 iframe）：只把「联动」关掉，本地那两张卡照旧摆出来，
+  // 别让首页卡片区整块空着（那两张卡本来就不依赖通信）
+  if (!wire) return idlePeerLink(bornCards);
   const activeWire = wire;
   syncCards();
 

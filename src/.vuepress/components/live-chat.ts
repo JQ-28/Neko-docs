@@ -130,6 +130,8 @@ export interface LiveTalk {
   say(card: CardSpec, type: keyof SpeechLines): void;
   /** 让某张卡说指定的这一句（把卡拎到首页某个落点上时用） */
   sayLine(card: CardSpec, line: string): void;
+  /** 从一堆候选里挑一句：优先挑最久没说过的（复用「说过的账本」），都说过就挑最旧那句 */
+  pickFresh: (pool: readonly string[]) => string;
   /** 松手了：刚那句话再挂一会儿再收，像还在嘀咕 */
   lingerSpeech(): void;
   /** 立刻把话收掉（卡片被搬走、被拎去隔壁时用） */
@@ -350,6 +352,9 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
 
   /** 让某张卡冒一句话，过一会儿自己收（同一时刻只有一张卡在说话） */
   function showSpeech(cardId: string, line: string): void {
+    // 空台词（池子恰好是空的）直接不开口：先把 speakingId / speech 写下去再往回退的话，
+    // 气泡会永久挂在屏幕上、isChatting() 恒真，大编舞与独处小动作就再也轮不上
+    if (!line) return;
     speakingId.value = cardId;
     speech.value = line;
     // 说这句时配什么小动作：台词上标了就用标的，没标就照眼下的心情来
@@ -377,10 +382,25 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       ? moods[currentEmo(host.cards().length)]
       : undefined;
     const pool = moodPool && Math.random() < MOOD_CHANCE ? moodPool : speechPool(card.kind, type);
-    const line = pickByFreshness(pool, (item) => item, lastLine.get(card.id) ?? "");
+    // 池子空的时候挑不出句子：这里兜个空串，出口那一层（showSpeech）会直接不开口
+    const line = pickByFreshness(pool, (item) => item, lastLine.get(card.id) ?? "") ?? "";
     lastLine.set(card.id, line);
     markSaid(line);
     return line;
+  }
+
+  /** 从一堆候选里挑一句：优先挑最久没说过的，都说过就挑最旧那句。
+      给落点台词用（HomeLive 那批泛化认领来的台词），选中的那句由调用方自己记进账本 */
+  function pickFresh(pool: readonly string[]): string {
+    if (pool.length === 0) return "";
+    // 一句新的都没有：账本上全记着，直接挑最旧的那句，不白摇一次骰子
+    if (pool.every((line) => saidAt.has(line))) {
+      return pool.reduce((oldest, line) =>
+        (saidAt.get(line) ?? 0) < (saidAt.get(oldest) ?? 0) ? line : oldest
+      );
+    }
+    // 还有没说过（或很久没说）的：走挑台词那同一套权重，pickByFreshness 本身一个字没动
+    return pickByFreshness(pool, (item) => item, "");
   }
 
   function nextChatDelay(): number {
@@ -627,9 +647,16 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     chatTimer = window.setTimeout(() => {
       try {
         if (host.visible() && host.ready()) startChat();
+      } catch (error) {
+        // startChat 里已经先 holdShow() 了，抛出去的话台面（holding）就永远还不回来：
+        // 独处小动作与特别节目被永久压住，猫看着像突然变懒、只剩说话
+        host.releaseShow();
+        console.error("[live-chat] 这一轮说话出错，已把台面还回去", error);
       } finally {
-        // 不管这一轮出了什么事，排期链都得接上：这里断了，首页就再也不说话了
-        schedule(nextChatDelay());
+        // 不管这一轮出了什么事，排期链都得接上：这里断了，首页就再也不说话了。
+        // 唯一的例外是切到后台：那会儿排了也没人看，定时器还会被浏览器节流成空转、白耗电，
+        // 所以链子在这儿断掉是有意的 —— 回前台由 HomeLive 的 resumeAll() 调 scheduleNext() 接回来
+        if (!document.hidden) schedule(nextChatDelay());
       }
     }, delayMs);
   }
@@ -656,6 +683,7 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       markSaid(line);
       showSpeech(card.id, line);
     },
+    pickFresh,
     lingerSpeech: () => {
       window.clearTimeout(speechTimer);
       speechTimer = window.setTimeout(() => {
@@ -699,10 +727,12 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     // 被戳：先羞一下（戳得勤就闹别扭），隔两秒才回一句 —— 连点不该刷屏；
     // 卡片正拎在手上、飘去隔壁时自然不该开口（那会儿它正被搬着走）
     poke: (card) => {
-      holdEmo(host.tapBurst() ? "sulky" : "shy", SHY_HOLD_MS);
       const now = Date.now();
       if (now - lastPokeAt < POKE_GAP_MS) return;
       if (!host.visible() || !host.canPoke()) return;
+      // 心情改在两道闸之后：真的回话这一下才改。搁在闸前面的话，连戳会把 shy / sulky
+      // 一直续下去，把「深夜打盹」「傍晚饿了」这类时段心情长期压住
+      holdEmo(host.tapBurst() ? "sulky" : "shy", SHY_HOLD_MS);
       lastPokeAt = now;
       showSpeech(card.id, pickLine(card, "poke"));
     },

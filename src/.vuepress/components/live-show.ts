@@ -163,6 +163,8 @@ export interface LiveShow {
   scheduleFirst(): void;
   /** 闹完了，接着原来的节奏演 */
   resume(): void;
+  /** 切到后台时把演到一半的那一段当场收掉，不留半截；回前台由 resume() 重新排一段 */
+  abortPlaying(): void;
   /** 手上要干别的了：已排的、正在演的都停下 */
   hold(): void;
   /** 让某张卡里的头像扭一下，动画由各卡片自己的样式提供 */
@@ -181,6 +183,12 @@ export function useLiveShow(host: ShowHost): LiveShow {
   let holding = false;
   let lastScript = -1;
   let lastPlayedAt = 0;
+  /** 独处小动作与特别节目这两条链切到后台时会自己停掉（早退不重排，见各自的注释）。
+      回前台的 resume() 看这两个标记决定要不要把它们重新叫起来 —— 平时 resume() 被说话链、
+      拖拽、卡片数变化调得挺勤，无条件重排会把正在跑的排期一次次往后推，
+      独处小动作就永远等不到那 26–52 秒 */
+  let soloStopped = false;
+  let bigStopped = false;
   /** 这一场演过哪些剧本，用来凑「猫猫剧场」 */
   const seenShows = new Set<string>();
 
@@ -310,8 +318,14 @@ export function useLiveShow(host: ShowHost): LiveShow {
   ): void {
     window.clearTimeout(soloTimer);
     soloTimer = window.setTimeout(() => {
+      // 切到后台就把这条链停掉、不重排：后台定时器会被浏览器节流成空转，笔记本风扇就是这么转起来的。
+      // 链子在这儿断掉是有意的 —— 回前台由 HomeLive 的 resumeAll() → resume() 接回来
+      if (document.hidden) {
+        soloStopped = true;
+        return;
+      }
       const cards = host.cards();
-      // 台面正忙（在说话、在演对手戏、拎在手上、页切后台）：过会儿再来问。
+      // 台面正忙（在说话、在演对手戏、拎在手上、页滚出视野）：过会儿再来问。
       // 这里不重排一整轮，不然很容易一连几次都撞上说话
       const busy =
         holding ||
@@ -319,7 +333,6 @@ export function useLiveShow(host: ShowHost): LiveShow {
         isPlaying() ||
         cards.length === 0 ||
         !host.visible() ||
-        document.hidden ||
         !(host.bigReady?.() ?? true);
       if (busy) {
         scheduleSolo(SOLO_RETRY_MS);
@@ -366,7 +379,12 @@ export function useLiveShow(host: ShowHost): LiveShow {
   ): void {
     window.clearTimeout(bigTimer);
     bigTimer = window.setTimeout(() => {
-      // 台面这会儿不空：正在说话、手拎着卡、页切后台、上一段还没演完，
+      // 跟独处小动作一样：切到后台就停掉这条链、不重排（省电），回前台由 resume() 接回来
+      if (document.hidden) {
+        bigStopped = true;
+        return;
+      }
+      // 台面这会儿不空：正在说话、手拎着卡、上一段还没演完，
       // 或者舞台两边剩下的地方不够跨过去（不是按窗口宽度一刀切：幅度会按实测缩）。
       // 量余地被排到最后：它要写槽位上的实测值，得挑台面干净的时候量
       const busy =
@@ -422,6 +440,25 @@ export function useLiveShow(host: ShowHost): LiveShow {
     resume: () => {
       holding = false;
       if (host.visible()) schedule(nextPlayDelay());
+      // 独处小动作与特别节目在后台是自己停掉的（早退不重排）：回来得补一次，
+      // 不然回前台的人从此再也等不到它们。只在「确实停过」时补 —— resume() 平时
+      // 还被说话链、拖拽、卡片数变化调，无条件重排会把正在跑的排期一次次往后推
+      if (soloStopped) {
+        soloStopped = false;
+        scheduleSolo();
+      }
+      if (bigStopped) {
+        bigStopped = false;
+        scheduleBig();
+      }
+    },
+    abortPlaying: () => {
+      // 演到一半被打断：当场收工，不留半截。is-resting 只是把演出动画暂停住，
+      // 收工却靠墙上时钟的 resetTimer，两边错位 —— 回来时动作还停在半路、data-play 早被摘了，
+      // 看着就是「啪」地弹回原位。切到后台时（document.hidden）由 HomeLive 调它，
+      // 回来再走 resume() 重新排一段
+      window.clearTimeout(resetTimer);
+      clearPlayback();
     },
     hold: () => {
       holding = true;
