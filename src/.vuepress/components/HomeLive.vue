@@ -1387,6 +1387,8 @@ function restoreCard(cardId: string): void {
   delete slot.dataset.retired;
   slot.style.translate = "";
   slot.style.rotate = "";
+  // 停在落点上时临时抬过层级（见 lingerAfterDrop），回位要一并还原
+  slot.style.zIndex = "";
 }
 
 /** 上一张还在被收走的路上的卡先复原（同一张卡重来时除外）：
@@ -1402,9 +1404,13 @@ function restoreOtherCards(timers: Map<string, number>, keepCardId: string): voi
 
 /** 说完落点那句话之后，卡片额外再多留一会儿再回原位：气泡刚收就飞走会显得很赶 */
 const DROP_LINGER_EXTRA_MS = 600;
-/** 眼下正停在落点上「把话说完」的那张卡，以及那笔收尾 */
+/** 停在落点上的这一格要抬到多高：页面里那些浮层（公告、最近更新……）都在这之下，
+    不抬起来的话卡片和气泡会被它们压在下面，用户看不到猫说了什么 */
+const DROP_LINGER_Z = "6";
+/** 眼下正停在落点上「把话说完」的那张卡、那笔收尾，以及它家在哪一行（文档坐标） */
 let dropLingerCardId = "";
 let dropLingerTimer = 0;
+let dropLingerHomeTop = 0;
 
 /** 松手那一刻，这张卡的原位（文档流里那个位置，不含手上的位移）还在屏幕上吗。
     手机上把卡片拖到页面靠下的元素上时，原位早跟着页面滚出视口上方了 ——
@@ -1427,10 +1433,20 @@ function lingerAfterDrop(cardId: string, line: string): void {
   dropLingerCardId = cardId;
   // 角度先归正：留在那儿说话的时候歪着脖子不像话（位移留着，位置稳稳停在落点上）
   slot.style.rotate = "";
+  slot.style.zIndex = DROP_LINGER_Z;
+  // 顺手把「家在哪一行」记下来（文档坐标）：说完话要把页面一块儿滚回去，
+  // 不然卡片是滑到屏幕外面去了 —— 用户眼里它就是凭空消失
+  const lift = drag?.touch ? DRAG_LIFT_PX : 0;
+  dropLingerHomeTop = slot.getBoundingClientRect().top + window.scrollY - (drag?.shiftY ?? 0) + lift;
   dropLingerTimer = window.setTimeout(() => {
     const lingering = dropLingerCardId;
     dropLingerTimer = 0;
     dropLingerCardId = "";
+    // 页面往回走（平滑滚动）与卡片归位（.home-live-slot 上那 0.55 秒过渡）同时开始：
+    // 看起来就是猫自己跑回家、镜头一路跟着它。落在视口上方三分之一处，
+    // 卡片上面那句话气泡也一起进画面
+    const home = Math.max(0, dropLingerHomeTop - window.innerHeight * 0.32);
+    if (Math.abs(window.scrollY - home) > 24) window.scrollTo({ top: home, behavior: "smooth" });
     restoreCard(lingering);
   }, speechLingerMs(line) + DROP_LINGER_EXTRA_MS);
 }
@@ -2442,15 +2458,24 @@ html.dark .home-live-roamer {
 }
 
 /* 这句台词标了小动作：把点头换成那个动作。幅度不写死在这儿，交给下面 --g-* 那几个数，
-   所以加动作只是加一行变量，不用复制整条 animation */
+   所以加动作只是加一行变量，不用复制整条 animation。
+   动作是「一口气到位置再回原样」的一次性动画，演完就静止 —— 所以后面还挂着点头，
+   等动作演完（延迟一个 --g-dur）接手接着点头。只挂动作的话，撑不到半秒卡片就不动了，
+   而落点那句台词往往要挂好几秒，看着像说完就断电 */
 .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) .home-live-card {
-  animation-name: home-live-in, neko-card-gesture;
-  animation-duration: 0.44s, var(--g-dur, 0.68s);
+  animation-name: home-live-in, neko-card-gesture, neko-card-talk;
+  animation-duration: 0.44s, var(--g-dur, 0.68s), 0.68s;
+  animation-delay: 0s, 0s, var(--g-dur, 0.68s);
+  animation-iteration-count: 1, 1, infinite;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-in-out, ease-in-out;
 }
 
 .home-live-slot.is-talking:is([data-gesture]):not(.is-dragging):not(.is-playing) :deep(.home-online) {
-  animation-name: neko-card-gesture;
-  animation-duration: var(--g-dur, 0.68s);
+  animation-name: neko-card-gesture, neko-card-talk;
+  animation-duration: var(--g-dur, 0.68s), 0.68s;
+  animation-delay: 0s, var(--g-dur, 0.68s);
+  animation-iteration-count: 1, 1, infinite;
+  animation-timing-function: ease-in-out, ease-in-out;
 }
 
 /* 十一个小动作，说穿了只是改几个数：抬爪、摇、弹、抖、蔫、后缩、凑近、歪头、探头、伸腰、闪一下 */
