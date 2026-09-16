@@ -6,6 +6,31 @@ copyright: false
 footer: Neko docs - 感谢名单
 ---
 
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
+
+const BIRTH_YEAR = 2022;
+const BIRTH_MONTH = 2;
+const BIRTH_DAY = 22;
+
+const ageText = ref("");
+
+function formatAge(now: Date): string {
+  let months = (now.getFullYear() - BIRTH_YEAR) * 12 + (now.getMonth() + 1 - BIRTH_MONTH);
+  if (now.getDate() < BIRTH_DAY) months -= 1;
+  if (months < 0) return "";
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  if (years === 0) return `${rest} 个月`;
+  return rest === 0 ? `${years} 岁` : `${years} 岁 ${rest} 个月`;
+}
+
+// 挂载后再算：SSR 与客户端首帧都是空的，不会水合对不上
+onMounted(() => {
+  ageText.value = formatAge(new Date());
+});
+</script>
+
 <style scoped>
 /* ===== 玻璃卡片通用（参考功能站侧边栏一言卡片） ===== */
 .glass-card {
@@ -214,7 +239,7 @@ Neko 的电费、网费、话费一直是 JQ 自己扛着的，日复一日。�
 
   <div class="stat-card glass-card">
     <span class="stat-ico"><img src="https://api.iconify.design/mdi:cake-variant.svg?color=%23f9bdeb" alt="age"></span>
-    <b style="color: #f9bdeb;">4 岁 6 个月</b>
+    <b style="color: #f9bdeb;">{{ ageText }}</b>
     <p>她多大了</p>
   </div>
 </div>
