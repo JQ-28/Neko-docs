@@ -12,6 +12,30 @@
   overflow-x: clip;
 }
 
+// 首页 hero 的高度主题写死成「一屏」（height: calc(100vh - 导航栏)），窗口一矮，
+// hero 的内容（大图 + 标题 + 按钮）就比这一屏还高，flex 居中的结果是两头溢出 ——
+// 下面那半正好压在「此刻的小站」上，而 hero 那层带 z-index，会把卡片的点击全接走
+// （表现就是「卡片点不动」）。改成「至少一屏」：内容矮时几何完全不变，内容高时
+// 它就跟内容一起长，下面那块自然被推到它下边去
+.vp-project-home .vp-hero-info-wrapper.fullscreen {
+  height: auto !important;
+  min-height: calc(100vh - var(--navbar-height));
+}
+
+// 矮窗口里 hero 的大图（最多 18rem）本身就吃掉大半屏，把剩下的还一点给下面：
+// 图缩一档、按钮那块上下留白收一收，卡片离首屏近一点
+@media (max-height: 680px) {
+  .vp-project-home .vp-hero-image {
+    max-height: 11rem;
+    margin-block: 0.5rem;
+  }
+
+  .vp-project-home .vp-hero-actions,
+  .vp-project-home #main-description {
+    margin-block: 0.9rem;
+  }
+}
+
 .qq-chat-interface {
   border: 2px solid #f9bdeb;
   border-radius: 20px;
