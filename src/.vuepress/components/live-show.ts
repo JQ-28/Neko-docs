@@ -44,6 +44,15 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "roundChase", durationMs: 4600, withPeek: false },
   { name: "tailSpin", durationMs: 5200, withPeek: false },
   { name: "makeUp", durationMs: 4400, withPeek: false },
+  // 又一批日常对手戏：动作都只按 --play-gap / --play-span 这类相对量挪窝，不写死像素
+  { name: "knead", durationMs: 3200, withPeek: true },
+  { name: "groom", durationMs: 3600, withPeek: false },
+  { name: "tussle", durationMs: 3000, withPeek: false },
+  { name: "alarm", durationMs: 3000, withPeek: false },
+  { name: "playDead", durationMs: 3400, withPeek: true },
+  { name: "parade", durationMs: 4200, withPeek: false },
+  { name: "shove", durationMs: 2800, withPeek: false },
+  { name: "spoon", durationMs: 3600, withPeek: false },
   { name: "lean", durationMs: 1800, withPeek: false, byLineOnly: true },
   { name: "pass", durationMs: 1600, withPeek: false, byLineOnly: true },
   { name: "mimic", durationMs: 1950, withPeek: false, byLineOnly: true },
@@ -80,13 +89,22 @@ const SOLO_MAX_MS = 52_000;
 /** 到点发现台面正被占着（在说话、在演对手戏）：过一会儿再来问，别白等一整轮 */
 const SOLO_RETRY_MS = 12_000;
 
+/** 挑段时避开最近演过的这么多段：单窗口下纯随机看几分钟就会老是那几段。
+    日常对手戏段数最多，记得也最多；大编舞统共 5 段、独处小动作 5 段，记两段就够错开 */
+const RECENT_DANCE_MEMORY = 8;
+const RECENT_BIG_MEMORY = 2;
+const RECENT_SOLO_MEMORY = 2;
+
 /** 特别节目之间至少隔这么久，不然就成蹦迪了 */
-const BIG_MIN_GAP_MS = 8 * 60_000;
-const BIG_MAX_GAP_MS = 12 * 60_000;
+const BIG_MIN_GAP_MS = 6 * 60_000;
+const BIG_MAX_GAP_MS = 9 * 60_000;
+/** 首场特别节目不等上面那 6–9 分钟：人往往是刚进站这会儿最闲，按平时那间隔多半等不到 */
+const BIG_FIRST_MIN_MS = 90_000;
+const BIG_FIRST_MAX_MS = 180_000;
 /** 特别节目要横跨对方：舞台两边至少得留出这么多余地，跨过去才看得出名堂。
     余量由 HomeLive 现量（量的是屏幕边到卡片的实际距离），不够时不是一刀切不演，
     而是把幅度按实测缩下来 —— 手机上那几段就是这么演上的；缩到这个份上就算了 */
-const BIG_MIN_SPAN = 120;
+const BIG_MIN_SPAN = 90;
 /** 到点了但台面正被占着（多半是在说话）：过这么久再来看一眼，不让它一等又是一整轮 */
 const BIG_RETRY_MS = 90_000;
 
@@ -181,7 +199,11 @@ export function useLiveShow(host: ShowHost): LiveShow {
   let resetTimer = 0;
   /** 组件让过台面（比如正在说话）的时候，特别节目先别插进来 */
   let holding = false;
-  let lastScript = -1;
+  /** 最近演过的段（新的在前），挑段时先把它们排除，免得几分钟里反复撞见同一段。
+      只管单窗口那条随机路径；多窗口是按时间槽算的，两边必须算出同一段，名单在这儿派不上用场 */
+  const recentDance: string[] = [];
+  const recentBig: string[] = [];
+  const recentSolo: string[] = [];
   let lastPlayedAt = 0;
   /** 独处小动作与特别节目这两条链切到后台时会自己停掉（早退不重排，见各自的注释）。
       回前台的 resume() 看这两个标记决定要不要把它们重新叫起来 —— 平时 resume() 被说话链、
@@ -227,12 +249,19 @@ export function useLiveShow(host: ShowHost): LiveShow {
     soloId.value = "";
   }
 
+  /** 从一堆剧本里挑一段，避开最近演过的那几段；舞台上就这么几段，排完了自然整个回头。
+      名单只留最近 memory 段，旧的自然滑出去，用不着显式清空 */
+  function pickFresh(scripts: readonly PlayScript[], recent: string[], memory: number): PlayScript {
+    const fresh = scripts.filter((script) => !recent.includes(script.name));
+    const pool = fresh.length > 0 ? fresh : scripts;
+    const script = pool[Math.floor(Math.random() * pool.length)];
+    recent.unshift(script.name);
+    if (recent.length > memory) recent.length = memory;
+    return script;
+  }
+
   function pickScript(): PlayScript {
-    let index = Math.floor(Math.random() * DANCE_SCRIPTS.length);
-    // 连着两次演同一段太假，往后挪一段
-    if (index === lastScript) index = (index + 1) % DANCE_SCRIPTS.length;
-    lastScript = index;
-    return DANCE_SCRIPTS[index];
+    return pickFresh(DANCE_SCRIPTS, recentDance, RECENT_DANCE_MEMORY);
   }
 
   function peek(root: HTMLElement | null, selector: string): void {
@@ -250,7 +279,9 @@ export function useLiveShow(host: ShowHost): LiveShow {
     return { slot, at: slot * DANCE_PERIOD_MS + DANCE_OFFSET_MS };
   }
 
-  /** 纯函数：同一个槽在任何窗口都算出同一段；与上一槽错开，免得连着演同一段 */
+  /** 纯函数：同一个槽在任何窗口都算出同一段；与上一槽错开，免得连着演同一段。
+      这里不查「最近演过」名单 —— 名单是各窗口自己攒的，两边状态不一致，
+      查了就会算出不同的段，齐舞当场散架。随机只许留在单窗口那条路径上 */
   function scriptForSlot(slot: number): PlayScript {
     const total = DANCE_SCRIPTS.length;
     const pick = ((slot * 2654435761) >>> 0) % total;
@@ -341,7 +372,7 @@ export function useLiveShow(host: ShowHost): LiveShow {
         return;
       }
       const card = cards[Math.floor(Math.random() * cards.length)];
-      void playSolo(SOLO_SCRIPTS[Math.floor(Math.random() * SOLO_SCRIPTS.length)], card.id);
+      void playSolo(pickFresh(SOLO_SCRIPTS, recentSolo, RECENT_SOLO_MEMORY), card.id);
       scheduleSolo();
     }, delayMs);
   }
@@ -368,11 +399,14 @@ export function useLiveShow(host: ShowHost): LiveShow {
     }, delayMs);
   }
 
-  /** 下一个时间槽该演哪段特别节目（没有邻居就随机挑一段） */
+  /** 下一个时间槽该演哪段特别节目（没有邻居就随机挑一段，挑的时候避开刚演过的） */
   function pickBig(): PlayScript {
-    if (!host.hasPeers()) return BIG_SCRIPTS[Math.floor(Math.random() * BIG_SCRIPTS.length)];
-    const slot = nextDanceSlot().slot;
-    return BIG_SCRIPTS[((slot * 40503) >>> 0) % BIG_SCRIPTS.length];
+    // 有邻居那条跟 scriptForSlot 同理：按槽算的段两边得一致，不查「最近演过」名单
+    if (host.hasPeers()) {
+      const slot = nextDanceSlot().slot;
+      return BIG_SCRIPTS[((slot * 40503) >>> 0) % BIG_SCRIPTS.length];
+    }
+    return pickFresh(BIG_SCRIPTS, recentBig, RECENT_BIG_MEMORY);
   }
 
   /** 特别节目：隔一阵来一次，到点了先看看台面空不空 */
@@ -397,7 +431,7 @@ export function useLiveShow(host: ShowHost): LiveShow {
         !(host.bigReady?.() ?? true) ||
         (host.measureSpan?.() ?? Number.POSITIVE_INFINITY) < BIG_MIN_SPAN;
       if (busy) {
-        // 只是暂时让一让，过会儿再来问，别白等满一整轮 8–12 分钟
+        // 只是暂时让一让，过会儿再来问，别白等满一整轮 6–9 分钟
         scheduleBig(BIG_RETRY_MS);
         return;
       }
@@ -436,10 +470,11 @@ export function useLiveShow(host: ShowHost): LiveShow {
       );
       // 特别节目与独处小动作：只有进站第一次露头才点着这两条链。之后每次滚回来，
       // 只在它们「确实停过」时才补排 —— 无条件重排等于每滚一次就把倒计时清零一次，
-      // 大编舞 8–12 分钟、独处 26–52 秒，来回滚两下就永远等不到了（resume() 里同理）
+      // 大编舞 6–9 分钟、独处 26–52 秒，来回滚两下就永远等不到了（resume() 里同理）
       if (!soloBigStarted) {
         soloBigStarted = true;
-        scheduleBig();
+        // 首场特别节目按「首场」那对间隔提前来，等不到第一场的人也能看见一次大编舞
+        scheduleBig(BIG_FIRST_MIN_MS + Math.random() * (BIG_FIRST_MAX_MS - BIG_FIRST_MIN_MS));
         scheduleSolo();
         return;
       }

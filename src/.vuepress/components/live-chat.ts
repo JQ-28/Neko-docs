@@ -72,9 +72,15 @@ const IMPROV_GAP_MS = 6 * 60_000;
 /** 手里不止一张卡时，也留一点机会让它自己嘀咕一句——心情就是从这儿露出来的 */
 const MUTTER_CHANCE = 0.3;
 /** 事件带起来的心情各挂多久 */
-const SULKY_HOLD_MS = 90_000;
+const SULKY_HOLD_MS = 45_000;
 const HAPPY_HOLD_MS = 90_000;
 const SHY_HOLD_MS = 120_000;
+/** 拖完闹别扭的概率：原来是每次都必闹、还挂满一分半，爱拖着玩的人整天看它摆臭脸 */
+const SULKY_ON_DRAG_CHANCE = 0.33;
+/** 手在卡片区停够这么久算「黏人」（毫秒，这个信号由 HomeLive 喂进来） */
+const CLINGY_HOVER_MS = 6_000;
+/** 在卡片区待够这么久、这期间又没被戳过也没被拖过，算「无聊」（秒，停留时长由 HomeLive 喂进来） */
+const BORED_LINGER_S = 300;
 /** 被戳之后隔这么久才回一句：连着戳不该一句接一句地刷屏 */
 const POKE_GAP_MS = 2_200;
 /** 上班时段：工作日九点到十八点 */
@@ -108,6 +114,10 @@ export interface TalkHost {
   justReturned: () => boolean;
   /** 观众的小箭头半天没动过吗（动一下就重新计时） */
   cursorIdle: () => boolean;
+  /** 观众的手刚动过吗（为真就不是「手闲着」的状态）。这个信号由 HomeLive 喂进来，没喂就当没有 */
+  cursorFresh?: () => boolean;
+  /** 观众的箭头在卡片区里停了多久（毫秒）。同样由 HomeLive 喂进来，没喂就当 0 */
+  hoverHoldMs?: () => number;
   /** 刚刚在同一个地方连戳了好几下吗 */
   tapBurst: () => boolean;
   /** 刚刚一口气把整页滚到了底吗 */
@@ -326,13 +336,27 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     emoUntil = Date.now() + holdMs;
   }
 
-  /** 这会儿是什么心情：事件带起来的优先，其次看夜里、看是不是只剩自己。
+  /** 这段时间里既没被戳过也没被拖过（拿两个时间戳算）：判断「久待又没互动」用 */
+  function quietFor(ms: number): boolean {
+    const now = Date.now();
+    return now - lastPokeAt >= ms && now - lastDragAt >= ms;
+  }
+
+  /** 这会儿是什么心情：事件带起来的优先，其次是被观众的动作带起来的那三档
+      （黏人 / 好奇 / 无聊），最后才轮到夜里、只剩自己这些时段档。
+      动作那三档不走 holdEmo 的定时 —— 它们靠条件实时成立，条件一散自己就回落。
+      顺序是「手停在卡上（最明确）→ 手在动（想看下一步点哪）→ 久待又没互动（无聊）」：
+      手停在卡上时当然也算「手是新鲜的」，先判黏人才不会把它误判成好奇。
       顺手把算出来的结果写回 mood，状态灯跟着变；事件到点后就是这么回落的 */
   function currentEmo(count: number): EmoState {
     // 事件带起来的心情还没到点，就照它算
     if (mood.value !== "normal" && Date.now() < emoUntil) return mood.value;
     const hour = new Date().getHours();
-    if (count === 1) mood.value = "lost";
+    // cursorFresh 与 hoverHoldMs 这两个信号由 HomeLive 喂进来（可选调用，没喂就当没有）
+    if ((host.hoverHoldMs?.() ?? 0) >= CLINGY_HOVER_MS) mood.value = "clingy";
+    else if (host.cursorFresh?.()) mood.value = "curious";
+    else if (host.linger() >= BORED_LINGER_S && quietFor(BORED_LINGER_S * 1000)) mood.value = "bored";
+    else if (count === 1) mood.value = "lost";
     else if (hour < 5 || hour >= 23) mood.value = "sleepy";
     else if (hour >= 17 && hour < 19) mood.value = "hungry";
     else mood.value = "normal";
@@ -719,8 +743,13 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
     isChatting: () => speakingId.value !== "" || turnPending || pending !== null,
     markDragged: () => {
       lastDragAt = Date.now();
-      // 刚被人拎来拎去：先闹一会儿别扭
-      holdEmo("sulky", SULKY_HOLD_MS);
+      // 刚被人拎来拎去：不一定闹别扭 —— 每次都必闹、还挂满一分半的话，爱拖着玩的人
+      // 整天看着卡片摆臭脸；所以只按一个不高的概率闹。
+      // 已经是 sulky 就直接跳过：一路拖着玩会把这段计时无限续期，等于一直在闹。
+      // 没抽中的那次什么也不改：保持它当下的心情，不硬塞一个别的档
+      if (mood.value !== "sulky" && Math.random() < SULKY_ON_DRAG_CHANCE) {
+        holdEmo("sulky", SULKY_HOLD_MS);
+      }
       schedule(DRAG_CHAT_MIN_MS + Math.random() * (DRAG_CHAT_MAX_MS - DRAG_CHAT_MIN_MS));
     },
     markPlayed: () => {

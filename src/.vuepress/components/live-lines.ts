@@ -299,8 +299,19 @@ export const SPEECH_LINES: Record<CardSpec["kind"], SpeechLines> = {
   },
 };
 
-/** 心情：刚被拎过、被戳过、被盯着看，说话的味道会不一样，过一阵自己回到平常 */
-export type EmoState = "normal" | "happy" | "shy" | "sulky" | "sleepy" | "lost" | "hungry";
+/** 心情：刚被拎过、被戳过、被盯着看，说话的味道会不一样，过一阵自己回到平常。
+    后三档（好奇 / 黏人 / 无聊）是被观众的动作带起来的，不挂定时，条件一散就回落 */
+export type EmoState =
+  | "normal"
+  | "happy"
+  | "shy"
+  | "sulky"
+  | "sleepy"
+  | "lost"
+  | "hungry"
+  | "curious"
+  | "clingy"
+  | "bored";
 
 /** 每种心情下顺口念叨的话（只用在单句场合：独处、搭话、被拎起来、落地） */
 export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, readonly string[]>>> = {
@@ -371,6 +382,39 @@ export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, reado
       "晚饭还没着落，我先想一会儿喵",
       "越想越饿，越想越想吃布丁喵",
     ],
+    // 手刚动过：探头探脑，想看你下一步点哪
+    curious: [
+      "你的手还在动喵，我盯着呢",
+      "这是要点哪儿喵",
+      "别停呀，我还没看够喵",
+      "你在找什么好玩的喵",
+      "我探个头看看喵",
+      "手不停，我也不困喵",
+      "要不要我帮你指个路喵",
+      "是这里吗喵？",
+    ],
+    // 手在卡片区停了好一会儿：蹭过来，要你继续摸
+    clingy: [
+      "你再摸摸我嘛喵",
+      "别把手挪走喵",
+      "你走了我就没意思了喵",
+      "靠过来点，我蹭蹭你喵",
+      "就待在我这儿别动喵",
+      "我赖上你了喵",
+      "再陪坐会儿嘛喵",
+      "你手心的温度刚好喵",
+    ],
+    // 待了很久又没人理：打哈欠、数着天花板
+    bored: [
+      "好无聊喵，你还在吗",
+      "我数天花板上的缝喵",
+      "你怎么半天没动静喵",
+      "要不我自己找点乐子喵",
+      "尾巴都不想动了喵",
+      "再没人理我就要睡了喵",
+      "我盯着这片空白发呆喵",
+      "你忙你的，我等着喵",
+    ],
   },
   online: {
     happy: [
@@ -418,6 +462,39 @@ export const MOOD_LINES: Record<CardSpec["kind"], Partial<Record<EmoState, reado
       "这份预算里，只有甜味额度",
       "我闻不到，但我可以记账",
     ],
+    // 手刚动过：跟着记轨迹
+    curious: [
+      "检测到指针在活动",
+      "手没停，我在跟着记",
+      "下一步会落在哪儿",
+      "我先看看这块地方",
+      "动静已记录，继续",
+      "你的轨迹我看得清",
+      "光标又在动了",
+      "这轮操作尚未分类",
+    ],
+    // 指针在卡上停了好一会儿
+    clingy: [
+      "指针在卡上停了很久",
+      "你还没走，我看见了",
+      "停留时长继续累积",
+      "手停着也算陪伴",
+      "我就当你打算多待",
+      "别急着挪开指针",
+      "这份静默我记着",
+      "久留不算异常",
+    ],
+    // 很久没有新操作
+    bored: [
+      "很长时间没有新操作",
+      "数据很平，我也很平",
+      "静置状态，未记录互动",
+      "我数着刷新间隔",
+      "没动静也照样入账",
+      "光标停在原处不动",
+      "等待也计入停留时长",
+      "这一页安静得很标准",
+    ],
   },
 };
 
@@ -444,6 +521,10 @@ export const MOOD_GESTURES: Record<EmoState, GestureName | ""> = {
   sleepy: "stretch",
   lost: "droop",
   hungry: "leanIn",
+  // 动作带起来的三档：探头看下一步、往人那边蹭、打哈欠伸懒腰
+  curious: "peek",
+  clingy: "leanIn",
+  bored: "stretch",
 };
 
 /** 台词原文 → 说这句时的小动作；只挑有身体感的那几句，别的交给心情底色 */
@@ -2727,6 +2808,10 @@ export function nekoMetaLine(emo: EmoState, count: number, hour: number): string
   if (emo === "happy") return "今天心情不错";
   if (emo === "sleepy") return "打盹中，别吵";
   if (emo === "lost") return "一只猫值班中";
+  // 动作带起来的三档
+  if (emo === "curious") return "在看你下一步点哪";
+  if (emo === "clingy") return "赖在这儿不想走";
+  if (emo === "bored") return "闲得数天花板";
   if (hour >= 23 || hour < 5) return "这个点还醒着的不多";
   if (hour >= 17 && hour < 19) return "傍晚有点饿";
   if (count >= 3) return "挤一挤也坐得下";

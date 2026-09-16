@@ -75,7 +75,7 @@ const NO_PEER_SIDES: PeerSides = { left: 0, right: 0, above: 0, below: 0 };
 const KIND_ORDER: readonly CardKind[] = ["neko", "online"];
 
 export interface PeerLink {
-  /** 隔壁还开着几个 neko 页面 */
+  /** 眼下「在场」的隔壁有几个：按心跳在 12 秒内算，刚关掉的隔壁不算数 */
   peerCount: Ref<number>;
   /** 左边几个、右边几个（按屏幕位置算，摆窗口时实时跟着变） */
   peerSides: Ref<PeerSides>;
@@ -83,6 +83,7 @@ export interface PeerLink {
   cards: Ref<CardSpec[]>;
   /** 能不能做实时漫游：高频位置消息只有 BroadcastChannel 撑得住，localStorage 那条路只能等松手才传 */
   readonly liveRoam: boolean;
+  /** 眼下是不是还有在场的隔壁（界面上的「隔壁小脑袋」按它显隐） */
   hasPeers(): boolean;
   /** 所有窗口占的屏幕区域（含自己） */
   windowRects(): WindowRect[];
@@ -127,6 +128,14 @@ const BEAT_MS = 4000;
  * 取整会让所有前台窗口的心跳跟判死时刻对齐，一丢包就成片误判
  */
 const PEER_TIMEOUT_MS = 90_000;
+/**
+ * 「在场」的时间档，跟上面那个 90 秒的判死档分工不同，谁也不能替谁：
+ * 90 秒那一档管的是「卡片回收」—— 一旦判死就要把它的卡收走，误判的代价是卡永久消失，
+ * 所以宁可迟钝；这一档只管「看得见的隔壁」—— 小脑袋冒不冒、标题那行写几只、齐舞挑哪个时间槽，
+ * 这些都是纯显示，判错了下一拍自己就纠正回来，所以可以灵敏：
+ * 心跳 4 秒一次，三次没来（12 秒）就当它不在场了，隔壁一关或者被冻住这边马上就安静下来
+ */
+const PEER_ALIVE_MS = 12_000;
 /**
  * 窗口被搬动时浏览器不给任何事件，只能隔一阵看一眼坐标变没变。
  * 1 秒一次读两个属性，开销可以忽略，摆好窗口对面的排位就跟上了
@@ -320,6 +329,17 @@ export function idlePeerLink(cards: readonly CardSpec[] = []): PeerLink {
   };
 }
 
+/** 清理用的独立步骤包装：一步炸了不能连累后面的步骤。
+    典型场景是组件卸载时 stop() 中途抛异常，通道还开着、心跳还在发，
+    下一个实例起来就把这个已经死掉的自己当成真实邻居，而它永远不会说再见 */
+function safely(step: () => void): void {
+  try {
+    step();
+  } catch {
+    /* 清理动作失败也继续往下清 */
+  }
+}
+
 export function startPeerLink(): PeerLink {
   if (typeof window === "undefined") return idlePeerLink();
 
@@ -357,6 +377,18 @@ export function startPeerLink(): PeerLink {
   const peerCount = ref(0);
   const peerSides = ref<PeerSides>({ ...NO_PEER_SIDES });
   const cards = ref<CardSpec[]>([]);
+
+  /** 眼下算「在场」的邻居：PEER_ALIVE_MS 内没听到心跳的就不算。
+      它只用来决定界面上看得见的东西，跟上面 peers 里那本账（谁还没判死、卡归谁回收）是两回事 */
+  function alivePeers(): PeerRecord[] {
+    const now = Date.now();
+    return Array.from(peers.values()).filter((record) => now - record.seen <= PEER_ALIVE_MS);
+  }
+
+  /** 把「在场邻居数」同步给界面：小脑袋、标题那行、齐舞的时间槽都按这个数走 */
+  function syncPresence(): void {
+    peerCount.value = alivePeers().length;
+  }
 
   let wire: Wire | null = null;
 
@@ -404,7 +436,7 @@ export function startPeerLink(): PeerLink {
     const record = peers.get(id);
     if (!record) return;
     peers.delete(id);
-    peerCount.value = peers.size;
+    syncPresence();
     syncSides();
     // 它生的卡随它一起消失，不管现在住在谁家
     held.filter((card) => bornOf(card.id) === id).forEach((card) => dropCard(card.id));
@@ -470,7 +502,7 @@ export function startPeerLink(): PeerLink {
           if (outbox.get(cardId) === peer.id) outbox.delete(cardId);
         });
       }
-      peerCount.value = peers.size;
+      syncPresence();
       syncSides();
       // 万一两边都以为同一张卡在自己手上（消息丢了才会发生），按窗口 id 定：
       // 小的那个留下，大的那个让出去，这样两边算出来的是同一个结果
@@ -541,6 +573,9 @@ export function startPeerLink(): PeerLink {
     [...peers.entries()].forEach(([id, record]) => {
       if (now - record.seen > PEER_TIMEOUT_MS) dropPeer(id);
     });
+    // 刚关掉/被冻住的隔壁这一刻还在 peers 账上（要等满 90 秒才判死），
+    // 但它早就不「在场」了，在这儿把在场数收回来，界面上小脑袋才不会多冒十几秒
+    syncPresence();
     // 一个邻居都没有时没人听我报家当，别再空转心跳（localStorage 那条路等于每 4 秒写一次盘）。
     // 认邻居不靠这里：新窗口开窗时会自己喊一声，我按"头一次见"回它一嗓子；
     // 后台被节流睡过去的窗口醒来时也会 refresh 一次
@@ -606,7 +641,9 @@ export function startPeerLink(): PeerLink {
     peerSides,
     cards,
     liveRoam: activeWire.live,
-    hasPeers: () => peers.size > 0,
+    // 按「在场」算，不按 peers 那本账：账上的记录要等 90 秒判死才消失，
+    // 拿它当依据的话，隔壁早就关掉了这边还照样冒小脑袋
+    hasPeers: () => alivePeers().length > 0,
     windowRects,
     ownerAt: (x, y) => {
       const rects = windowRects();
@@ -670,24 +707,45 @@ export function startPeerLink(): PeerLink {
     onHandoff: (listener) => handoffListeners.push(listener),
     onPeerGone: (listener) => goneListeners.push(listener),
     stop: () => {
-      window.clearInterval(beat);
-      window.clearInterval(moveWatch);
-      window.clearTimeout(resizeTimer);
-      window.removeEventListener("pagehide", sayBye);
-      window.removeEventListener("resize", onResize);
-      sayBye();
-      activeWire.close();
-      handoffListeners.length = 0;
-      goneListeners.length = 0;
-      incomingListeners.length = 0;
-      roamListeners.length = 0;
-      arriveListeners.length = 0;
-      leaveListeners.length = 0;
-      peers.clear();
-      outbox.clear();
-      peerCount.value = 0;
-      peerSides.value = { ...NO_PEER_SIDES };
-      cards.value = [];
+      // 每一步各清各的：任何一步炸了都不能让后面的清理整段跳过，
+      // 否则组件都卸载了通道还开着、心跳还在跑，下一个实例就把这个死掉的自己认成邻居，
+      // 而且它永远不会说再见。宁可少发一条 bye，也不能留下这条幽灵
+      safely(() => window.clearInterval(beat));
+      safely(() => window.clearInterval(moveWatch));
+      safely(() => window.clearTimeout(resizeTimer));
+      safely(() => window.removeEventListener("pagehide", sayBye));
+      safely(() => window.removeEventListener("resize", onResize));
+      safely(sayBye);
+      safely(() => activeWire.close());
+      safely(() => {
+        handoffListeners.length = 0;
+      });
+      safely(() => {
+        goneListeners.length = 0;
+      });
+      safely(() => {
+        incomingListeners.length = 0;
+      });
+      safely(() => {
+        roamListeners.length = 0;
+      });
+      safely(() => {
+        arriveListeners.length = 0;
+      });
+      safely(() => {
+        leaveListeners.length = 0;
+      });
+      safely(() => peers.clear());
+      safely(() => outbox.clear());
+      safely(() => {
+        peerCount.value = 0;
+      });
+      safely(() => {
+        peerSides.value = { ...NO_PEER_SIDES };
+      });
+      safely(() => {
+        cards.value = [];
+      });
     },
   };
 }
