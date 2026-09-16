@@ -305,6 +305,13 @@ function makeMood() {
     above: auditRandom() < 0.3 ? 1 : 0,
     below: auditRandom() < 0.3 ? 1 : 0,
   };
+  // 手停下来了没有、停了多久：这是同一件事的两种粒度（运行时 cursorIdle 就是
+  // 「cursorIdleMs 过了半分钟」），所以先摇一次、再按它派生毫秒数，不能各摇各的 ——
+  // 各摇各的会造出「布尔说没停、毫秒说停了五分钟」这种真机上不存在的光景
+  const idle = auditRandom() < 0.15;
+  const idleMs = idle
+    ? pickOne([30_000, 45_000, 150_000, 400_000])
+    : pickOne([0, 2_000, 20_000]);
   return {
     period,
     cast,
@@ -330,7 +337,15 @@ function makeMood() {
       xterfusion: auditRandom() < MOMENT_GATE_CHANCE.xterfusion,
       stare: auditRandom() < MOMENT_GATE_CHANCE.stare,
     },
-    cursorIdle: auditRandom() < 0.15,
+    cursorIdle: idle,
+    cursorIdleMs: idleMs,
+    // 台词分桌面版（有小箭头）与触摸版（只有手），两种设备都得采到
+    touch: auditRandom() < 0.5,
+    // 四件「刚发生」的事：她会在下一轮里提一句。真实频率不高，采样按跟 cursorIdle 同一个量级给
+    pointerGone: auditRandom() < 0.15,
+    scrolled: auditRandom() < 0.15,
+    selectionMade: auditRandom() < 0.15,
+    flipped: auditRandom() < 0.15,
     tapBurst: auditRandom() < 0.15,
     scrollDash: auditRandom() < 0.15,
     awayDays: pickOne([0, 1, 3, 7, 30, 365]),

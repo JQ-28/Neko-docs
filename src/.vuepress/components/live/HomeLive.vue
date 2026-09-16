@@ -390,6 +390,96 @@ function noteActivity(): void {
   cursorMovedAt = Date.now();
 }
 
+/** 观众的指针/手指这会儿在哪边，范围 -1..1（0 是正中间）。她照这个偏头。
+    鼠标和手指走的是同一条 pointermove，所以「有人走到跟前」这件事对触屏一样成立 ——
+    手机上手指划过卡片，她也看得见 */
+let lookX = 0;
+let lookY = 0;
+/** 指针位置先记下来，每帧只算一次：pointermove 一秒能来上百次 */
+let lookTargetX = 0;
+let lookTargetY = 0;
+let lookFrame = 0;
+/** 手停下这么久就把头摆正（也是手机上「手指抬走了」的收尾） */
+const LOOK_RESET_MS = 2_600;
+let lookResetTimer = 0;
+/** 卡片区往外扩这么多像素，是她「注意到有人」的范围：再远就不该有反应 */
+const LOOK_REACH_PX = 240;
+
+/** 这台设备主要用手指操作吗：台词要分两版（桌面上能说「小箭头」，手机上只能说到手） */
+const touchDevice = ref(false);
+
+/** 指针离开窗口、选中了一段文字、手机被转过去：三件「她在旁边看着」的事，各记一个时间戳 */
+let pointerGoneAt = 0;
+let selectionAt = 0;
+let flippedAt = 0;
+let lastViewW = 0;
+let lastViewH = 0;
+
+function clampUnit(value: number): number {
+  return Math.min(1, Math.max(-1, value));
+}
+
+function writeLook(): void {
+  const el = stage.value;
+  if (!el) return;
+  el.style.setProperty("--look-x", lookX.toFixed(3));
+  el.style.setProperty("--look-y", lookY.toFixed(3));
+}
+
+function resetLook(): void {
+  lookX = 0;
+  lookY = 0;
+  writeLook();
+}
+
+/** 把指针位置换算成「相对卡片区正中间的方向」，越远越接近 ±1，但超出感知范围就卡在 ±1 */
+function applyLook(): void {
+  const box = stage.value?.getBoundingClientRect();
+  if (!box || box.width === 0) return;
+  const reach = Math.max(box.width, 320) / 2 + LOOK_REACH_PX;
+  lookX = clampUnit((lookTargetX - (box.left + box.width / 2)) / reach);
+  lookY = clampUnit((lookTargetY - (box.top + box.height / 2)) / reach);
+  writeLook();
+}
+
+function onLookMove(event: PointerEvent): void {
+  if (staticMode) return;
+  lookTargetX = event.clientX;
+  lookTargetY = event.clientY;
+  if (!lookFrame) {
+    lookFrame = window.requestAnimationFrame(() => {
+      lookFrame = 0;
+      applyLook();
+    });
+  }
+  // 手一停就慢慢把视线收回来：一直偏着会像瞪着某个角落
+  window.clearTimeout(lookResetTimer);
+  lookResetTimer = window.setTimeout(resetLook, LOOK_RESET_MS);
+}
+
+/** 指针移出窗口（桌面才有这个概念）：台词问的是「人还在吗」，手机上换成切后台那条 */
+function onPointerGone(): void {
+  pointerGoneAt = Date.now();
+  resetLook();
+}
+
+/** 观众选中了一段文字（手机上长按复制走的是同一个事件） */
+function onSelectionChange(): void {
+  const text = window.getSelection()?.toString().trim() ?? "";
+  if (text.length >= 2) selectionAt = Date.now();
+}
+
+/** 窗口宽高互换了：手机被转过去才会这样，桌面改窗口大小不算 */
+function onViewResize(): void {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  if (lastViewW > 0 && lastViewH > 0 && w > h !== lastViewW > lastViewH) {
+    flippedAt = Date.now();
+  }
+  lastViewW = w;
+  lastViewH = h;
+}
+
 /** 被戳一下时灯亮多久 */
 const TAP_LIGHT_MS = 620;
 /** 手机上按住多久才算「拎」，以及这段时间里手指能动多少像素。
@@ -690,6 +780,14 @@ const talk = useLiveTalk({
   linger: lingerSeconds,
   justReturned: () => Date.now() - returnedAt < RETURNED_MS,
   cursorIdle: () => cursorMovedAt > 0 && Date.now() - cursorMovedAt >= CURSOR_IDLE_MS,
+  // 手到底停了多久：分档用 —— 停半分钟、两分钟、五分钟，她想说的话不一样
+  cursorIdleMs: () => (cursorMovedAt > 0 ? Date.now() - cursorMovedAt : 0),
+  // 这台设备主要用手指操作吗（台词分桌面版与触摸版）
+  touch: () => touchDevice.value,
+  pointerGone: () => pointerGoneAt > 0 && Date.now() - pointerGoneAt < MOMENT_FRESH_MS,
+  scrolled: () => lastScrollAt > 0 && Date.now() - lastScrollAt < MOMENT_FRESH_MS,
+  selectionMade: () => selectionAt > 0 && Date.now() - selectionAt < MOMENT_FRESH_MS,
+  flipped: () => flippedAt > 0 && Date.now() - flippedAt < MOMENT_FRESH_MS,
   // 好奇与黏人这两档：手刚动过 / 手一直搁在卡片上（对应 live-chat 里的 curious 与 clingy）
   cursorFresh: () => cursorMovedAt > 0 && Date.now() - cursorMovedAt < CURSOR_FRESH_MS,
   hoverHoldMs: () => (hoverInsideAt > 0 ? Date.now() - hoverInsideAt : 0),
@@ -2186,6 +2284,16 @@ onMounted(() => {
   window.addEventListener("pointercancel", onPointerEndFallback, true);
   window.addEventListener("blur", onWindowBlur);
 
+  // 「她在看着你」这条线的信号：指针走到哪、指针走了没、选中了什么、手机转没转
+  touchDevice.value = window.matchMedia("(hover: none), (pointer: coarse)").matches;
+  lastViewW = window.innerWidth;
+  lastViewH = window.innerHeight;
+  window.addEventListener("pointermove", onLookMove, { passive: true });
+  window.addEventListener("resize", onViewResize);
+  // 指针移出窗口只有鼠标有这条路：手机上「人走了」是切后台，走 visibilitychange
+  document.documentElement.addEventListener("mouseleave", onPointerGone);
+  document.addEventListener("selectionchange", onSelectionChange);
+
   // 隔壁走贴边那条路把卡递过来了：从中转那条边滑进来
   peerLink.onHandoff(receiveCard);
   // 隔壁正拎着卡拖过我这块屏幕：一路画着走，松手落在谁那儿就搬到谁那儿
@@ -2262,6 +2370,12 @@ onBeforeUnmount(() => {
   window.removeEventListener("pointerup", onPointerEndFallback, true);
   window.removeEventListener("pointercancel", onPointerEndFallback, true);
   window.removeEventListener("blur", onWindowBlur);
+  window.removeEventListener("pointermove", onLookMove);
+  window.removeEventListener("resize", onViewResize);
+  document.documentElement.removeEventListener("mouseleave", onPointerGone);
+  document.removeEventListener("selectionchange", onSelectionChange);
+  window.clearTimeout(lookResetTimer);
+  if (lookFrame) window.cancelAnimationFrame(lookFrame);
 });
 
 </script>

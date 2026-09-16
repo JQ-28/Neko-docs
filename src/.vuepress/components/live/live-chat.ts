@@ -128,6 +128,16 @@ export interface TalkHost {
   justReturned: () => boolean;
   /** 观众的小箭头半天没动过吗（动一下就重新计时） */
   cursorIdle: () => boolean;
+  /** 手停了多久（毫秒）。可选：没喂就当 0，分档永远落在第一档 */
+  cursorIdleMs?: () => number;
+  /** 这台设备主要用手指操作吗（台词分桌面版与触摸版）。可选：没喂就当不是触摸设备 */
+  touch?: () => boolean;
+  /** 指针刚移出窗口 / 刚滚过页面 / 刚选中文字 / 刚转屏。
+      四个都是「她看见你在干什么」那几档要用的，可选：没喂就当没发生 */
+  pointerGone?: () => boolean;
+  scrolled?: () => boolean;
+  selectionMade?: () => boolean;
+  flipped?: () => boolean;
   /** 观众的手刚动过吗（为真就不是「手闲着」的状态）。这个信号由 HomeLive 喂进来，没喂就当没有 */
   cursorFresh?: () => boolean;
   /** 观众的箭头在卡片区里停了多久（毫秒）。同样由 HomeLive 喂进来，没喂就当 0 */
@@ -500,6 +510,12 @@ export function useLiveTalk(host: TalkHost): LiveTalk {
       memeReady: now - lastMemeAt >= MEME_GAP_MS,
       gates,
       cursorIdle: host.cursorIdle(),
+      cursorIdleMs: host.cursorIdleMs?.() ?? 0,
+      touch: host.touch?.() ?? false,
+      pointerGone: host.pointerGone?.() ?? false,
+      scrolled: host.scrolled?.() ?? false,
+      selectionMade: host.selectionMade?.() ?? false,
+      flipped: host.flipped?.() ?? false,
       tapBurst: host.tapBurst(),
       scrollDash: host.scrollDash(),
       awayDays: host.awayDays(),

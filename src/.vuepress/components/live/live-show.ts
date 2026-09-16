@@ -93,6 +93,10 @@ export const PLAY_SCRIPTS: readonly PlayScript[] = [
   { name: "slowBlink", durationMs: 1600, withPeek: false, byLineOnly: true },
   { name: "stepAside", durationMs: 2000, withPeek: false, byLineOnly: true },
   { name: "waitTogether", durationMs: 2400, withPeek: false, byLineOnly: true },
+  // 「隔着屏幕」的三段：抬头看屏幕外、扒着边缘往上探、背过身去（同样只被台词点名）
+  { name: "lookUp", durationMs: 2600, withPeek: false, byLineOnly: true },
+  { name: "leanOver", durationMs: 3200, withPeek: false, byLineOnly: true },
+  { name: "turnAway", durationMs: 2800, withPeek: false, byLineOnly: true },
   { name: "circle", durationMs: 4500, withPeek: false, big: true },
   { name: "crossPlay", durationMs: 7000, withPeek: false, big: true },
   { name: "leapfrog", durationMs: 3000, withPeek: false, big: true },

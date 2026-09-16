@@ -643,6 +643,26 @@ html.dark .home-live-roamer {
   animation: home-live-peek 0.86s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* 「她看得见你」：指针或手指走到哪，头像就朝哪边偏一点点，像余光扫到有人走近。
+   幅度刻意小 —— 是瞟一眼，不是瞪着；方向由 HomeLive 写在这两个变量上（-1..1）。
+   写在头像的 translate 上（独立属性）：头像的 rotate 归摸头、transform 归 peek，
+   三本账各算各的，谁也盖不掉谁。
+   桌面用鼠标、手机上用手指走同一条 pointermove —— 两边都成立，
+   只是手机上手指多半正按着卡，那会儿卡片本来就在跟手，所以那时不动（见下面的禁用那几条） */
+.home-live-avatar,
+.home-online-avatar {
+  translate: calc(var(--look-x, 0) * 4px) calc(var(--look-y, 0) * 3px);
+  transition: translate 0.5s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+/* 正被拎着、正演着一段、或者正说到一半的时候别偏头：那会儿手和动作才是主角 */
+.home-live-slot.is-dragging .home-live-avatar,
+.home-live-slot.is-dragging .home-online-avatar,
+.home-live-slot.is-playing .home-live-avatar,
+.home-live-slot.is-playing .home-online-avatar {
+  translate: none;
+}
+
 .home-live-text {
   display: flex;
   flex: 1;
@@ -899,6 +919,12 @@ html.dark .home-live-avatar {
   .home-live-slot[data-pat] :deep(.home-online-glass) {
     animation: none;
   }
+
+  /* 怕晃的人这边也一并收掉：视线跟随也属于「会动的东西」 */
+  .home-live-avatar,
+  .home-online-avatar {
+    translate: none;
+  }
 }
 
 @keyframes home-live-in {
@@ -1151,6 +1177,23 @@ html.dark .home-live-avatar {
 /* 一起等：两只都朝同一个方向偏着，等着，中途只轻轻挪一下重心 */
 .home-live-slot.is-playing[data-play="waitTogether"] {
   animation: neko-play-wait-together 2.4s var(--play-ease);
+}
+
+/* —— 后来补的三段「隔着屏幕」的动作：只在台词点名时演（盯看那条线用） —— */
+
+/* 抬头看：望着屏幕外面那个人。正面立绘没法真仰头，靠上移加纵向拉伸做出「抬起头」的形状 */
+.home-live-slot.is-playing[data-play="lookUp"] {
+  animation: neko-play-look-up 2.6s var(--play-ease);
+}
+
+/* 扒着边缘往上探：往上够、整个人拉长一点，像趴在卡片边上看屏幕外面 */
+.home-live-slot.is-playing[data-play="leanOver"] {
+  animation: neko-play-lean-over 3.2s var(--play-ease);
+}
+
+/* 背过身去：不好意思了，缩一点、往旁边挪开视线 */
+.home-live-slot.is-playing[data-play="turnAway"] {
+  animation: neko-play-turn-away 2.8s var(--play-ease);
 }
 
 /* ===== 大编舞：动作大、时间长，隔一阵当一次特别节目，不掺进平时的打闹 ===== */
@@ -4265,6 +4308,71 @@ html.dark .home-live-avatar {
 
   86% {
     transform: translate(calc(var(--meet-x) * 0.04), calc(var(--meet-y) * 0.04)) rotate(-1deg);
+  }
+}
+
+/* 抬头看：上移加纵向拉伸 —— 立绘没法真仰头，只能靠形变让人读出「在看上面」。
+   中间停足一秒：她是在盯着看，不是瞟一下就过去 */
+@keyframes neko-play-look-up {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  26% {
+    transform: translate(0, -3px) scale(1.01, 1.02);
+  }
+
+  48%,
+  72% {
+    transform: translate(0, -6px) scale(1.02, 1.04);
+  }
+
+  88% {
+    transform: translate(0, -1px) scale(1, 1);
+  }
+}
+
+/* 扒着边缘往上探：先往下坐一点蓄力，再整个人拉长着往上够，最后落回来 */
+@keyframes neko-play-lean-over {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1, 1);
+  }
+
+  22% {
+    transform: translate(0, 2px) rotate(0deg) scale(1.02, 0.97);
+  }
+
+  44%,
+  66% {
+    transform: translate(0, -8px) rotate(0deg) scale(0.98, 1.06);
+  }
+
+  82% {
+    transform: translate(0, -2px) rotate(0deg) scale(1.01, 1.01);
+  }
+}
+
+/* 背过身去：缩一点、往旁边挪 —— 不真的水平翻转（卡上有字，翻过来就成镜像了），
+   靠「变小 + 让开」做出避开视线的意思 */
+@keyframes neko-play-turn-away {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+  }
+
+  24% {
+    transform: translate(0, 2px) scale(0.99, 0.97);
+  }
+
+  44%,
+  70% {
+    transform: translate(calc(-6px * var(--play-dir)), 0) scale(0.94, 0.98);
+  }
+
+  88% {
+    transform: translate(calc(-2px * var(--play-dir)), 0) scale(0.99, 1);
   }
 }
 

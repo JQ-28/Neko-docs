@@ -105,6 +105,18 @@ export interface ChatMood {
   readonly gates: MomentGates;
   /** 观众的小箭头半天没动过 */
   readonly cursorIdle: boolean;
+  /** 手到底停了多久（毫秒）：停半分钟、两分钟、五分钟，她想说的话不一样 */
+  readonly cursorIdleMs: number;
+  /** 这台设备主要用手指操作吗：台词要分两版 —— 桌面上能说「小箭头」，手机上只有手 */
+  readonly touch: boolean;
+  /** 刚把指针移出窗口（桌面才有这条路；手机上「人走了」是切后台） */
+  readonly pointerGone: boolean;
+  /** 刚滚过页面（「一口气滚到底」是另一档，这里说的是普通滚动） */
+  readonly scrolled: boolean;
+  /** 刚选中了一段文字（手机上长按复制走的是同一个事件） */
+  readonly selectionMade: boolean;
+  /** 刚把手机转过去（宽高互换才算，桌面改窗口大小不算） */
+  readonly flipped: boolean;
   /** 刚刚在同一个地方连戳了好几下 */
   readonly tapBurst: boolean;
   /** 刚刚一口气把整页滚到了底 */
@@ -1193,6 +1205,27 @@ const stareReady = (mood: ChatMood): boolean =>
 const stareLaterReady = (mood: ChatMood): boolean =>
   stareReady(mood) && mood.gates.stare;
 
+/** 手停下来多久算一档：两分钟、五分钟 —— 一次比一次更想问「人还在吗」
+    （半分钟那一档用的是 cursorIdle，门槛在 HomeLive 那边） */
+const IDLE_TWO_MIN_MS = 120_000;
+const IDLE_FIVE_MIN_MS = 300_000;
+/** 刚察觉到有人在看（秒）：够久了，但还没到「确认」那一步。
+    它不算进盯看那三段（不标 stare），所以不会把主线往前推 */
+const STARE_NOTICE_S = 15;
+/** 盯得太久（秒）：该不好意思了 */
+const STARE_LONG_S = 180;
+
+/** 刚察觉到有人在看：卡在「瞟见」与「确认」之间那一段 */
+const stareNoticeReady = (mood: ChatMood): boolean =>
+  mood.stareReady &&
+  mood.stare === 0 &&
+  mood.linger >= STARE_NOTICE_S &&
+  mood.linger < STARE_LINGER_S;
+
+/** 看太久了，该不好意思了：排在主线第三段之后（stare === 3） */
+const stareLongReady = (mood: ChatMood): boolean =>
+  mood.stareReady && mood.gates.stare && mood.linger >= STARE_LONG_S;
+
 /** 梗档共用的门槛：这一轮轮得到梗（骰子摇好放在 mood.gates 里，这里不摇） */
 const memeReady = (mood: ChatMood): boolean =>
   mood.memeReady && mood.gates.meme;
@@ -1205,14 +1238,47 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
   // 稀客才说的话：同一个 key 说过一次就歇一阵（在 live-chat 里按 once 记账）
   {
     cast: "mixed",
-    when: (mood) => mood.cursorIdle,
+    when: (mood) => mood.cursorIdle && !mood.touch,
     egg: "cursorStill",
-    once: "cursorIdle",
+    once: "cursorStill",
     turns: [
       { by: "neko", line: "诶…那个小箭头，好久没挪过了喵" },
       { by: "online", line: "指针静止。人还在，只是手放下了" },
       { by: "neko", line: "手放下了，是在偷吃布丁喵？我也想吃" },
       { by: "online", line: "无法验证。要不要他自己承认一下" },
+    ],
+  },
+  // 同一件事，手机上得换一版说法：屏幕上根本没有「小箭头」，只有手指
+  {
+    cast: "mixed",
+    when: (mood) => mood.cursorIdle && mood.touch,
+    once: "cursorStillTouch",
+    turns: [
+      { by: "neko", line: "手放下来了吗喵？" },
+      { by: "online", line: "没有新触点了。页面还开着，人还在旁边" },
+      { by: "neko", line: "不碰我也没关系，我留在这儿就行喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => mood.cursorIdleMs >= IDLE_TWO_MIN_MS,
+    once: "cursorIdleTwoMin",
+    turns: [
+      { by: "online", line: "停了一会儿了，没有新动静" },
+      { by: "neko", line: "一会儿是多久喵" },
+      { by: "online", line: "按网页停留算：够久了" },
+      { by: "neko", line: "那我把力气省着，等他回来再喊喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => mood.cursorIdleMs >= IDLE_FIVE_MIN_MS,
+    once: "cursorIdleFiveMin",
+    turns: [
+      { by: "neko", line: "好久没动静了喵…" },
+      { by: "online", line: "可能只是把页面开着当背景音" },
+      { by: "neko", line: "当背景音也行，我不吵他" },
+      { by: "online", line: "你刚才那句已经挺吵了" },
     ],
   },
   {
@@ -1287,6 +1353,27 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
       { by: "neko", line: "是不是我脸上有东西喵…？" },
       { by: "online", line: "不是，他只是喜欢看猫" },
       { by: "neko", line: "那我就当他在夸我好看喵", act: "lookOut" },
+    ],
+  },
+  // 盯看这条线的两头：刚瞟见有人（还没到确认），以及被看得太久、开始不好意思
+  {
+    cast: "mixed",
+    when: (mood) => stareNoticeReady(mood),
+    once: "stareNotice",
+    turns: [
+      { by: "neko", line: "诶…你还在看我们呀喵", act: "lookUp" },
+      { by: "online", line: "停留时长在涨。他在" },
+      { by: "neko", line: "那就好，我继续摆好看一点喵" },
+    ],
+  },
+  {
+    cast: "mixed",
+    when: (mood) => stareLongReady(mood) && mood.stare === 3,
+    stare: true,
+    turns: [
+      { by: "neko", line: "…别一直盯着啦，我会不好意思的喵", act: "turnAway" },
+      { by: "online", line: "你把脸转过去了。他还在看" },
+      { by: "neko", line: "那我看回来一点点就好喵" },
     ],
   },
   // 深夜
@@ -1493,6 +1580,53 @@ export const CHAT_MOMENTS: readonly ChatMoment[] = [
     turns: [
       { by: "neko", line: "你去哪儿了喵？我尾巴都等直了" },
       { by: "online", line: "他刚才去了别的标签页" },
+    ],
+  },
+  // 指针移出窗口：桌面独占的一档（手机上「人走了」是切成别的 App，
+  // 那条走 visibilitychange，跟「切回来」是同一对儿）
+  {
+    cast: "mixed",
+    when: (mood) => mood.pointerGone && !mood.touch,
+    once: "pointerGone",
+    turns: [
+      { by: "neko", line: "诶…走了喵？", act: "leanOver" },
+      { by: "online", line: "指针已离开窗口。他没关页面，只是切走了" },
+      { by: "neko", line: "那他还会回来吗喵" },
+      { by: "online", line: "按以往：会回来。只是说不准多久" },
+    ],
+  },
+  // 滚页面（不是「一口气滚到底」那一档：那个是稀客，这个只是随手往下翻）
+  {
+    cast: "mixed",
+    when: (mood) => mood.scrolled,
+    once: "scrolled",
+    turns: [
+      { by: "neko", line: "别滚那么快，我话还没说完喵" },
+      { by: "online", line: "他在往下找东西。不是找你" },
+      { by: "neko", line: "找什么喵？我这里什么都有" },
+    ],
+  },
+  // 选中了一段文字：桌面是拖动选中，手机是长按复制，走的是同一个事件
+  {
+    cast: "mixed",
+    when: (mood) => mood.selectionMade,
+    once: "selection",
+    turns: [
+      { by: "neko", line: "咦，你把我圈起来了喵" },
+      { by: "online", line: "他选中了一段。多半是要复制指令" },
+      { by: "neko", line: "复制可以，别忘了回来用喵" },
+    ],
+  },
+  // 手机被转过去：只有触摸设备会这样（桌面拖窗口大小不算）
+  {
+    cast: "mixed",
+    when: (mood) => mood.flipped && mood.touch,
+    once: "flipped",
+    turns: [
+      { by: "neko", line: "哇，世界转了一圈喵！" },
+      { by: "online", line: "屏幕方向变了。我在重新量间距" },
+      { by: "neko", line: "那我们还是并排站着吗喵" },
+      { by: "online", line: "现在是。要是挤不下就改成上下摞着" },
     ],
   },
   // 挂机：页面开着、人可能已经走了。按停留时长分两档（过了一刻钟 / 过了一个钟头）。
