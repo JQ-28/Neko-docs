@@ -1,6 +1,7 @@
 ---
 title: 使用须知
 icon: /assets/icon/splotch.svg
+order: 3
 copyright: false
 footer: Neko docs - 使用须知
 ---

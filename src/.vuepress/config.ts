@@ -147,13 +147,23 @@ async function generateRecentUpdates(): Promise<void> {
   writeFileSync(path.resolve(publicDir, "recent-updates.json"), JSON.stringify(items), "utf-8");
 }
 
+// 指令页普遍没写 description，取不到就一路退到全站默认 —— 那样几十个指令页在搜索结果
+// 与分享卡片里会共用同一句描述。所以补一层兜底：拿页面标题 + 第一条指令说明拼一句
+function pageDescription(title: string, frontmatter: Record<string, unknown>): string {
+  const explicit = frontmatter.description as string | undefined;
+  if (explicit) return explicit;
+  const hints = frontmatter.commandHints as Record<string, string> | undefined;
+  const [firstHint] = Object.values(hints ?? {});
+  return firstHint ? `${title} · ${firstHint}` : SITE_DESC;
+}
+
 // 给每页注入 OG/Twitter 社交卡片与 canonical，搜索引擎和聊天分享都能拿到正确的标题
 function injectSEO(app: App): void {
   for (const page of app.pages) {
     if (page.path === "/404.html") continue;
     const canonical = `${SITE_URL}${page.path}`;
     const title = page.title || SITE_NAME;
-    const description = (page.frontmatter.description as string | undefined) || SITE_DESC;
+    const description = pageDescription(title, page.frontmatter);
     const head: [string, Record<string, string>][] = [
       ["meta", { property: "og:title", content: title }],
       ["meta", { property: "og:description", content: description }],

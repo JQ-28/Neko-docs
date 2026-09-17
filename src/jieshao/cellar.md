@@ -25,7 +25,7 @@ footer: 楼下的灯一直亮着，留一格给暂时不想说话的你
 ::: center
   ```component VPCard
   title: ღ小猫窝地下室ღ
-  desc: 喵呜喵呜喵呜喵呜
+  desc: 楼下。现在人都在这儿
   logo: http://p.qlogo.cn/gh/1061878042/1061878042/
   link: https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info
   background: rgba(253, 226, 211, 0.4)
@@ -43,8 +43,10 @@ footer: 楼下的灯一直亮着，留一格给暂时不想说话的你
 
 ## ★ **这里是什么** ★
 
-地下室不是临时搭起来的帐篷，也不是谁逃难时随手挖的洞——它一直都在房子的设计图里，只是大门常年虚掩，很少有人走下来过。
-JQ-28 第一次推开那道木门时，发现里面早就铺好了地毯，壁炉也是温的，像是专门留着，等某一天楼上太吵的时候，给大家一个可以喘气的地方。
+地下室一直都在房子的设计图里，大门常年虚掩，很少有人走下来过。
+
+JQ-28 第一次推开那道木门时，里面早就铺好了地毯，壁炉也是温的，像是专门留着，等某一天楼上太吵的时候，给大家一个可以喘气的地方。
+
 从那天起，这里就被正式启用了。墙是旧的，灯是新的，气味介于旧书和奶茶之间。
 
 ## ✮ **地下空间一览** ✮

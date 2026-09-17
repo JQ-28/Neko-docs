@@ -4,7 +4,7 @@ title: Neko_dayo~
 # 这是页面的图标
 icon: http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640
 # 这是侧边栏的顺序
-order: 2
+order: 3
 # 设置作者
 author: JQ-28
 # 一个页面可以有多个分类
