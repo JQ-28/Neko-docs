@@ -1,7 +1,7 @@
 import { defineUserConfig, type App } from "vuepress";
 import { getDirname, path } from "vuepress/utils";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import theme from "./theme.js";
 
@@ -95,8 +95,38 @@ async function readFromAtomFeed(): Promise<RecentCommit[]> {
   return items;
 }
 
-// 构建期读取 git 提交历史（与 GitHub commits 页一致），写入 public/recent-updates.json 供首页展示
+// 手写条目读 src/.vuepress/recent-updates.md，一行一条：- 2026-09-17 21:30 内容
+function readHandWrittenUpdates(): RecentCommit[] {
+  try {
+    const markdown = readFileSync(path.resolve(__dirname, "recent-updates.md"), "utf-8");
+    const items: RecentCommit[] = [];
+    for (const line of markdown.split(/\r?\n/)) {
+      const match = line.match(/^- (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) (.+)$/);
+      if (match) items.push({ time: match[1], message: match[2].trim() });
+    }
+    return items;
+  } catch {
+    return [];
+  }
+}
+
+// 多个来源按时间倒序混排，去掉重复的，最多留 RECENT_COUNT 条
+function mergeUpdates(sources: RecentCommit[][]): RecentCommit[] {
+  const seen = new Set<string>();
+  const merged: RecentCommit[] = [];
+  for (const item of sources.flat().sort((a, b) => b.time.localeCompare(a.time))) {
+    const key = `${item.time}\u001f${item.message}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+    if (merged.length >= RECENT_COUNT) break;
+  }
+  return merged;
+}
+
+// 构建期读取 git 提交历史（与 GitHub commits 页一致）与手写条目，写入 public/recent-updates.json 供首页展示
 async function generateRecentUpdates(): Promise<void> {
+  const handWritten = readHandWrittenUpdates();
   let items = readFromGit();
   if (items.length < RECENT_COUNT) {
     try {
@@ -106,11 +136,12 @@ async function generateRecentUpdates(): Promise<void> {
       console.warn(`[recent-updates] 远端提交列表没取到，沿用 git 的 ${items.length} 条：`, error);
     }
   }
+  items = mergeUpdates([handWritten, items]);
   if (!items.length) {
     console.warn("[recent-updates] 提交历史为空，首页会隐藏「最近更新」区块");
     return;
   }
-  console.log(`[recent-updates] 写入 ${items.length} 条提交记录`);
+  console.log(`[recent-updates] 写入 ${items.length} 条更新记录`);
   const publicDir = path.resolve(__dirname, "public");
   mkdirSync(publicDir, { recursive: true });
   writeFileSync(path.resolve(publicDir, "recent-updates.json"), JSON.stringify(items), "utf-8");
