@@ -16,5 +16,8 @@ PROJECT_CONTEXT.md
 # 世界观设计文档（仅本地，不上传）
 小猫窝世界设计.md
 
+# ARG 设计文档（仅本地，不上传）
+ARG设计.md
+
 # 构建期由 config.ts 自动生成（git log 提取的最近更新）
 src/.vuepress/public/recent-updates.json
