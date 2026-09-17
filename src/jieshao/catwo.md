@@ -60,6 +60,26 @@ footer: 系统提示：永恒服务器的剩余运行时间——∞
 
 ## ✮ **空间设施** ✮
 
+<svg viewBox="0 0 360 200" width="100%" role="img" aria-label="楼上的平面：大厅、客房区、数据温泉、BUG游乐场四个房间，以及通往地下室的旋转楼梯" style="display: block; max-width: 520px; height: auto; margin: 6px auto 18px" xmlns="http://www.w3.org/2000/svg">
+  <path d="M16 40 L180 10 L344 40" style="fill: none; stroke: var(--vp-c-border, #e6ebf1); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round" />
+  <rect x="16" y="40" width="328" height="112" rx="8" style="fill: none; stroke: var(--vp-c-border, #e6ebf1); stroke-width: 2" />
+  <g style="fill: var(--vp-c-bg-soft, #f4f8fd); stroke: var(--vp-c-border, #e6ebf1); stroke-width: 1.5">
+    <rect x="28" y="52" width="147" height="39" rx="6" />
+    <rect x="185" y="52" width="147" height="39" rx="6" />
+    <rect x="28" y="101" width="147" height="39" rx="6" />
+    <rect x="185" y="101" width="147" height="39" rx="6" />
+  </g>
+  <rect x="28" y="101" width="147" height="39" rx="6" style="fill: #ff9ed5; fill-opacity: 0.18; stroke: #7fb0ff; stroke-opacity: 0.55" />
+  <g style="fill: var(--vp-c-text, #2b2b2b); font-size: 12px; text-anchor: middle">
+    <text x="101.5" y="76">大厅</text>
+    <text x="258.5" y="76">客房区</text>
+    <text x="101.5" y="125">数据温泉</text>
+    <text x="258.5" y="125">BUG游乐场</text>
+  </g>
+  <rect x="16" y="164" width="328" height="26" rx="6" style="fill: none; stroke: var(--vp-c-border, #e6ebf1); stroke-width: 1.5; stroke-dasharray: 5 5" />
+  <text x="180" y="181" style="fill: var(--vp-c-text-mute, #7a8699); font-size: 11px; text-anchor: middle">顺着地板缝里的旋转楼梯往下 · 第三道木门后面是地下室</text>
+</svg>
+
 - **大厅**：全天候不打烊的全息聊天室。消息像气泡一样悬浮在半空，文字、语音、表情包都可以扔进来，落地的时候会轻轻弹一下。
 - **客房区**：每个房间的样子都不太一样，因为它们是按照住客的潜意识悄悄长出来的——有人住进去发现是树屋，有人推开门是一整墙的漫画。
 - **数据温泉**：冒着热气的一池数据，专门用来泡掉一天的疲惫。泡久了会有点想睡，这是正常现象。

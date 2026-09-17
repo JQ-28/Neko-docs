@@ -51,6 +51,29 @@ JQ-28 第一次推开那道木门时，里面早就铺好了地毯，壁炉也�
 
 ## ✮ **地下空间一览** ✮
 
+<svg viewBox="0 0 360 236" width="100%" role="img" aria-label="楼下的平面：根系图书馆、回声邮筒、静电壁炉、慢闪长廊、旧物寄存柜五个房间，以及一直坏着的电梯" style="display: block; max-width: 520px; height: auto; margin: 6px auto 18px" xmlns="http://www.w3.org/2000/svg">
+  <rect x="16" y="8" width="328" height="26" rx="6" style="fill: none; stroke: var(--vp-c-border, #e6ebf1); stroke-width: 1.5; stroke-dasharray: 5 5" />
+  <text x="180" y="25" style="fill: var(--vp-c-text-mute, #7a8699); font-size: 11px; text-anchor: middle">从楼上的地板缝顺着旋转楼梯下来</text>
+  <rect x="16" y="44" width="328" height="140" rx="8" style="fill: none; stroke: var(--vp-c-border, #e6ebf1); stroke-width: 2" />
+  <g style="fill: var(--vp-c-bg-soft, #f4f8fd); stroke: var(--vp-c-border, #e6ebf1); stroke-width: 1.5">
+    <rect x="28" y="56" width="94.7" height="53" rx="6" />
+    <rect x="132.7" y="56" width="94.7" height="53" rx="6" />
+    <rect x="237.3" y="56" width="94.7" height="53" rx="6" />
+    <rect x="28" y="119" width="147" height="53" rx="6" />
+    <rect x="185" y="119" width="147" height="53" rx="6" />
+  </g>
+  <rect x="185" y="119" width="147" height="53" rx="6" style="fill: #ff9ed5; fill-opacity: 0.18; stroke: #7fb0ff; stroke-opacity: 0.55" />
+  <g style="fill: var(--vp-c-text, #2b2b2b); font-size: 12px; text-anchor: middle">
+    <text x="75.3" y="87">根系图书馆</text>
+    <text x="180" y="87">回声邮筒</text>
+    <text x="284.7" y="87">静电壁炉</text>
+    <text x="101.5" y="150">慢闪长廊</text>
+    <text x="258.5" y="150">旧物寄存柜</text>
+  </g>
+  <rect x="16" y="196" width="328" height="26" rx="6" style="fill: none; stroke: var(--vp-c-border, #e6ebf1); stroke-width: 1.5; stroke-dasharray: 5 5" />
+  <text x="180" y="213" style="fill: var(--vp-c-text-mute, #7a8699); font-size: 11px; text-anchor: middle">电梯一直是坏的 · 地下室本来也不需要电梯</text>
+</svg>
+
 - **根系图书馆**：书架由交错的根须搭成，借阅记录会被悄悄写进树皮的纹路里，从不催还。
 - **回声邮筒**：投进去一句话，过一会儿会用一种意想不到的声音读给你听，常被用来给自己写信。
 - **静电壁炉**：没有真正的火，但靠近时会传来轻微的爆米花声，适合裹着毯子发呆。
