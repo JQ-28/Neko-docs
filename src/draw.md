@@ -11,9 +11,75 @@ footer: 教我画画
 <div style="text-align: center; margin: 30px 0;">
   <p style="font-size: 18px; color: #666; line-height: 1.8;">
     Neko Bot 的历史立绘、头像、小表情<br>
-    <span style="font-size: 14px; color: #999;">均出自 JQ 之手（黑历史 ww）</span>
+    <span style="font-size: 14px; color: #999;">均出自 JQ 之手</span>
   </p>
 </div>
+
+## 时光机
+
+只能往回走。一共四站。
+
+:::details 打开看看
+
+**第一站 · 2022 年 2 月 22 日**
+
+她还不叫 Neko。脸是《原神》里珊瑚宫心海的，骨架是 QRspeed 的词库——底层就是在 txt 里写伪代码。连存数据的目录都叫「心海」。
+
+那天的菜单长这样（图里的 QQ 号已经弃用了）：
+
+<img src="https://drive.nekodayo.top/raw/nekodocs/image/kokomi-menu-2022.jpg" alt="心海时代的菜单" width="380" loading="lazy">
+
+菜单上那串触发词，今天大多还在：
+
+- 签到：连错字都认，「枣」「皂」「おはよう」都算成功
+- 抽卡：八秒冷却，抽完现场画一张 1500×900 的图回你
+- 好感度：加完她会说「谢谢你陪我玩，好感度加 %随%」
+- 瓶子：扔瓶子、捞瓶子，就是今天的漂流瓶
+
+她当年的写法是这样：
+
+```text
+[群]原神(抽卡|祈愿|十连)
+a:$读 心海/%群%/开关 a 已关闭$
+如果:%a%==已关闭
+返回
+如果尾
+$写 心海/抽卡/%群%/冷却 %QQ% [%Time%+8]$
+```
+
+---
+
+**第二站 · 2022 年 11 月 25 日**
+
+第一次亲手画她。
+
+照着别人的「爬」表情包描改的，Q 版，指着人的头像喊「爬」。脸还是借的。
+
+<img src="https://drive.nekodayo.top/raw/nekodocs/image/neko-pa-2022.png" alt="描改的表情包底图" width="280" loading="lazy">
+
+---
+
+**第三站 · 2024 年 5 月 14 日**
+
+第一张属于她自己的画。
+
+<img src="https://drive.nekodayo.top/raw/nekodocs/image/neko1.jpg" alt="初代头像" width="300" loading="lazy">
+
+也是从这天起，脸是她的了。
+
+---
+
+**第四站 · 今天**
+
+她还在长。
+
+装她的东西换过好几种——QRspeed 的词库，云崽，NoneBot——房子没搬过。
+
+> 她最早的那几版已经找不到了。那时候每存一次盘，上一版就被盖掉。
+
+:::
+
+再往下，是她画过的每一张——从最新的一张开始倒着排。
 
 ---
 
