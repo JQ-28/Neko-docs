@@ -19,6 +19,7 @@ commands:
   - "pcount on"
   - "pcount off"
   - "添加机厅"
+  - "/net"
 commandHints:
   "更新b50": "更新 maimai b50 成绩"
   "水鱼绑定": "绑定水鱼查分账号"
@@ -26,11 +27,15 @@ commandHints:
   "pcount on": "开启局数统计"
   "pcount off": "关闭局数统计"
   "添加机厅": "添加常去的机厅"
+  "/net": "查看舞萌DX 服务器实时状态"
 commandKeywords:
   - "maimai"
   - "b50"
   - "水鱼"
   - "机厅"
+  - "服务器"
+  - "断网"
+  - "状态"
 commandOrder: 69
 ---
 
@@ -103,3 +108,41 @@ pcount on: 在本群开启这个插件~ 不开启的话，下面的指令（除�
 - 修改地区名 [地区名]: 使用类似于 `修改地区名 wmc聚集地` 的指令来修改地区名哦~
 
 注意注意~！各个群聊的数据都是不一样的，需要自行配置机厅哦~
+
+---
+
+  ```component VPCard
+  title: nonebot-plugin-maimaimonitor
+  desc: 舞萌DX 服务器状态实时查询
+  logo: /assets/icon/github.svg
+  link: https://github.com/CEPATECH/nonebot-plugin-maimaimonitor
+  background: rgba(248, 248, 255, 0.3)
+  ```
+
+### **以下文档均转自github项目文档**  
+**如有侵权请联系删除**
+
+## **查看服务器状态**
+
+不用配置私钥也能查，直接在群里发 `/net`、`网咋样` 或 `炸了吗`，就会回一份当前状态：
+
+```
+【舞萌DX游戏服务器状态】
+🟢 一切正常
+【服务状态】
+🟢 NET      42ms
+🟢 会员      38ms
+🟢 标题      45ms
+🟢 公众号(NET)  51ms
+🟢 公众号(二维码) 60ms
+🟢 计费  62ms
+⏱ 当前延迟：42ms｜服务器负载：流畅｜延迟稳定
+💬 服务器运行正常
+• 1小时前 中国 机台断网
+• 4小时前 JP 机台无法登录
+🔗 详情请查看 https://mai.chongxi.us/
+```
+
+哪台服务器出了问题，这份状态里会直接标出来，不用自己挨个试。
+
+数据来自 [isMaiDown](https://mai.chongxi.us)，不想在群里问也可以直接开网页看。
