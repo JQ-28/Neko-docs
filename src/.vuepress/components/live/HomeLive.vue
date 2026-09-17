@@ -730,7 +730,8 @@ function compensateScroll(): void {
   syncBubbleSide(drag.slot, rect.top);
 }
 
-/** 一口气从顶滚到底：从顶部算起两秒半之内见底才算「嗖一下」（`SCROLL_DASH_MS`） */
+/** 一口气从顶滚到底：从顶部算起四秒之内见底才算「嗖一下」（`SCROLL_DASH_MS`）。
+    原来只给两秒半，滑得稍慢一点就撞不上，那一档「被滚晕」几乎出不来 */
 function onScroll(): void {
   const now = Date.now();
   lastScrollAt = now;

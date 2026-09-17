@@ -178,7 +178,6 @@ export default sidebar({
               collapsible: true,
               children: [
                 "wsk",
-                "disconnect",
                 "withdraw",
               ]
             },
@@ -245,7 +244,6 @@ export default sidebar({
                "bottle",
                "ciyun",
                "Poke-Plugin",
-               "jq",
              ]
            },
           ],

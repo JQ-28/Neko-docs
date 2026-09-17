@@ -156,8 +156,8 @@ background: rgba(248, 248, 255, 0.3)
 ```
 
 ```component VPCard
-title: GitHub卡片
-desc: 自动识别GitHub链接生成卡片
+title: Git 仓库助手
+desc: 查仓库 / Issue / PR / README，还能订阅更新
 logo: /assets/icon/github.svg
 link: githubcard
 background: rgba(248, 248, 255, 0.3)
@@ -196,14 +196,6 @@ title: 谁问你了？
 desc: 那我问你
 logo: /assets/icon/material-symbols--question-mark.svg
 link: wsk
-background: rgba(248, 248, 255, 0.3)
-```
-
-```component VPCard
-title: 断连通知
-desc: Bot断连时自动通知管理员
-logo: /assets/icon/terminal.svg
-link: disconnect
 background: rgba(248, 248, 255, 0.3)
 ```
 

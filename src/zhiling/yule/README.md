@@ -283,12 +283,4 @@ link: Poke-Plugin
 background: rgba(248, 248, 255, 0.3)
 ```
 
-```component VPCard
-title: 视奸jq
-desc: 👁👁
-logo: /assets/icon/eye.svg
-link: jq
-background: rgba(248, 248, 255, 0.3)
-```
-
 
