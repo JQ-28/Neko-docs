@@ -1,6 +1,7 @@
 ---
 title: 请 neko 之前
 icon: /assets/icon/circle-nodes.svg
+description: 把她请进你的群之前，先弄清这 10 件事：要不要钱、会不会刷屏、怎么退。
 order: 1
 category:
   - Neko

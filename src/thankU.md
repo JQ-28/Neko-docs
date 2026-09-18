@@ -1,6 +1,7 @@
 ---
 title: 感谢名单
 icon: /assets/icon/heart.svg
+description: 赞助过 neko 的每一位，昵称都记在这里。
 pageview: true
 copyright: false
 footer: Neko docs - 感谢名单

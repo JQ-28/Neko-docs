@@ -1,6 +1,7 @@
 ---
 title: 赞助
 icon: /assets/icon/face-kiss-wink-heart.svg
+description: 她跑在开发者的笔记本上，电费网费话费都是自掏，赞助全部花在她身上。
 pageview: true
 copyright: false
 footer: 我很可爱，请给我打钱

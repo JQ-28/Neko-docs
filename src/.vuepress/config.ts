@@ -183,7 +183,7 @@ export default defineUserConfig({
 
   lang: "zh-CN",
   title: "Neko docs",
-  description: "一个可爱的超多功能QQ群机器人",
+  description: "免费公益的猫娘 QQ 群机器人：指令文档、在线状态、邀群申请与常见问题。",
 
   theme,
 

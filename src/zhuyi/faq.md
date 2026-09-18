@@ -1,6 +1,7 @@
 ---
 title: 常见问题
 icon: /assets/icon/material-symbols--question-mark.svg
+description: 关于使用、邀群、她的设定和运营的常见问题，一条条答。
 order: 5
 category:
   - Neko
@@ -12,7 +13,7 @@ footer: Neko docs - 常见问题
 
 # 常见问题 FAQ
 
-这里收集了用户最常遇到的问题和解答，答案与 neko 小助手的回答保持一致。
+这里收集了用户最常遇到的问题。和使用相关的解答与 neko 小助手保持一致，运营相关的几个问题小助手答不上来，以这里为准。
 
 :::tip 找不到答案？
 如果你的问题在这里没有找到答案，欢迎前往 [反馈页面](/about/fankui) 提出你的问题喵~
@@ -26,19 +27,19 @@ footer: Neko docs - 常见问题
 
 :::details 点击查看详细原因
 
-BOT 没反应可能有以下几种情况：
+Neko 没回你，一般是这几种情况：
 
 1. **指令在冷却中（CD）**
-   某些功能有使用间隔限制，请稍后再试
+   某些功能有使用间隔限制，稍后再试
 
-2. **账号风控冻结**
-   QQ 账号被腾讯临时限制
+2. **账号被风控**
+   主号被风控时会自动切到小号顶上，而小号只在小猫窝群活动，外部群这段时间就找不到她。详见下文「Neko 为什么经常被风控」
 
 3. **对应功能程序异常**
    可能在调试或修复中
 
 4. **电脑离线**
-   主机可能暂时关闭或重启中
+   她跑在开发者的个人电脑上，可能正在关机或重启。实时状态看 [机器人在线状态](/zhuangtai)
 
 :::
 
@@ -48,7 +49,7 @@ BOT 没反应可能有以下几种情况：
 
 Neko 在 **QQ 群聊和私聊** 中为大家服务。
 
-她运行在开发者的个人电脑上，所以偶尔会因维护、关机而短暂离线（会提前在群内通知）。
+她没有自己的服务器，一直住在开发者的个人电脑上。维护、关机，或者开发者临时有事，她都会短暂离线（一般会提前在群内通知）。想确认她此刻在不在，看 [机器人在线状态](/zhuangtai)。
 
 大部分功能是**被动触发**的，需要发送对应指令才会回复；部分功能（如签到）需要主动使用。
 
@@ -62,10 +63,10 @@ Neko 在 **QQ 群聊和私聊** 中为大家服务。
 
 :::details 点击查看
 
-未经允许请勿擅自拉群。**决定之前先看 [请 neko 之前](/zhuyi/invite)**（10 件事，两分钟看完）。想邀请 Neko：
+未经允许请勿擅自拉群，**决定之前先看 [请 neko 之前](/zhuyi/invite)**（10 件事，两分钟看完）。想邀请 Neko：
 
-1. 填写 [邀群问卷](/qunliao)（或在线申请表单）
-2. 也可以直接加入 [小猫窝地下室](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info) 主群找 JQ
+1. 打开 [邀群申请页](/qunliao)，问卷和在线表单都在这一页
+2. 也可以直接加入 [小猫窝地下室][catwo] 主群找 JQ
 3. 审核通过后 JQ 会主动联系你
 
 :::
@@ -76,7 +77,7 @@ Neko 在 **QQ 群聊和私聊** 中为大家服务。
 
 审核通常在 **1-3 个工作日**内完成，结果会通过 **QQ 邮箱**或 QQ 私信通知你。
 
-如果超过一周仍未收到回复，可以加入 [小猫窝地下室](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info) 主群或在 [反馈页](/about/fankui) 留言询问。
+如果超过一周仍未收到回复，可以加入 [小猫窝地下室][catwo] 主群或在 [反馈页](/about/fankui) 留言询问。
 
 :::
 
@@ -84,9 +85,9 @@ Neko 在 **QQ 群聊和私聊** 中为大家服务。
 
 :::details 点击查看
 
-Neko **已关闭自动同意加好友**。
+Neko 已关闭自动同意加好友。
 
-如需绑定游戏账号、查询个人信息等私聊需求，请先联系开发者 **JQ-28** 说明一下情况。
+如需绑定游戏账号、查询个人信息等私聊需求，请先联系开发者 [JQ-28](/about/me) 说明一下情况。
 
 :::
 
@@ -117,6 +118,92 @@ Neko **已关闭自动同意加好友**。
 
 :::
 
+### 我可以画 Neko、给她做同人吗？
+
+:::details 点击查看
+
+可以，而且不用来问我。画、写、剪视频、做无料周边、cos 都行，发到哪都行。
+
+只有几条硬规矩：全年龄向（她是未成年外观，这条不能碰）、别让人误以为是官方出的、别拿她做交易。
+
+完整规则见 [二创与同人](/zhuyi/erchuang)。
+
+:::
+
+---
+
+## 关于 Neko 的运营
+
+### Neko 是免费的吗？以后会收费吗？
+
+:::details 点击查看
+
+Neko 完全免费，一直是公益性质。
+
+她不会加付费功能，也不承接定制开发。第三方 QQ 机器人一旦涉及盈利，是有被起诉的先例的，这个风险我不打算碰。
+
+目前的花销（设备、维护等）全靠群友自愿赞助撑着。赞助就是帮忙，不换任何东西。
+
+:::
+
+### Neko 是什么时候开始做的？
+
+:::details 点击查看
+
+2021 年。那时我第一次接触 QQ 机器人，第一反应是「太酷了，我也要搞一个」，然后一路折腾到现在。
+
+本来只是一时兴起，没想到会有这么多人喜欢她。
+
+:::
+
+### Neko 为什么经常被风控？
+
+:::details 点击查看
+
+第三方机器人要实现一些功能，多少需要点「魔法工具」，而腾讯QQ对这类账号的风控在持续收紧。Neko 长期都处在被限制的边缘。
+
+也可能有人举报。被处理时我这边只能看到「账号被限制了」，是系统误判还是真有人搞事，我分辨不出来。
+
+所以多准备几个账号、把风险摊开，是目前想到的办法。
+
+:::
+
+### Neko 为什么跑在个人电脑上？会换服务器吗？
+
+:::details 点击查看
+
+因为没有稳定的资金租服务器，她一直寄在开发者那台笔记本里。关机、维护、机器发烫的时候就会掉线。
+
+如果哪天有了稳定的资金支持，第一件事就是给她换一台正经的服务器，24 小时在线，不用跟着我一起冒热风。
+
+:::
+
+### Neko 会支持微信、QQ 频道吗？
+
+:::details 点击查看
+
+这是考虑中的方向，大致思路是：
+
+1. 先把多账号分担做起来，避免风险都压在主号上
+2. 再引入腾讯官方机器人作为稳定补充（功能会受限）
+3. 之后才逐步考虑拓展到微信、QQ 频道等平台
+
+不过大家还是更习惯在 QQ 上和她互动，短期内她仍以 QQ 为主。
+
+:::
+
+### Neko 会一直做下去吗？
+
+:::details 点击查看
+
+说实话，累的时候确实想过不搞了。
+
+但 Neko 已经长进我的生活。编程、画画、折腾各种东西，几乎都绕着她转，真要放下很难。
+
+只要还撑得住，我就继续做。也谢谢一路陪着的人。
+
+:::
+
 ---
 
 ## 使用规范
@@ -137,5 +224,7 @@ Neko **已关闭自动同意加好友**。
 
 :::tip 还有问题？
 加入 **小猫窝地下室** 主群，和大家一起交流吧！
-[点击加入](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info)
+[点击加入][catwo]
 :::
+
+[catwo]: https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info

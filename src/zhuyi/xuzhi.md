@@ -1,6 +1,7 @@
 ---
 title: 使用须知
 icon: /assets/icon/splotch.svg
+description: 日常使用注意事项：服务说明、被动触发机制、违规红线。
 order: 3
 copyright: false
 footer: Neko docs - 使用须知

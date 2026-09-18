@@ -1,6 +1,7 @@
 ---
 title: 快速上手
 icon: /assets/icon/sheet-plastic.svg
+description: 从把她请进群到玩上第一个指令，三步走完，附一段可以直接发群里的介绍。
 pageview: true
 copyright: false
 footer: Neko docs - 快速上手
@@ -14,10 +15,9 @@ footer: Neko docs - 快速上手
 
 ## 第一步 · 把 neko 请进群
 
-neko 目前住在许多 QQ 群聊里，想让她来你的群做客，需要先通过审核。三个途径任选其一：
+neko 目前住在许多 QQ 群聊里，想让她来你的群做客，需要先通过审核。两个途径任选其一：
 
-- 填写 [邀群问卷](/qunliao)，说明你的群和用途
-- 在 [添加至群聊](/qunliao) 页填写在线申请表单，和问卷二选一即可
+- 打开 [邀群申请页](/qunliao)，问卷和在线申请表单都在这一页，填完等审核
 - 直接加入 [小猫窝地下室](https://qun.qq.com/universal-share/share?ac=1&authKey=vMjh2ULH9US8HuGMccqVtTpewIbIm%2Bl0f7XCAjnYAFJlJQCjRDNLYr0OTT%2FjpXFa&busi_data=eyJncm91cENvZGUiOiIxMDYxODc4MDQyIiwidG9rZW4iOiJsOWFlbzdBK251SnlLbEdjMUtlbGNIbTNVYlp3Y1lWQlFRWUJQOGFnQ0srSkt5NXVxR1o5VlV3VkE2R1lNaitmIiwidWluIjoiNDgwMzUyNzE2In0%3D&data=-2NyJE-uEwgwJLO5jZG9chSIH_vc1dPMVAASpB3akNFqV5Bcf7XRdwLgTMCqkoAB285vr36EeOcepSFMQzvI7Q&svctype=4&tempid=h5_group_info) 主群，在里面喊一声 JQ，说明你的群和用途
 
 审核通常在 **1-3 个工作日**内完成，通过后 JQ 会主动联系你，把 neko 拉进群。
@@ -53,7 +53,7 @@ neko 是免费纯公益运营的，遇到问题请友好反馈，辱骂和恶意
 
 ## 常见疑问速查
 
-- [Neko 有时候不回我的消息，是什么情况？](/zhuyi/faq)
+- [Neko 有时候不回我的消息，是什么情况？](/zhuyi/faq#neko-有时候不回我的消息-是什么情况)
 - [怎么邀请 Neko 进我的群？](/qunliao)
 - [看看 Neko 的介绍](/jieshao/neko)
 - [想支持 Neko？](/zanzhu)

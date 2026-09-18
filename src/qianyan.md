@@ -1,6 +1,7 @@
 ---
 title: 前言
 icon: /assets/icon/eye.svg
+description: 一只猫娘机器人的来路：2021 年起念，2022 年诞生，免费公益运营至今。
 pageview: true
 copyright: false
 footer: Neko docs - 前言

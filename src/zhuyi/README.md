@@ -50,3 +50,11 @@ footer: Neko docs - 注意事项
   link: faq
   background: rgba(248, 248, 255, 0.3)
   ```
+
+  ```component VPCard
+  title: 二创与同人
+  desc: 画她、写她之前，先看这一页
+  logo: /assets/icon/wand-sparkles.svg
+  link: erchuang
+  background: rgba(248, 248, 255, 0.3)
+  ```

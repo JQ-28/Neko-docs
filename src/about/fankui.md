@@ -1,6 +1,7 @@
 ---
 title: 反馈
 icon: /assets/icon/share.svg
+description: 遇到问题或有想法，从喵喵信箱、QQ 或反馈页告诉我们。
 sticky: true
 copyright: false
 footer: Neko docs - 反馈​

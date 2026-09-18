@@ -1,6 +1,7 @@
 ---
 title: QQBot 用户条款
 icon: /assets/icon/file.svg
+description: 使用 neko 前请先读：行为规范、数据说明、免责声明与变更方式。
 order: 2
 author: JQ-28
 date: 2026-09-14
@@ -15,6 +16,10 @@ copyright: false
 # QQBot 用户条款
 
 **版本生效日期：2026 年 9 月 14 日**
+
+:::tip 一句话版本
+别刷指令、别把她拉进学校群或工作群、别拿她发违法内容。其余细节都在下面。
+:::
 
 :::danger ⚠ 重要声明
 使用本 Bot 即表示您已阅读并同意以下所有条款！

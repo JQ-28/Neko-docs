@@ -1,6 +1,7 @@
 ---
 title: ღ小猫窝地下室ღ
 icon: http://p.qlogo.cn/gh/1061878042/1061878042/
+description: 小猫窝地下室：2026 年 4 月启用的楼下空间，也是现在大家聊天的地方。
 order: 2
 author: JQ-28
 sticky: true

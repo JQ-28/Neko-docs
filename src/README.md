@@ -2,6 +2,7 @@
 home: true
 icon: /assets/icon/house.svg
 title: 主页
+description: 一只免费公益的猫娘 QQ 群机器人，签到、抽卡、查数据、陪你聊天都会。
 heroImage: https://drive.nekodayo.top/raw/nekodocs/image/neko_v2.png
 heroImageDark: https://drive.nekodayo.top/raw/nekodocs/image/nekosleep.gif
 bgImage: https://drive.nekodayo.top/raw/nekodocs/image/bg.webp
@@ -10,7 +11,7 @@ heroFullScreen: true
 bgImageStyle:
   background-attachment: fixed
 heroText: Neko_dayo~
-tagline: 一个可爱的超多功能QQ群机器人。
+tagline: 一只免费公益的猫娘 QQ 群机器人，签到、抽卡、查数据、陪你聊天都会。
 actions:
   - text: 查看说明
     icon: https://drive.nekodayo.top/raw/nekodocs/image/lightbulb.png

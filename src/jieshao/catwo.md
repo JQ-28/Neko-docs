@@ -1,6 +1,7 @@
 ---
 title: ღ互联网小猫窝ღ
 icon: http://p.qlogo.cn/gh/806446119/806446119/
+description: 互联网小猫窝：2022 年 5 月盖起来的群，现在的入口在小猫窝地下室。
 order: 1
 author: JQ-28
 sticky: true

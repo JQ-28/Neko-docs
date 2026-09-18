@@ -1,6 +1,7 @@
 ---
 title: 开发人员
 icon: /assets/icon/code.svg
+description: neko 背后的开发者是谁，以及怎么联系。
 sticky: true
 copyright: false
 footer: Neko docs - 开发人员

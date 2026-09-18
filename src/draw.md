@@ -1,6 +1,7 @@
 ---
 title: 画廊
 icon: /assets/icon/image.svg
+description: neko 从 2022 年借来的那张脸，到今天的每一张立绘、头像和表情包。
 pageview: true
 copyright: false
 footer: 教我画画
@@ -14,6 +15,10 @@ footer: 教我画画
     <span style="font-size: 14px; color: #999;">均出自 JQ 之手</span>
   </p>
 </div>
+
+:::tip 想画她？
+欢迎。画、写、剪、做成表情包都行，不用来问我。具体规矩见 [二创与同人](/zhuyi/erchuang)。
+:::
 
 ## 时光机
 
