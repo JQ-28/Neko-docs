@@ -4,6 +4,7 @@
   "version": "2.0.0",
   "license": "MIT",
   "type": "module",
+  "packageManager": "npm@10.9.2",
   "scripts": {
     "sync": "node neko-shared/sync.mjs && node scripts/build-command-catalog.mjs",
     "lint:lines": "node scripts/check-lines.mjs",
