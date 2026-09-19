@@ -1,7 +1,7 @@
 ---
 command: "#三角洲帮助"
 title: 三角洲行动
-icon: https://drive.nekodayo.top/raw/nekodocs/image/Delta Force.webp
+icon: https://assets.nekodayo.top/nekodocs/image/Delta Force.webp
 sticky: true
 category:
   - 指令列表

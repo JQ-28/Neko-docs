@@ -72,7 +72,7 @@ commandOrder: 27
 ### **支持的指令**
 - **抽象话**
 >**抽象话 测试一下**  
-![](https://drive.nekodayo.top/raw/nekodocs/image/cxh.png)
+![](https://assets.nekodayo.top/nekodocs/image/cxh.png)
 
 - **火星文**
 >**火星文 测试一下**  
@@ -82,7 +82,7 @@ commandOrder: 27
 
 - **蚂蚁文**
 >**蚂蚁文 测试一下**  
-![](https://drive.nekodayo.top/raw/nekodocs/image/myw.png)
+![](https://assets.nekodayo.top/nekodocs/image/myw.png)
 
 - **翻转文字（仅支持英文）**
 >**翻转文字 test**  
@@ -92,7 +92,7 @@ commandOrder: 27
 
 - **故障文字**
 >**故障文字 测试一下**  
-![](https://drive.nekodayo.top/raw/nekodocs/image/gzwz.png)
+![](https://assets.nekodayo.top/nekodocs/image/gzwz.png)
 
 - **古文码**
 >**古文码 测试一下**  
@@ -108,7 +108,7 @@ commandOrder: 27
 
 - **符号码**
 >**符号码 测试一下**  
-![](https://drive.nekodayo.top/raw/nekodocs/image/fhm.png)
+![](https://assets.nekodayo.top/nekodocs/image/fhm.png)
 
 
 - **拼音码**
@@ -118,7 +118,7 @@ commandOrder: 27
 ```
 
 - **还原符号码 / 解码符号码**
->![](https://drive.nekodayo.top/raw/nekodocs/image/fhm1.png)  
+>![](https://assets.nekodayo.top/nekodocs/image/fhm1.png)  
 ```bash
 测试一下
 ```

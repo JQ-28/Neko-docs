@@ -2,7 +2,7 @@
 command: "疯狂星期四"
 title: 🍗疯狂星期四🍗
 index: false
-icon: https://drive.nekodayo.top/raw/nekodocs/image/KFC.jpg
+icon: https://assets.nekodayo.top/nekodocs/image/KFC.jpg
 category:
   - 疯狂星期四
 tag:

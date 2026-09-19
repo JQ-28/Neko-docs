@@ -37,11 +37,11 @@ Neko 住在 JQ 的自用笔记本上，挂在家里运行 —— 电费、网费
 
 <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
   <div style="text-align: center;">
-    <img src="https://drive.nekodayo.top/raw/nekodocs/image/nekom.jpg" alt="微信赞助码" width="280">
+    <img src="https://assets.nekodayo.top/nekodocs/image/nekom.jpg" alt="微信赞助码" width="280">
     <p style="color: #666; margin-top: 10px;">微信赞助码</p>
   </div>
   <div style="text-align: center;">
-    <img src="https://drive.nekodayo.top/raw/nekodocs/image/jqwx.png" alt="JQ 微信" width="280">
+    <img src="https://assets.nekodayo.top/nekodocs/image/jqwx.png" alt="JQ 微信" width="280">
     <p style="color: #666; margin-top: 10px;">JQ 的微信</p>
   </div>
 </div>
@@ -52,11 +52,11 @@ Neko 住在 JQ 的自用笔记本上，挂在家里运行 —— 电费、网费
 
 <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
   <div style="text-align: center;">
-    <img src="https://drive.nekodayo.top/raw/nekodocs/image/nekoqq.png" alt="QQ 赞助码" width="240">
+    <img src="https://assets.nekodayo.top/nekodocs/image/nekoqq.png" alt="QQ 赞助码" width="240">
     <p style="color: #666; margin-top: 10px;">QQ 赞助码</p>
   </div>
   <div style="text-align: center;">
-    <img src="https://drive.nekodayo.top/raw/nekodocs/image/jqqq.png" alt="JQ QQ" width="240">
+    <img src="https://assets.nekodayo.top/nekodocs/image/jqqq.png" alt="JQ QQ" width="240">
     <p style="color: #666; margin-top: 10px;">JQ 的 QQ</p>
   </div>
 </div>
@@ -66,14 +66,14 @@ Neko 住在 JQ 的自用笔记本上，挂在家里运行 —— 电费、网费
 @tab  支付宝
 
 <div style="text-align: center;">
-  <img src="https://drive.nekodayo.top/raw/nekodocs/image/jqzfb.jpg" alt="支付宝赞助码" width="300">
+  <img src="https://assets.nekodayo.top/nekodocs/image/jqzfb.jpg" alt="支付宝赞助码" width="300">
   <p style="color: #666; margin-top: 10px;">扫码使用支付宝赞助</p>
 </div>
 
 @tab  爱发电
 
 <div style="text-align: center;">
-  <img src="https://drive.nekodayo.top/raw/nekodocs/image/afd.jpg" alt="爱发电" width="300">
+  <img src="https://assets.nekodayo.top/nekodocs/image/afd.jpg" alt="爱发电" width="300">
   <p style="color: #666; margin-top: 10px;">扫码或点击下方按钮前往爱发电</p>
   
   <a href="https://afdian.com/a/nekodayo0228" target="_blank" style="display: inline-block; margin-top: 20px; padding: 12px 30px; background: linear-gradient(135deg, #946ce6 0%, #7c5ac3 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; box-shadow: 0 4px 15px rgba(124, 90, 195, 0.3); transition: all 0.3s;">
@@ -94,7 +94,7 @@ Neko 住在 JQ 的自用笔记本上，挂在家里运行 —— 电费、网费
 - [X] **进入感谢名单** - 你的名字会出现在 [感谢名单](/thankU) 页面
 - [X] **获得专属称号** - 在群内获得特殊身份标识（可选）
 - [X] **优先处理** - 你的功能建议和反馈会优先处理
-- [X] **神秘福利** - 据说赞助的人有 [Neko 色图](https://drive.nekodayo.top/raw/nekodocs/video/nibeipianle.mp4) 看？！ 👀
+- [X] **神秘福利** - 据说赞助的人有 [Neko 色图](https://assets.nekodayo.top/nekodocs/video/nibeipianle.mp4) 看？！ 👀
 
 :::danger 🔞 警告
 点击上面的链接查看神秘福利（bushi）

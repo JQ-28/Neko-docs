@@ -1,7 +1,7 @@
 ---
 command: "#p (rks|pgr|b30)"
 title: Phigros
-icon: https://drive.nekodayo.top/raw/nekodocs/image/pgr.webp
+icon: https://assets.nekodayo.top/nekodocs/image/pgr.webp
 sticky: true
 category:
   - Phi

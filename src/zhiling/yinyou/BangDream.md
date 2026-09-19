@@ -1,6 +1,6 @@
 ---
 title: BangDream
-icon: https://drive.nekodayo.top/raw/nekodocs/image/BangDream.png
+icon: https://assets.nekodayo.top/nekodocs/image/BangDream.png
 sticky: true
 category:
   - Bang Dream!

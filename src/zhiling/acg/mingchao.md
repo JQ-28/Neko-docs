@@ -1,7 +1,7 @@
 ---
 command: "~登录"
 title: 鸣潮
-icon: https://drive.nekodayo.top/raw/nekodocs/image/mc.jpg
+icon: https://assets.nekodayo.top/nekodocs/image/mc.jpg
 sticky: true
 category:
   - 指令列表

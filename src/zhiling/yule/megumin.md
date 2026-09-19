@@ -2,7 +2,7 @@
 command: "爆裂魔法"
 title: 为美好群聊献上爆炎
 index: false
-icon: https://drive.nekodayo.top/raw/nekodocs/image/megumin.png
+icon: https://assets.nekodayo.top/nekodocs/image/megumin.png
 category:
   - 爆裂魔法
 tag:

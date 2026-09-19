@@ -1,7 +1,7 @@
 ---
 command: "#星铁帮助"
 title: 崩坏：星穹铁道
-icon: https://drive.nekodayo.top/raw/nekodocs/image/sr.jpg
+icon: https://assets.nekodayo.top/nekodocs/image/sr.jpg
 sticky: true
 category:
   - 指令列表

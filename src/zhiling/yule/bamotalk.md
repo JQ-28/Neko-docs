@@ -2,7 +2,7 @@
 command: "motalk"
 title: 蔚蓝档案对话图
 index: false
-icon: https://drive.nekodayo.top/raw/nekodocs/image/ba.webp
+icon: https://assets.nekodayo.top/nekodocs/image/ba.webp
 category:
   - momotalk
 tag:

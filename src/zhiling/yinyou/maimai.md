@@ -1,7 +1,7 @@
 ---
 command: "更新b50"
 title: maimaiDX
-icon: https://drive.nekodayo.top/raw/nekodocs/image/maimai.webp
+icon: https://assets.nekodayo.top/nekodocs/image/maimai.webp
 sticky: true
 category:
   - maimaiDX
@@ -52,7 +52,7 @@ commandOrder: 69
 :::
 
 ## **指令**
-![](https://drive.nekodayo.top/raw/nekodocs/image/maimaidxhelp.png)
+![](https://assets.nekodayo.top/nekodocs/image/maimaidxhelp.png)
 
 
 # **更新b50**

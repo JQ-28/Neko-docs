@@ -24,7 +24,7 @@ footer: Neko docs - 反馈​
 **示例：**
 
 <QQChat title="喵喵信箱">
-  <QQMessage align="left" avatar="https://drive.nekodayo.top/raw/nekodocs/image/neko11.jpg">
+  <QQMessage align="left" avatar="https://assets.nekodayo.top/nekodocs/image/neko11.jpg">
     <div>#投信 建议 JQ cos neko</div>
   </QQMessage>
   

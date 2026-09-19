@@ -1,7 +1,7 @@
 ---
 command: "#面板帮助"
 title: 原神
-icon: https://drive.nekodayo.top/raw/nekodocs/image/genshin.webp
+icon: https://assets.nekodayo.top/nekodocs/image/genshin.webp
 sticky: true
 category:
   - 指令列表
@@ -34,7 +34,7 @@ commandOrder: 54
 ---
 
 ## **主要功能如下**  
-![](https://drive.nekodayo.top/raw/nekodocs/image/genshinhelp.jpg)
+![](https://assets.nekodayo.top/nekodocs/image/genshinhelp.jpg)
 
 ---
 
@@ -132,7 +132,7 @@ commandOrder: 54
   <QQImage 
     align="left" 
     avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640"
-    src="https://drive.nekodayo.top/raw/nekodocs/image/BABABOIQRCODE.png"
+    src="https://assets.nekodayo.top/nekodocs/image/BABABOIQRCODE.png"
     alt="神秘二维码"
   />
 
@@ -157,7 +157,7 @@ commandOrder: 54
   <QQImage 
     align="left" 
     avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640"
-    src="https://drive.nekodayo.top/raw/nekodocs/image/gxmb.jpg"
+    src="https://assets.nekodayo.top/nekodocs/image/gxmb.jpg"
     alt="#更新面板"
   />
   

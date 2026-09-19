@@ -155,7 +155,7 @@ export const DIALOG_EGGS = [
 
 /* 表情 id → 图床原始文件名；两端共用同一套 id，功能站本地没有的图回落到这里 */
 export const EMOTE_BASE =
-  'https://drive.nekodayo.top/raw/assets/nekodocs/neko%E8%A1%A8%E6%83%85%E5%8C%85/';
+  'https://assets.nekodayo.top/assets/nekodocs/neko%E8%A1%A8%E6%83%85%E5%8C%85/';
 
 export const EMOTE_FILES = {
   cry: 'neko_哭 1.gif',

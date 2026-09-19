@@ -48,7 +48,7 @@ background: rgba(248, 248, 255, 0.3)
 ```component VPCard
 title: 蔚蓝档案对话图
 desc: 生成蔚蓝档案momotalk对话图
-logo: https://drive.nekodayo.top/raw/nekodocs/image/ba.webp
+logo: https://assets.nekodayo.top/nekodocs/image/ba.webp
 link: bamotalk
 background: rgba(248, 248, 255, 0.3)
 ```
@@ -70,7 +70,7 @@ background: rgba(248, 248, 255, 0.3)
 ```component VPCard
 title: 🍗疯狂星期四🍗
 desc: 天天疯狂！随机输出KFC疯狂星期四文案。
-logo: https://drive.nekodayo.top/raw/nekodocs/image/KFC.jpg
+logo: https://assets.nekodayo.top/nekodocs/image/KFC.jpg
 link: KFCcrazythursdayvme50
 background: rgba(248, 248, 255, 0.3)
 ```
@@ -124,7 +124,7 @@ background: rgba(248, 248, 255, 0.3)
 ```component VPCard
 title: 签到
 desc: 经典老功能
-logo: https://drive.nekodayo.top/raw/nekodocs/image/100.png
+logo: https://assets.nekodayo.top/nekodocs/image/100.png
 link: qiandao
 background: rgba(248, 248, 255, 0.3)
 ```
@@ -220,7 +220,7 @@ background: rgba(248, 248, 255, 0.3)
 ```component VPCard
 title: 恶臭数字论证器
 desc: 逸一时 误一世 逸久逸久罢已龄
-logo: https://drive.nekodayo.top/raw/nekodocs/image/homo.jpg
+logo: https://assets.nekodayo.top/nekodocs/image/homo.jpg
 link: homo
 background: rgba(248, 248, 255, 0.3)
 ```
@@ -228,7 +228,7 @@ background: rgba(248, 248, 255, 0.3)
 ```component VPCard
 title: ATRI语音包
 desc: ATRI真可爱
-logo: https://drive.nekodayo.top/raw/nekodocs/image/Atri.webp
+logo: https://assets.nekodayo.top/nekodocs/image/Atri.webp
 link: Atri
 background: rgba(248, 248, 255, 0.3)
 ```
@@ -245,7 +245,7 @@ background: rgba(248, 248, 255, 0.3)
 ```component VPCard
 title: 爆裂魔法！
 desc: ✨ 为美好群聊献上爆炎 ✨
-logo: https://drive.nekodayo.top/raw/nekodocs/image/megumin.png
+logo: https://assets.nekodayo.top/nekodocs/image/megumin.png
 link: megumin
 background: rgba(248, 248, 255, 0.3)
 ```

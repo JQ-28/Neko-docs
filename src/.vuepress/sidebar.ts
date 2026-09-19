@@ -89,7 +89,7 @@ export default sidebar({
           children: [
             {
               text: "Arcaea",
-              icon: "https://drive.nekodayo.top/raw/nekodocs/image/arc.jpg",
+              icon: "https://assets.nekodayo.top/nekodocs/image/arc.jpg",
               prefix: "arc/",
               link: "arc/",
               collapsible: true,
@@ -99,7 +99,7 @@ export default sidebar({
             },
             {
               text: "Project Sekai",
-              icon: "https://drive.nekodayo.top/raw/nekodocs/image/pjsk.jpg",
+              icon: "https://assets.nekodayo.top/nekodocs/image/pjsk.jpg",
               prefix: "pjsk/",
               link: "pjsk/",
               collapsible: true,

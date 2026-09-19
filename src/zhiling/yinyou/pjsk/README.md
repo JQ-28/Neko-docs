@@ -1,6 +1,6 @@
 ---
 title: Project Sekai
-icon: https://drive.nekodayo.top/raw/nekodocs/image/pjsk.jpg
+icon: https://assets.nekodayo.top/nekodocs/image/pjsk.jpg
 sticky: true
 category:
   - pjsk
@@ -19,7 +19,7 @@ footer: 一緒に歌おう！
   ```component VPCard
   title: Harukibot
   desc: 主要提供pjsk相关查询服务
-  logo: https://drive.nekodayo.top/raw/nekodocs/image/pjsk.jpg
+  logo: https://assets.nekodayo.top/nekodocs/image/pjsk.jpg
   link: haruki
   background: rgba(248, 248, 255, 0.3)
   ```
@@ -27,7 +27,7 @@ footer: 一緒に歌おう！
   ```component VPCard
   title: ✨pjsk表情包制作✨
   desc: 什么时候禁止男的发这种表情包
-  logo: https://drive.nekodayo.top/raw/nekodocs/image/wonderhoy.png
+  logo: https://assets.nekodayo.top/nekodocs/image/wonderhoy.png
   link: pjsk
   background: rgba(248, 248, 255, 0.3)
   ```

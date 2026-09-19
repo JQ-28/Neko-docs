@@ -106,7 +106,7 @@ html.dark .divider-text {
 :::
 
 <QQChat title="如何领养小猫咪?">
-  <QQMessage align="right" avatar="https://drive.nekodayo.top/raw/nekodocs/image/neko11.jpg">
+  <QQMessage align="right" avatar="https://assets.nekodayo.top/nekodocs/image/neko11.jpg">
     <div>我想邀请Neko来我的群聊玩，请问应该怎么弄鸭</div>
   </QQMessage>
   
@@ -114,7 +114,7 @@ html.dark .divider-text {
     <div>填写问卷或者下面的表单都可以喵~审核通过后我会让Neko来加群或者你加Neko好友后发送邀群链接</div>
   </QQMessage>
   
-  <QQMessage align="right" avatar="https://drive.nekodayo.top/raw/nekodocs/image/neko11.jpg">
+  <QQMessage align="right" avatar="https://assets.nekodayo.top/nekodocs/image/neko11.jpg">
     <div>好的好的，在哪里填写呢？</div>
   </QQMessage>
   
@@ -125,7 +125,7 @@ html.dark .divider-text {
   <QQImage 
     align="left" 
     avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=480352716&spec=640"
-    src="https://drive.nekodayo.top/raw/nekodocs/image/poster.webp"
+    src="https://assets.nekodayo.top/nekodocs/image/poster.webp"
     alt="芝士问卷"
   />
 

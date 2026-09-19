@@ -1,7 +1,7 @@
 ---
 command: "bf help"
 title: 战地
-icon: https://drive.nekodayo.top/raw/nekodocs/image/bf.webp
+icon: https://assets.nekodayo.top/nekodocs/image/bf.webp
 sticky: true
 category:
   - 指令列表

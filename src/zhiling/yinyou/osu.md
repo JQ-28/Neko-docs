@@ -1,7 +1,7 @@
 ---
 command: "/osu info"
 title: osu!
-icon: https://drive.nekodayo.top/raw/nekodocs/image/osu.png
+icon: https://assets.nekodayo.top/nekodocs/image/osu.png
 sticky: true
 category:
   - osu
@@ -43,7 +43,7 @@ commandOrder: 68
 
 ## **:tada: 使用**
 **为防止群内聊天误触，本插件所有命令开头为/osu ,例： /osu info**  
-![](https://drive.nekodayo.top/raw/nekodocs/image/osuhelp.png)
+![](https://assets.nekodayo.top/nekodocs/image/osuhelp.png)
 
 :::info 🔐 关于账号绑定
 `/osu bind` 绑定账号后，绑定信息会保存在机器人服务端，仅用于代您查询 osu! 成绩，不会用于其他用途。

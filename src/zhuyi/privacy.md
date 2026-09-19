@@ -127,7 +127,7 @@ copyright: false
 ## ⌗ 数据存在哪
 
 - 结构化的数据放在 **Cloudflare D1**，图片与截图放在 **Cloudflare R2**。
-- 图片和截图通过 `drive.nekodayo.top` 读取，反馈内容通过 `input.nekodayo.top`（喵喵信箱）查看。
+- 图片和截图通过 `assets.nekodayo.top` 读取，反馈内容通过 `input.nekodayo.top`（喵喵信箱）查看。
 - 服务器在境外（Cloudflare 的全球网络），数据可能落在境外机房。
 - 我们使用 Cloudflare 提供的访问控制与密钥管理，挡住没有授权的访问。
 

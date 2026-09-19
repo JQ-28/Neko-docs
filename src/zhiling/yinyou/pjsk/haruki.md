@@ -1,6 +1,6 @@
 ---
 title: Haruki Bot
-icon: https://drive.nekodayo.top/raw/nekodocs/image/mzk.png
+icon: https://assets.nekodayo.top/nekodocs/image/mzk.png
 sticky: true
 category:
   - pjsk

@@ -1,6 +1,6 @@
 ---
 title: Arcaea
-icon: https://drive.nekodayo.top/raw/nekodocs/image/arc.jpg
+icon: https://assets.nekodayo.top/nekodocs/image/arc.jpg
 sticky: true
 category:
   - Arcaea
@@ -18,7 +18,7 @@ footer:
   ```component VPCard
   title: ✨Arcaea表情包制作✨
   desc: 什么时候禁止男的发这种表情包
-  logo: https://drive.nekodayo.top/raw/nekodocs/image/luna.jpg
+  logo: https://assets.nekodayo.top/nekodocs/image/luna.jpg
   link: arc
   background: rgba(248, 248, 255, 0.3)
   ```

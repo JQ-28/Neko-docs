@@ -24,14 +24,14 @@ commandOrder: 26
 > 随缘更新
 
 <QQChat title="表情包仓库">
-  <QQMessage align="right" avatar="https://drive.nekodayo.top/raw/nekodocs/image/neko11.jpg">
+  <QQMessage align="right" avatar="https://assets.nekodayo.top/nekodocs/image/neko11.jpg">
     <div>表情包仓库</div>
   </QQMessage>
   
   <QQImage 
     align="left" 
     avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640"
-    src="https://drive.nekodayo.top/raw/nekodocs/image/bqb.png"
+    src="https://assets.nekodayo.top/nekodocs/image/bqb.png"
     alt="表情包仓库"
   />
 </QQChat>

@@ -2,7 +2,7 @@
 command: "臭数字"
 title: 恶臭数字论证器
 index: false
-icon: https://drive.nekodayo.top/raw/nekodocs/image/homo.jpg
+icon: https://assets.nekodayo.top/nekodocs/image/homo.jpg
 category:
   - 互动娱乐
 tag:
@@ -56,7 +56,7 @@ background: rgba(248, 248, 255, 0.3)
 **指令：** `臭数字 数字` 或 `homonumber 数字`
 
 <QQChat title="恶臭数字论证">
-  <QQMessage align="left" avatar="https://drive.nekodayo.top/raw/nekodocs/image/homo.jpg">
+  <QQMessage align="left" avatar="https://assets.nekodayo.top/nekodocs/image/homo.jpg">
     <div>臭数字 1919810</div>
   </QQMessage>
   
@@ -70,7 +70,7 @@ background: rgba(248, 248, 255, 0.3)
 **指令：** `找规律 数字序列` 或 `lag 数字序列`
 
 <QQChat title="找规律">
-  <QQMessage align="left" avatar="https://drive.nekodayo.top/raw/nekodocs/image/homo.jpg">
+  <QQMessage align="left" avatar="https://assets.nekodayo.top/nekodocs/image/homo.jpg">
     <div>找规律 1 2 3 4 5 6 7 114514 1919810</div>
   </QQMessage>
   

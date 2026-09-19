@@ -1,7 +1,7 @@
 ---
 command: "arc"
 title: ✨Arcaea表情包制作✨
-icon: https://drive.nekodayo.top/raw/nekodocs/image/luna.jpg
+icon: https://assets.nekodayo.top/nekodocs/image/luna.jpg
 sticky: true
 category:
   - arc
@@ -66,24 +66,24 @@ commandOrder: 72
 arc luna coming!coming!   # 基础用法
 ```
 
-![](https://drive.nekodayo.top/raw/nekodocs/image/lunacoming.png =231x200)
+![](https://assets.nekodayo.top/nekodocs/image/lunacoming.png =231x200)
 
 ```
 arc hikari "你看我\n有五根手指"   # 多行文字
 ```
-![](https://drive.nekodayo.top/raw/nekodocs/image/hikari.png =231x200)
+![](https://assets.nekodayo.top/nekodocs/image/hikari.png =231x200)
 
 ```
 arc 17 喜欢... -x 150 -y 85 -r -10  # 调整位置和角度
 ```
-![](https://drive.nekodayo.top/raw/nekodocs/image/shirahime.png =231x200)
+![](https://assets.nekodayo.top/nekodocs/image/shirahime.png =231x200)
 
 ```
 arc nami 龙笔! -c ff0000 # 自定义红色文字
 ```
-![](https://drive.nekodayo.top/raw/nekodocs/image/nami.png =231x200)
+![](https://assets.nekodayo.top/nekodocs/image/nami.png =231x200)
 
 ```
 arc eto "Ciallo～(∠・ω<)⌒☆" -s 30 -c #fdae92 -r -28 -x 120 -y 80  # 组合多个参数
 ```
-![](https://drive.nekodayo.top/raw/nekodocs/image/eto.png =231x200)
+![](https://assets.nekodayo.top/nekodocs/image/eto.png =231x200)

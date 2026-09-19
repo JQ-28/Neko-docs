@@ -15,9 +15,9 @@ export default hopeTheme({
 
   favicon: "/assets/image/neko.webp",
 
-  logo: "https://drive.nekodayo.top/raw/nekodocs/image/neko.webp",
+  logo: "https://assets.nekodayo.top/nekodocs/image/neko.webp",
 
-  logoDark: "https://drive.nekodayo.top/raw/nekodocs/image/nekosleep.webp",
+  logoDark: "https://assets.nekodayo.top/nekodocs/image/nekosleep.webp",
 
   docsDir: "src",
 

@@ -2,7 +2,7 @@
 command: "Atri真可爱"
 title: ATRI语音包
 index: false
-icon: https://drive.nekodayo.top/raw/nekodocs/image/Atri.webp
+icon: https://assets.nekodayo.top/nekodocs/image/Atri.webp
 category:
   - ATRI
 tag:

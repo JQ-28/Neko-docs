@@ -66,7 +66,7 @@ footer: Neko docs - 实用系列
  ```component VPCard
   title: 音乐点歌
   desc: This is the true music
-  logo: https://drive.nekodayo.top/raw/nekodocs/image/wyy.png
+  logo: https://assets.nekodayo.top/nekodocs/image/wyy.png
   link: music
   background: rgba(248, 248, 255, 0.3)
   ```

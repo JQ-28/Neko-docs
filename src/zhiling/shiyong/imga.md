@@ -53,7 +53,7 @@ commandOrder: 44
 编辑消息`/去背景[待去除背景的图片]或/rm_bg[待去除背景的图片]`发送即可。  
 bot返回内容：
 
-![功能演示](https://drive.nekodayo.top/raw/nekodocs/image/imga.webp =300x300)
+![功能演示](https://assets.nekodayo.top/nekodocs/image/imga.webp =300x300)
 
 #### 3、回复图片+命令
 回复需要处理的图片，然后追加命令`/去背景`或`/rm_bg`发送即可。

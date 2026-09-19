@@ -183,10 +183,6 @@ html.dark .timeline-images :deep(.img-wrapper:hover) {
   transition: all 0.3s ease;
 }
 
-.timeline-images :deep(.img-wrapper:hover img) {
-  filter: brightness(0.9);
-}
-
 /* 图片描述浮层 */
 .timeline-images :deep(.img-overlay) {
   position: absolute;

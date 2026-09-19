@@ -1,7 +1,7 @@
 ---
 command: "#cs 开箱"
 title: CSGO
-icon: https://drive.nekodayo.top/raw/nekodocs/image/csgo.png
+icon: https://assets.nekodayo.top/nekodocs/image/csgo.png
 sticky: true
 category:
   - 指令列表

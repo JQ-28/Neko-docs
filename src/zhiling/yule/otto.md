@@ -40,21 +40,21 @@ commandOrder: 20
 ## ♿ 电棍活字印刷 ♿
 
 <QQChat title="卧槽！冰！">
-  <QQMessage align="left" avatar="https://drive.nekodayo.top/raw/nekodocs/image/sddl.gif">
+  <QQMessage align="left" avatar="https://assets.nekodayo.top/nekodocs/image/sddl.gif">
     <div>这~个怎 么~玩~鸭！</div>
   </QQMessage>
   
-  <QQMessage align="right" avatar="https://drive.nekodayo.top/raw/nekodocs/image/sddl.gif">
+  <QQMessage align="right" avatar="https://assets.nekodayo.top/nekodocs/image/sddl.gif">
     <div>直~接 使 用~指令！hzys -h  查看~帮~助！</div>
   </QQMessage>
   
-  <QQMessage align="right" avatar="https://drive.nekodayo.top/raw/nekodocs/image/sddl.gif">
+  <QQMessage align="right" avatar="https://assets.nekodayo.top/nekodocs/image/sddl.gif">
     <div>hzys 哇袄</div>
   </QQMessage>
   
   <QQMessage align="left" avatar="http://q2.qlogo.cn/headimg_dl?dst_uin=3582537505&spec=640">
     <QQVoice 
-      src="https://drive.nekodayo.top/raw/nekodocs/audio/wao.mp3" 
+      src="https://assets.nekodayo.top/nekodocs/audio/wao.mp3" 
       duration="1"
     />
   </QQMessage>

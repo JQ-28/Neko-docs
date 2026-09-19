@@ -1,7 +1,7 @@
 ---
 command: "BS绑定"
 title: Beat Saber
-icon: https://drive.nekodayo.top/raw/nekodocs/image/Beat_Saber_Logo.png
+icon: https://assets.nekodayo.top/nekodocs/image/Beat_Saber_Logo.png
 sticky: true
 category:
   - Beat Saber
@@ -86,7 +86,7 @@ commandOrder: 71
 ***Song计算准度***  
 ` 谱面计算 `+ 歌曲id + 难度 + 需要的准度(歌曲id/难度/需要的准度顺序可以打乱)  
 举个例子:  
-![](https://drive.nekodayo.top/raw/nekodocs/image/calculation_example.png)
+![](https://assets.nekodayo.top/nekodocs/image/calculation_example.png)
 **注意**  
 此功能尚未完善,miss Note数仅供看着玩(),但我能确保需求分数是准确的
 
@@ -94,7 +94,7 @@ commandOrder: 71
 
  在登入` beatleader.xyz `后打开个人信息
  
-![](https://drive.nekodayo.top/raw/nekodocs/image/explanation.png)
+![](https://assets.nekodayo.top/nekodocs/image/explanation.png)
  
  这个就是你的` SteamID `辣(即使ID不是纯数字也是可以用的)
 
