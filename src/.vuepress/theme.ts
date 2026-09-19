@@ -49,10 +49,13 @@ export default hopeTheme({
 
   // Markdown 能力（主题 rc.100 起从 plugins 挪到了顶层 markdown）
   markdown: {
-    // 图片：图注、懒加载、尺寸标记；点击放大由主题内置的 photoSwipe 负责
+    // 图片：图注、懒加载；点击放大由主题内置的 photoSwipe 负责
     figure: true,
     imgLazyload: true,
+    // 尺寸两种写法都开：站内现用的是 `![alt](url =15x15)`（theme-hope 里叫 legacyImgSize，上游已标废弃），
+    // 新写法是 `![alt =15x15](url)`。等正文都迁到新写法，前一条就能去掉
     imgSize: true,
+    legacyImgSize: true,
 
     // 站内互链改路径后容易静默 404，构建时扫一遍；dev 关掉，免得每次热更新都扫
     linksCheck: {
