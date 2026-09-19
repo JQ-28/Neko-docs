@@ -11,8 +11,6 @@ export default hopeTheme({
     url: "https://qm.qq.com/q/fadFl22av6",
   },
 
-  iconAssets: "fontawesome-with-brands",
-
   favicon: "/assets/image/neko.webp",
 
   logo: "https://assets.nekodayo.top/nekodocs/image/neko.webp",
@@ -49,11 +47,55 @@ export default hopeTheme({
 
   
 
+  // Markdown 能力（主题 rc.100 起从 plugins 挪到了顶层 markdown）
+  markdown: {
+    // 图片：图注、懒加载、尺寸标记；点击放大由主题内置的 photoSwipe 负责
+    figure: true,
+    imgLazyload: true,
+    imgSize: true,
+
+    // 站内互链改路径后容易静默 404，构建时扫一遍；dev 关掉，免得每次热更新都扫
+    linksCheck: {
+      dev: false,
+      build: true,
+    },
+
+    align: true,
+    attrs: true,
+    component: true,
+    demo: true,
+    include: true,
+    mark: true,
+    plantuml: true,
+    spoiler: true,
+    sub: true,
+    sup: true,
+    tabs: true,
+    codeTabs: true,
+    tasklist: true,
+    vPre: true,
+
+    // 启用前先安装对应依赖
+    // chart: true,          // chart.js
+    // echarts: true,        // echarts
+    // flowchart: true,      // flowchart.ts
+    // mermaid: true,        // mermaid
+    // math: { type: "katex" },
+    // playground: { presets: ["ts", "vue"] },
+    // vuePlayground: true,
+    // sandpack: true,
+  },
+
   // 如果想要实时查看任何改变，启用它。注: 这对更新性能有很大负面影响
   // hotReload: true,
 
   // 在这里配置主题提供的插件
   plugins: {
+    // 图标（rc.100 起从顶层 iconAssets 挪到这里）
+    icon: {
+      assets: "fontawesome-with-brands",
+    },
+
     // 注意: 仅用于测试! 你必须自行生成并在生产环境中使用自己的评论服务
     comment: {
         provider: "Waline",
@@ -74,8 +116,9 @@ export default hopeTheme({
     // },
 
     // 通知公告由 AnnouncementPopup 组件实现（notice 插件仅支持同时展示一条）
-    // 搜索
-    searchPro: {
+
+    // 搜索（search-pro 已被官方标记废弃，改用 slimsearch）
+    slimsearch: {
       locales: {
         '/': {
           placeholder: '搜索',
@@ -85,79 +128,6 @@ export default hopeTheme({
 
     components: {
       components: ["Badge", "VPCard"],
-    },
-
-    // 此处开启了很多功能用于演示，你应仅保留用到的功能。
-    markdownImage: {
-      figure: true,
-      lazyload: true,
-      size: true,
-    },
-
-    // markdownMath: {
-    //   // 启用前安装 katex
-    //   type: "katex",
-    //   // 或者安装 mathjax-full
-    //   type: "mathjax",
-    // },
-
-    // 此功能被开启用于演示，你应仅当使用时保留。
-    markdownTab: true,
-
-    // 此处开启了很多功能用于演示，你应仅保留用到的功能。
-    mdEnhance: {
-      align: true,
-      attrs: true,
-      component: true,
-      demo: true,
-      include: true,
-      mark: true,
-      plantuml: true,
-      spoiler: true,
-      stylize: [
-        {
-          matcher: "Recommended",
-          replacer: ({ tag }) => {
-            if (tag === "em")
-              return {
-                tag: "Badge",
-                attrs: { type: "tip" },
-                content: "Recommended",
-              };
-          },
-        },
-      ],
-      sub: true,
-      sup: true,
-      tasklist: true,
-      vPre: true,
-
-      // 在启用之前安装 chart.js
-      // chart: true,
-
-      // insert component easily
-
-      // 在启用之前安装 echarts
-      // echarts: true,
-
-      // 在启用之前安装 flowchart.ts
-      // flowchart: true,
-
-      // gfm requires mathjax-full to provide tex support
-      // gfm: true,
-
-      // 在启用之前安装 mermaid
-      // mermaid: true,
-
-      // playground: {
-      //   presets: ["ts", "vue"],
-      // },
-
-      // 在启用之前安装 @vue/repl
-      // vuePlayground: true,
-
-      // install sandpack-vue3 before enabling it
-      // sandpack: true,
     },
 
     // PWA 支持

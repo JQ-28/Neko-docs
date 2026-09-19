@@ -6,6 +6,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import theme from "./theme.js";
 
 import { removeHtmlExtensionPlugin } from 'vuepress-plugin-remove-html-extension'
+import { llmsPlugin } from "@vuepress/plugin-llms"
 
 const __dirname = getDirname(import.meta.url);
 
@@ -195,8 +196,14 @@ export default defineUserConfig({
   },
 
   plugins: [
-    removeHtmlExtensionPlugin()
-    //  ...other plugins
+    removeHtmlExtensionPlugin(),
+    // 构建时产出 llms.txt / llms-full.txt 与每页的纯 Markdown 版，
+    // 让 AI 直接读到「Neko 是什么、怎么用」，不用去扒 HTML
+    llmsPlugin({
+      domain: SITE_URL,
+      // 默认模板会塞一句英文的 alternateLinks，夹在中文里很突兀，去掉
+      llmsTxtTemplate: "# {title}\n\n{description}\n\n## Table of Contents\n\n{toc}",
+    }),
   ],
   head: [
     ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
